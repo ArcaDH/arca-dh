@@ -1,3 +1,3 @@
 export default function PlansPage() {
-  return <div>Plans</div>;
+  return <div>Budget Plans</div>;
 }
