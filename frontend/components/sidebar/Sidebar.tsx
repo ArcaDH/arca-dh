@@ -5,6 +5,8 @@ import {
   ClipboardList,
   PanelLeftClose,
   PanelLeftOpen,
+  Home,
+  Goal,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -18,8 +20,10 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  { href: "/", label: "Overview", icon: Home},
   { href: "/plans", label: "Plans", icon: ClipboardList },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/goals", label: "Savings goals", icon: Goal }
 ];
 
 export default function Sidebar() {
@@ -80,8 +84,8 @@ export default function Sidebar() {
                 >
                   <Icon
                     size={18}
-                    strokeWidth={1.5}
-                    className="shrink-0"
+                    strokeWidth={2}
+                    className={isActive ? "shrink-0 text-primary" : "shrink-0"}
                     aria-hidden
                   />
                   <span className={collapsed ? "sr-only" : undefined}>
