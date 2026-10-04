@@ -6,6 +6,7 @@ This documentation explains how to use available methods to verify a user's auth
 
 To validate the bearer token passed in request headers, use the `authorizeRequest` function located in `src/services/apiService.ts`.
 This function verifies that:
+
 - The token is present in the request header.
 - The token is valid and signed by our API.
 

@@ -1,14 +1,14 @@
-import express from "express"
-import bodyParser from "body-parser"
-import * as dotenv from "dotenv"
+import express from "express";
+import bodyParser from "body-parser";
+import * as dotenv from "dotenv";
 import UserRoute from "./routes/users";
-import {setupSwagger} from "./swagger";
-import {exceptionMiddleware} from "./services/apiService";
+import { setupSwagger } from "./swagger";
+import { exceptionMiddleware } from "./services/apiService";
 
-dotenv.config()
+dotenv.config();
 
 if (!process.env.PORT) {
-    console.log(`No port value specified...`)
+  console.log(`No port value specified...`);
 }
 
 // To add example values in your postgresql db, uncomment the lines below
@@ -16,13 +16,15 @@ if (!process.env.PORT) {
 // import {db} from "./db/index";
 // dbMock(db);
 
-const PORT = parseInt(process.env.PORT as string, 10)
+const PORT = parseInt(process.env.PORT as string, 10);
 
 const app = express();
 
-app.use(bodyParser.urlencoded({
-    extended: true
-}));
+app.use(
+  bodyParser.urlencoded({
+    extended: true,
+  }),
+);
 
 app.use(express.json());
 // Setup Swagger
@@ -40,8 +42,6 @@ app.use("/users", UserRoute);
 // app.use("/" + staticServerUrl, express.static(storagePath));
 app.use(exceptionMiddleware);
 
-
 app.listen(PORT, () => {
-    console.log(`WorkDeck API running on port ${PORT}`)
-})
-
+  console.log(`WorkDeck API running on port ${PORT}`);
+});

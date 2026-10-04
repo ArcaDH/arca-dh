@@ -20,10 +20,10 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { href: "/", label: "Overview", icon: Home},
+  { href: "/", label: "Overview", icon: Home },
   { href: "/plans", label: "Plans", icon: ClipboardList },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { href: "/goals", label: "Savings goals", icon: Goal }
+  { href: "/goals", label: "Savings goals", icon: Goal },
 ];
 
 export default function Sidebar() {
@@ -42,10 +42,7 @@ export default function Sidebar() {
         }`}
       >
         {!collapsed && (
-          <Link
-            href="/"
-            className="font-heading text-xl font-bold tracking-tight whitespace-nowrap"
-          >
+          <Link href="/" className="font-heading text-xl font-bold tracking-tight whitespace-nowrap">
             Arca
           </Link>
         )}
@@ -67,8 +64,7 @@ export default function Sidebar() {
       <nav className="py-5">
         <ul className="flex flex-col gap-1">
           {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive =
-              pathname === href || pathname.startsWith(`${href}/`);
+            const isActive = pathname === href || pathname.startsWith(`${href}/`);
 
             return (
               <li key={href}>
@@ -88,9 +84,7 @@ export default function Sidebar() {
                     className={isActive ? "shrink-0 text-primary" : "shrink-0"}
                     aria-hidden
                   />
-                  <span className={collapsed ? "sr-only" : undefined}>
-                    {label}
-                  </span>
+                  <span className={collapsed ? "sr-only" : undefined}>{label}</span>
                 </Link>
               </li>
             );

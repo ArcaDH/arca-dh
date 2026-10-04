@@ -39,7 +39,7 @@ Here is how to document a GET route retrieving a user list:
  *                     example: "John Doe"
  */
 router.get("/users", (req, res) => {
-    res.json([{ id: 1, name: "John Doe" }]);
+  res.json([{ id: 1, name: "John Doe" }]);
 });
 ```
 
@@ -82,8 +82,8 @@ For a route creating a new user:
  *                   example: "Jane Doe"
  */
 router.post("/users", (req, res) => {
-    const newUser = { id: 2, name: req.body.name };
-    res.status(201).json(newUser);
+  const newUser = { id: 2, name: req.body.name };
+  res.status(201).json(newUser);
 });
 ```
 
@@ -125,8 +125,8 @@ To document URL path parameters, use the `parameters` key:
  *         description: User not found.
  */
 router.get("/users/:id", (req, res) => {
-    const user = { id: req.params.id, name: "John Doe" };
-    res.json(user);
+  const user = { id: req.params.id, name: "John Doe" };
+  res.json(user);
 });
 ```
 
