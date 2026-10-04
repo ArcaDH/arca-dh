@@ -1,0 +1,70 @@
+# Development stack: hot-reloading backend + frontend with Postgres.
+#
+#   docker compose up              # everything (db, backend, frontend, adminer)
+#   docker compose up backend      # backend (+ db, pulled in via depends_on)
+#   docker compose up frontend     # frontend only
+#
+# Host ports: frontend 3000, backend 3001, adminer 8080, postgres 5433.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  backend:
+    build:
+      context: ./backend
+      target: build # dev runs from source via tsx watch, not the prod runner
+    command: npm run dev
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:test@db:5432/postgres
+      TOKEN_SECRET: dev-secret-change-me
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./backend:/app
+      - backend-node-modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      target: build # dev runs `next dev` from source, not the standalone runner
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+      # Available to the frontend for calling the backend once API calls are added.
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
+  backend-node-modules:
+  frontend-node-modules:
