@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { Express } from "express";
@@ -12,7 +13,7 @@ const options: swaggerJsdoc.Options = {
         },
         servers: [
             {
-                url: "http://localhost:3000", // Change this to match your server URL
+                url: `http://localhost:${process.env.PORT ?? 4000}`,
             },
         ],
         components: {

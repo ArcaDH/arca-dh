@@ -115,10 +115,33 @@ export function emailFromToken(request: Request) : string | undefined
     return decodeToken(token)?.email;
 }
 
+/**
+ * Wraps an async handler so that a rejected promise is forwarded to the exception middleware.
+ * Express 4 does not do this on its own, which leaves the request hanging.
+ * @param handler async route handler
+ */
+export function asyncHandler(handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>)
+{
+    return (request: Request, response: Response, next: NextFunction) =>
+    {
+        handler(request, response, next).catch(next);
+    };
+}
+
 export function exceptionMiddleware(err: any, req: Request, response: Response, next: NextFunction)
 {
+    // The response is already being sent, let express close the connection
+    if (response.headersSent)
+    {
+        return next(err);
+    }
+
     if (err instanceof AppError)
     {
         returnCode(response, err.code, err.message);
+        return;
     }
+
+    console.error(err);
+    returnCode(response, 500);
 }

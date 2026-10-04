@@ -29,12 +29,22 @@ app.use(express.json());
 setupSwagger(app);
 // initializeStorage();
 
-// app.use((req, res, next) => {
-//     res.setHeader('Access-Control-Allow-Origin', '*');
-//     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-//     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-//     next();
-// });
+// CORS: only the frontend origin may call the API from a browser
+const CORS_ORIGIN = process.env.CORS_ORIGIN ?? "http://localhost:3000";
+
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Vary', 'Origin');
+
+    // Answer preflight requests directly
+    if (req.method === 'OPTIONS') {
+        res.sendStatus(204);
+        return;
+    }
+    next();
+});
 
 app.use("/users", UserRoute);
 // app.use("/" + staticServerUrl, express.static(storagePath));
@@ -42,6 +52,6 @@ app.use(exceptionMiddleware);
 
 
 app.listen(PORT, () => {
-    console.log(`WorkDeck API running on port ${PORT}`)
+    console.log(`API running on port ${PORT}`)
 })
 

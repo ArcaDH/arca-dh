@@ -12,11 +12,11 @@ This repository is an API serving the backend service.
 
 `npm run start`
 
-You may need to install an additional package. You can then access the local API on port 3000:
+You may need to install an additional package. You can then access the local API on port 4000:
 
-`http://localhost:3000/`
+`http://localhost:4000/`
 
-To access the Swagger API documentation: `http://localhost:3000/api-docs`
+To access the Swagger API documentation: `http://localhost:4000/api-docs`
 
 ## Drizzle ORM
 

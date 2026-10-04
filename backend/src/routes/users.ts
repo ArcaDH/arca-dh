@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { UserHandler } from "../handlers/users";
+import { asyncHandler } from "../services/apiService";
 
 const router = Router();
 /**
@@ -38,7 +39,7 @@ const router = Router();
  *       400:
  *         description: Invalid data or user already exists.
  */
-router.route('/').post(UserHandler.createUser);
+router.route('/').post(asyncHandler(UserHandler.createUser));
 
 /**
  * @swagger
@@ -69,7 +70,7 @@ router.route('/').post(UserHandler.createUser);
  *       404:
  *         description: Invalid credentials or user not found.
  */
-router.route('/login').post(UserHandler.connectUser);
+router.route('/login').post(asyncHandler(UserHandler.connectUser));
 
 /**
  * @swagger
@@ -144,7 +145,7 @@ router.route('/login').post(UserHandler.connectUser);
  *        '404':
  *          description: User not found
  */
-router.route("/:id([0-9]+)*").patch(UserHandler.patchUser);
+router.route("/:id([0-9]+)*").patch(asyncHandler(UserHandler.patchUser));
 
 /**
  * @swagger
@@ -189,6 +190,6 @@ router.route("/:id([0-9]+)*").patch(UserHandler.patchUser);
  *        '404':
  *          description: User not found
  */
-router.route("/:id([0-9]+)*").get(UserHandler.getUser);
+router.route("/:id([0-9]+)*").get(asyncHandler(UserHandler.getUser));
 
 export default router;
