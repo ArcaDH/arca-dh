@@ -2,9 +2,9 @@ This repository is an API serving the backend service.
 
 # Project Setup
 
-1. Clone the repository 
-2. Copy and paste the *.env.template* file and rename it to *.env*
-3. Fill out the *.env* file with the correct configuration values
+1. Clone the repository
+2. Copy and paste the _.env.template_ file and rename it to _.env_
+3. Fill out the _.env_ file with the correct configuration values
 4. Run the command: `npm install`
 5. Run the command: `npm update`
 

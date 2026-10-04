@@ -38,7 +38,7 @@ const router = Router();
  *       400:
  *         description: Invalid data or user already exists.
  */
-router.route('/').post(UserHandler.createUser);
+router.route("/").post(UserHandler.createUser);
 
 /**
  * @swagger
@@ -69,7 +69,7 @@ router.route('/').post(UserHandler.createUser);
  *       404:
  *         description: Invalid credentials or user not found.
  */
-router.route('/login').post(UserHandler.connectUser);
+router.route("/login").post(UserHandler.connectUser);
 
 /**
  * @swagger
@@ -77,7 +77,7 @@ router.route('/login').post(UserHandler.connectUser);
  *    patch:
  *      summary: Update a user
  *      description: Updates user details with optional fields.
- *      tags: 
+ *      tags:
  *        - Users
  *      parameters:
  *        - in: path
@@ -152,7 +152,7 @@ router.route("/:id([0-9]+)*").patch(UserHandler.patchUser);
  *    get:
  *      summary: Retrieve user details
  *      description: Retrieves profile information for a user.
- *      tags: 
+ *      tags:
  *        - Users
  *      parameters:
  *        - in: path

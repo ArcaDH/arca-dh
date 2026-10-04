@@ -1,0 +1,35 @@
+# Root-level git hooks for the arca-dh monorepo (backend + frontend).
+# Install once per clone with: pre-commit install
+# Run manually against everything with: pre-commit run --all-files
+#
+# Prettier runs from the repo root; it auto-discovers the nearest .prettierrc
+# and .prettierignore for each file, so backend (4-space) and frontend (2-space)
+# are each formatted with their own config. Hooks shell out to the backend's
+# project-local prettier via npx for a single pinned version across the repo.
+repos:
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: backend/node_modules/.bin/prettier --write --ignore-unknown
+        language: system
+        # Keep this in sync with CI's `prettier --check .` scope. Matches code,
+        # config, docs, YAML, and extensionless dotfiles like .prettierrc.
+        files: (\.(ts|tsx|js|jsx|mjs|json|css|md|ya?ml)$|/\.prettierrc$|/\.eslintrc$)
+        exclude: ^(.*/node_modules/|.*/dist/|.*/drizzle/|frontend/\.next/|.*/out/|.*/build/|.*/package-lock\.json$)
+
+      - id: eslint-frontend
+        name: eslint (frontend)
+        entry: bash -c 'cd frontend && exec npx eslint --fix "${@#frontend/}"' --
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx|mjs)$
+        exclude: ^frontend/(node_modules|\.next|out|build)/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-added-large-files
