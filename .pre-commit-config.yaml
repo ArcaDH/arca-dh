@@ -13,7 +13,9 @@ repos:
         name: prettier
         entry: backend/node_modules/.bin/prettier --write --ignore-unknown
         language: system
-        files: \.(ts|tsx|js|jsx|mjs|json|css|md)$
+        # Keep this in sync with CI's `prettier --check .` scope. Matches code,
+        # config, docs, YAML, and extensionless dotfiles like .prettierrc.
+        files: (\.(ts|tsx|js|jsx|mjs|json|css|md|ya?ml)$|/\.prettierrc$|/\.eslintrc$)
         exclude: ^(.*/node_modules/|.*/dist/|.*/drizzle/|frontend/\.next/|.*/out/|.*/build/|.*/package-lock\.json$)
 
       - id: eslint-frontend
