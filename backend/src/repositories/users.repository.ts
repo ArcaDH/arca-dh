@@ -12,4 +12,7 @@ export const usersRepository = {
   findByUsername: (username: string) => db.query.users.findFirst({ where: eq(users.username, username) }),
 
   insert: async (values: NewUser) => (await db.insert(users).values(values).returning())[0],
+
+  setCurrentPlan: async (userId: number, planId: string) =>
+    (await db.update(users).set({ currentPlanId: planId }).where(eq(users.userId, userId)).returning())[0],
 };
