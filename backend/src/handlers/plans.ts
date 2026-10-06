@@ -82,7 +82,11 @@ export namespace PlanHandler {
       const currentMonth = new Date().toISOString().slice(0, 7);
       let planMonth: string;
 
-      if (monthInput === null || monthInput === undefined || (typeof monthInput === "string" && monthInput.trim() === "")) {
+      if (
+        monthInput === null ||
+        monthInput === undefined ||
+        (typeof monthInput === "string" && monthInput.trim() === "")
+      ) {
         planMonth = currentMonth;
       } else {
         if (typeof monthInput !== "string" || !MONTH_REGEX.test(monthInput.trim())) {

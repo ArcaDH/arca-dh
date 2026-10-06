@@ -33,10 +33,7 @@ export namespace PlanRepository {
    * Create a new budget plan
    */
   export async function createPlan(planData: { name: string; month: string; userId: number }) {
-    const [newPlan] = await db
-      .insert(budgetPlans)
-      .values(planData)
-      .returning();
+    const [newPlan] = await db.insert(budgetPlans).values(planData).returning();
     return newPlan;
   }
 
@@ -44,18 +41,13 @@ export namespace PlanRepository {
    * Update an existing budget plan
    */
   export async function updatePlan(planId: string, modifications: { name?: string; month?: string }) {
-    await db
-      .update(budgetPlans)
-      .set(modifications)
-      .where(eq(budgetPlans.id, planId));
+    await db.update(budgetPlans).set(modifications).where(eq(budgetPlans.id, planId));
   }
 
   /**
    * Delete a budget plan by ID
    */
   export async function deletePlan(planId: string) {
-    await db
-      .delete(budgetPlans)
-      .where(eq(budgetPlans.id, planId));
+    await db.delete(budgetPlans).where(eq(budgetPlans.id, planId));
   }
 }

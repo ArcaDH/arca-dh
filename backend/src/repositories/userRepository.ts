@@ -51,19 +51,13 @@ export namespace UserRepository {
    * Update a user's profile information
    */
   export async function updateUser(userId: number, modifications: Partial<NewUserModel>) {
-    await db
-      .update(User)
-      .set(modifications)
-      .where(eq(User.userId, userId));
+    await db.update(User).set(modifications).where(eq(User.userId, userId));
   }
 
   /**
    * Update a user's current (default) plan ID
    */
   export async function updateCurrentPlanId(userId: number, planId: string | null) {
-    await db
-      .update(User)
-      .set({ currentPlanId: planId })
-      .where(eq(User.userId, userId));
+    await db.update(User).set({ currentPlanId: planId }).where(eq(User.userId, userId));
   }
 }

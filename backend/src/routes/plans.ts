@@ -216,10 +216,6 @@ router.route("/current").get(PlanHandler.getCurrentPlan).put(PlanHandler.setCurr
  *       '401':
  *         description: Unauthorized
  */
-router
-  .route("/:planId")
-  .get(PlanHandler.getPlanById)
-  .put(PlanHandler.updatePlan)
-  .delete(PlanHandler.deletePlan);
+router.route("/:planId").get(PlanHandler.getPlanById).put(PlanHandler.updatePlan).delete(PlanHandler.deletePlan);
 
 export default router;
