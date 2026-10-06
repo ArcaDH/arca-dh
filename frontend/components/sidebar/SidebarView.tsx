@@ -1,5 +1,3 @@
-"use client";
-
 import {
   ArrowLeftRight,
   ClipboardList,
@@ -8,10 +6,10 @@ import {
   Home,
   Goal,
   type LucideIcon,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import Button from "../ui/button";
 
 type NavItem = {
   href: string;
@@ -26,10 +24,21 @@ const navItems: NavItem[] = [
   { href: "/goals", label: "Savings goals", icon: Goal },
 ];
 
-export default function Sidebar() {
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+interface SidebarViewProps {
+  pathname: string;
+  collapsed: boolean;
+  isLoggingOut: boolean;
+  onToggleCollapsed: () => void;
+  onLogout: () => void;
+}
 
+export default function SidebarView({
+  pathname,
+  collapsed,
+  isLoggingOut,
+  onToggleCollapsed,
+  onLogout,
+}: SidebarViewProps) {
   return (
     <aside
       className={`flex shrink-0 flex-col overflow-hidden border-r border-foreground/10 px-3 transition-[width] duration-200 ${
@@ -46,9 +55,10 @@ export default function Sidebar() {
             Arca
           </Link>
         )}
-        <button
+        <Button
           type="button"
-          onClick={() => setCollapsed((c) => !c)}
+          variant="ghost"
+          onClick={onToggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!collapsed}
           className="rounded-md p-1.5 cursor-pointer text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground"
@@ -58,7 +68,7 @@ export default function Sidebar() {
           ) : (
             <PanelLeftClose size={18} strokeWidth={1.5} aria-hidden />
           )}
-        </button>
+        </Button>
       </div>
 
       <nav className="py-5">
@@ -91,6 +101,18 @@ export default function Sidebar() {
           })}
         </ul>
       </nav>
+      <div className="mt-auto border-t border-foreground/10 py-4">
+        <Button
+          variant="ghost"
+          onClick={onLogout}
+          isLoading={isLoggingOut}
+          title={collapsed ? "Log out" : undefined}
+          className="w-full justify-start"
+        >
+          <LogOut size={18} strokeWidth={2} className="shrink-0" aria-hidden />
+          <span className={collapsed ? "sr-only" : undefined}>{isLoggingOut ? "Logging out…" : "Log out"}</span>
+        </Button>
+      </div>
     </aside>
   );
 }

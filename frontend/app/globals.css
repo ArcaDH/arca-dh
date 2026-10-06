@@ -3,39 +3,51 @@
 :root {
   /* Palette */
   --midnight: #0d0630;
-  --teal: #1282a2;
   --cream: #f8f4e3;
-  --mauve: #ac80a0;
-  --crimson: #b6174b;
-  --charcoal: #2d2d2f;
   --mist: #f7f7f8;
+  --cobalt: #2563eb;
+  --cobalt-dark: #1d4ed8;
+  --cobalt-darker: #1e40af;
+  --crimson: #b6174b;
+  --crimson-dark: #9b1240;
+  --crimson-darker: #7f0e35;
+  --plum: #8b4a80;
+  --slate: #5b5870;
+  --emerald: #047857;
+  --amber: #b45309;
 
   /* Semantic tokens */
   --background: var(--mist);
   --foreground: var(--midnight);
-  --primary: var(--teal);
-  --secondary: var(--mauve);
+  --muted: var(--slate);
+  --primary: var(--cobalt);
+  --primary-hover: var(--cobalt-dark);
+  --primary-active: var(--cobalt-darker);
+  --secondary: var(--plum);
   --accent: var(--crimson);
-  --muted: var(--charcoal);
+  --accent-hover: var(--crimson-dark);
+  --accent-active: var(--crimson-darker);
+  --success: var(--emerald);
+  --warning: var(--amber);
+  --link: var(--cobalt);
 
   color-scheme: light;
 }
 
 @theme inline {
-  --color-midnight: var(--midnight);
-  --color-teal: var(--teal);
-  --color-cream: var(--cream);
-  --color-mauve: var(--mauve);
-  --color-crimson: var(--crimson);
-  --color-charcoal: var(--charcoal);
-  --color-mist: var(--mist);
-
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
-  --color-muted: var(--muted);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-link: var(--link);
 
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-heading: var(--font-manrope), system-ui, sans-serif;
@@ -48,7 +60,11 @@
 .dark {
   --background: var(--midnight);
   --foreground: var(--cream);
-  --muted: var(--mauve);
+  --muted: #a9a3c9;
+  --link: #6b8ff7;
+  --success: #34d399;
+  --warning: #fbbf24;
+  /* Buttons keep --primary and --accent: white text still reads on them */
 
   color-scheme: dark;
 }
