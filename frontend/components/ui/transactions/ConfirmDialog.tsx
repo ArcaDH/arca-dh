@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { ghostButtonClass } from "./styles";
+import Button from "@/components/ui/button";
 
-interface DialogAction {
+type DialogAction = {
   label: string;
   onClick: () => void;
   danger?: boolean;
-}
+};
 
 interface ConfirmDialogProps {
   title: string;
@@ -18,7 +18,6 @@ interface ConfirmDialogProps {
 
 /** A popup that asks the user to confirm. Cancel is focused first, and Escape or a click outside cancels. */
 export default function ConfirmDialog({ title, children, actions, onCancel }: ConfirmDialogProps) {
-  const cancelButton = useRef<HTMLButtonElement>(null);
   const latestOnCancel = useRef(onCancel);
 
   useEffect(() => {
@@ -26,7 +25,6 @@ export default function ConfirmDialog({ title, children, actions, onCancel }: Co
   });
 
   useEffect(() => {
-    cancelButton.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") latestOnCancel.current();
     };
@@ -35,7 +33,7 @@ export default function ConfirmDialog({ title, children, actions, onCancel }: Co
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-midnight/40 p-4" onClick={onCancel}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4" onClick={onCancel}>
       <div
         role="alertdialog"
         aria-modal="true"
@@ -48,20 +46,18 @@ export default function ConfirmDialog({ title, children, actions, onCancel }: Co
         </h2>
         <div className="mt-2 text-sm text-foreground/70">{children}</div>
         <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <button ref={cancelButton} type="button" onClick={onCancel} className={ghostButtonClass}>
+          <Button autoFocus variant="ghost" size="sm" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
           {actions.map((action) => (
-            <button
+            <Button
               key={action.label}
-              type="button"
+              variant={action.danger ? "danger" : "primary"}
+              size="sm"
               onClick={action.onClick}
-              className={`cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium text-cream transition-colors ${
-                action.danger ? "bg-crimson hover:bg-crimson/85" : "bg-midnight hover:bg-midnight/85"
-              }`}
             >
               {action.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

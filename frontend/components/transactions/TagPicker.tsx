@@ -1,30 +1,30 @@
 "use client";
 
 import { useState } from "react";
+import Button from "@/components/ui/button";
+import { inputClass } from "@/components/ui/transactions/styles";
 import {
-  createTag,
   MAX_TAG_NAME_LENGTH,
   MAX_TAGS_PER_TRANSACTION,
   TAG_COLORS,
   type Tag,
   type TagColor,
-} from "@/lib/transactions";
-import { ghostButtonClass, inputClass } from "@/components/ui/transactions/styles";
+} from "@/types/transaction";
 import TagChip, { TAG_DOT } from "./TagChip";
 
 interface TagPickerProps {
   allTags: Tag[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
-  /** Called after a new tag was saved, so the page can reload the tag list. */
-  onTagCreated: () => void;
+  /** Saves a new tag and resolves with it. Rejects with an Error when it can't be saved. */
+  onCreateTag: (name: string, color: TagColor) => Promise<Tag>;
 }
 
-export default function TagPicker({ allTags, selectedIds, onChange, onTagCreated }: TagPickerProps) {
+export default function TagPicker({ allTags, selectedIds, onChange, onCreateTag }: TagPickerProps) {
   const [createdHere, setCreatedHere] = useState<Tag[]>([]);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
-  const [color, setColor] = useState<TagColor>("teal");
+  const [color, setColor] = useState<TagColor>("blue");
   const [error, setError] = useState<string | null>(null);
 
   // A tag created a moment ago may not be in `allTags` until the page has reloaded it
@@ -36,10 +36,9 @@ export default function TagPicker({ allTags, selectedIds, onChange, onTagCreated
   async function handleCreate() {
     if (!name.trim()) return setError("Enter a tag name.");
     try {
-      const tag = await createTag({ name: name.trim(), color });
+      const tag = await onCreateTag(name.trim(), color);
       setCreatedHere((previous) => [...previous, tag]);
       onChange([...selectedIds, tag.id]);
-      onTagCreated();
       setName("");
       setCreating(false);
       setError(null);
@@ -84,9 +83,9 @@ export default function TagPicker({ allTags, selectedIds, onChange, onTagCreated
       {full && <p className="text-xs text-foreground/60">That&apos;s the most tags a transaction can have.</p>}
 
       {!full && !creating && (
-        <button type="button" onClick={() => setCreating(true)} className={`${ghostButtonClass} mt-1 -ml-2.5 text-xs`}>
+        <Button variant="ghost" size="sm" className="mt-1 -ml-3 text-xs" onClick={() => setCreating(true)}>
           + New tag
-        </button>
+        </Button>
       )}
 
       {creating && (
@@ -113,21 +112,21 @@ export default function TagPicker({ allTags, selectedIds, onChange, onTagCreated
               />
             ))}
           </div>
-          {error && <p className="mt-2 text-xs text-crimson">{error}</p>}
+          {error && <p className="mt-2 text-xs text-accent">{error}</p>}
           <div className="mt-2 flex gap-2">
-            <button type="button" onClick={handleCreate} className={`${ghostButtonClass} font-medium`}>
+            <Button size="sm" onClick={handleCreate}>
               Create tag
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 setCreating(false);
                 setError(null);
               }}
-              className={ghostButtonClass}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}

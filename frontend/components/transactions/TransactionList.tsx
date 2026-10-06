@@ -1,15 +1,16 @@
 "use client";
 
 import { Receipt, Repeat, Trash2 } from "lucide-react";
-import { ghostButtonClass } from "@/components/ui/transactions/styles";
+import Button from "@/components/ui/button";
+import { iconButtonClass } from "@/components/ui/transactions/styles";
 import { formatDay } from "@/lib/format";
 import { formatOre } from "@/lib/money";
-import type { Transaction } from "@/lib/transactions";
+import type { Transaction } from "@/types/transaction";
 import TagChip from "./TagChip";
 
 interface TransactionListProps {
   items: Transaction[];
-  loading: boolean;
+  isRefreshing: boolean;
   hasMore: boolean;
   isFiltered: boolean;
   onLoadMore: () => void;
@@ -18,7 +19,7 @@ interface TransactionListProps {
 
 export default function TransactionList({
   items,
-  loading,
+  isRefreshing,
   hasMore,
   isFiltered,
   onLoadMore,
@@ -38,7 +39,7 @@ export default function TransactionList({
   }
 
   return (
-    <div className={loading ? "opacity-60 transition-opacity" : "transition-opacity"}>
+    <div className={isRefreshing ? "opacity-60 transition-opacity" : "transition-opacity"}>
       <ul>
         {items.map((transaction) => {
           const meta = [transaction.category?.name, transaction.subcategory?.name, formatDay(transaction.date)]
@@ -47,7 +48,7 @@ export default function TransactionList({
 
           return (
             <li key={transaction.id} className="group flex items-center gap-3 border-t border-foreground/10 py-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-midnight text-cream">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Receipt size={16} aria-hidden />
               </span>
 
@@ -73,7 +74,7 @@ export default function TransactionList({
                 type="button"
                 onClick={() => onDelete(transaction)}
                 aria-label={`Delete ${transaction.description ?? "transaction"}`}
-                className={`${ghostButtonClass} shrink-0 p-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100`}
+                className={`${iconButtonClass} shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100`}
               >
                 <Trash2 size={15} aria-hidden />
               </button>
@@ -84,9 +85,9 @@ export default function TransactionList({
 
       {hasMore && (
         <div className="border-t border-foreground/10 pt-3 text-center">
-          <button type="button" onClick={onLoadMore} className={ghostButtonClass}>
+          <Button variant="ghost" size="sm" onClick={onLoadMore}>
             Load more
-          </button>
+          </Button>
         </div>
       )}
     </div>

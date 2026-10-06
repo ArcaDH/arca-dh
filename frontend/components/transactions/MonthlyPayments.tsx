@@ -1,10 +1,11 @@
 "use client";
 
 import { Repeat } from "lucide-react";
-import { cardClass, ghostButtonClass } from "@/components/ui/transactions/styles";
+import Button from "@/components/ui/button";
+import { cardClass } from "@/components/ui/transactions/styles";
 import { formatDay } from "@/lib/format";
 import { formatOre } from "@/lib/money";
-import type { MonthlyPayment } from "@/lib/transactions";
+import type { MonthlyPayment } from "@/types/transaction";
 
 interface MonthlyPaymentsProps {
   payments: MonthlyPayment[];
@@ -15,7 +16,7 @@ export default function MonthlyPayments({ payments, onStop }: MonthlyPaymentsPro
   return (
     <section className={cardClass} aria-labelledby="monthly-payments-title">
       <h2 id="monthly-payments-title" className="mb-2 flex items-center gap-2 text-sm font-medium">
-        <Repeat size={15} className="text-crimson" aria-hidden />
+        <Repeat size={15} className="text-accent" aria-hidden />
         Monthly payments
       </h2>
 
@@ -35,9 +36,9 @@ export default function MonthlyPayments({ payments, onStop }: MonthlyPaymentsPro
                 <p className="text-xs text-foreground/60">Next charge {formatDay(payment.nextCharge)}</p>
               </div>
               <span className="font-mono text-sm">{formatOre(payment.amount)}</span>
-              <button type="button" onClick={() => onStop(payment)} className={`${ghostButtonClass} px-2 py-1 text-xs`}>
+              <Button variant="ghost" size="sm" onClick={() => onStop(payment)}>
                 Stop
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

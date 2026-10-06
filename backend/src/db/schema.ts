@@ -21,17 +21,18 @@ const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull(
 
 // Enums
 export const transactionTypeEnum = pgEnum("transaction_type", ["EXPENSE", "INCOME"]);
+// Tailwind's built-in color names, so tags don't depend on the app theme
 export const tagColorEnum = pgEnum("tag_color", [
+  "blue",
   "teal",
-  "mauve",
-  "crimson",
-  "midnight",
-  "charcoal",
+  "emerald",
   "amber",
   "orange",
-  "emerald",
-  "violet",
+  "red",
   "pink",
+  "violet",
+  "slate",
+  "lime",
 ]);
 
 // Tables

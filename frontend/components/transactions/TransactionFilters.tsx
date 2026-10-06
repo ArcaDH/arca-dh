@@ -1,8 +1,9 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { ghostButtonClass, inputClass } from "@/components/ui/transactions/styles";
-import { DEFAULT_FILTERS, type Category, type Tag, type TransactionFilters } from "@/lib/transactions";
+import Button from "@/components/ui/button";
+import { inputClass } from "@/components/ui/transactions/styles";
+import { DEFAULT_FILTERS, type Category, type Tag, type TransactionFilters } from "@/types/transaction";
 import TagChip from "./TagChip";
 
 const SORT_OPTIONS = [
@@ -90,9 +91,9 @@ export default function TransactionFiltersBar({ filters, onChange, categories, t
           className={`${inputClass} w-24 font-mono`}
         />
         {isFiltered && (
-          <button type="button" onClick={() => onChange(DEFAULT_FILTERS)} className={ghostButtonClass}>
+          <Button variant="ghost" size="sm" onClick={() => onChange(DEFAULT_FILTERS)}>
             Clear filters
-          </button>
+          </Button>
         )}
       </div>
 
@@ -106,7 +107,7 @@ export default function TransactionFiltersBar({ filters, onChange, categories, t
               onClick={() => toggleTag(tag.id)}
               aria-pressed={filters.tagIds.includes(tag.id)}
               className={`cursor-pointer rounded-full ring-offset-1 ${
-                filters.tagIds.includes(tag.id) ? "ring-2 ring-midnight" : "opacity-70 hover:opacity-100"
+                filters.tagIds.includes(tag.id) ? "ring-2 ring-primary" : "opacity-70 hover:opacity-100"
               }`}
             >
               <TagChip tag={tag} />
@@ -121,7 +122,7 @@ export default function TransactionFiltersBar({ filters, onChange, categories, t
                   onClick={() => update({ tagMode: mode })}
                   aria-pressed={filters.tagMode === mode}
                   className={`cursor-pointer px-2.5 py-0.5 ${
-                    filters.tagMode === mode ? "bg-midnight text-cream" : "text-foreground/70"
+                    filters.tagMode === mode ? "bg-primary text-white" : "text-foreground/70"
                   }`}
                 >
                   {mode === "any" ? "Any tag" : "All tags"}
