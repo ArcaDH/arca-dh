@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
-import { sql } from "drizzle-orm";
-import { User } from "../db/schema";
-import { db } from "../db/index";
-import { returnCode, returnJson, authorizeRequest, userIdFromToken } from "../services/apiService";
+import { UserRepository } from "../repositories/userRepository";
+import { returnCode, returnJson, authorizeRequest } from "../services/apiService";
 import { MessageCodes } from "./codes";
 import { verifyPassword, hashPassword } from "../services/passwordService";
 import { generateToken } from "../services/tokenService";
@@ -10,120 +8,108 @@ import { validateUserCreation, validateUserUpdate } from "../validators/users";
 
 export namespace UserHandler {
   export async function createUser(request: Request, response: Response) {
-    // Checks if the request is valid.
-    // There could be missing informations at the moment inside the user object.
-    let user = await validateUserCreation(request, response);
-    if (!user) return;
+    try {
+      const user = await validateUserCreation(request, response);
+      if (!user) return;
 
-    user.password = await hashPassword(user.password);
+      user.password = await hashPassword(user.password);
+      await UserRepository.createUser(user);
 
-    await db.insert(User).values(user);
-
-    returnCode(response, 201, MessageCodes.RESOURCE_CREATED);
-    return;
+      returnCode(response, 201, MessageCodes.RESOURCE_CREATED);
+    } catch (error) {
+      console.error("Error in createUser:", error);
+      return returnJson(response, 500, { code: 500, message: "Internal server error" });
+    }
   }
 
   export async function connectUser(request: Request, response: Response) {
-    let password = request.body.password;
-    let email = request.body.email;
+    try {
+      const { password, email } = request.body || {};
 
-    if (!password || !email) {
-      returnCode(response, 400, MessageCodes.LOGIN_MISSING_DATA);
-      return;
-    }
+      if (!password || !email) {
+        returnCode(response, 400, MessageCodes.LOGIN_MISSING_DATA);
+        return;
+      }
 
-    let user = await db
-      .select()
-      .from(User)
-      .where(sql`${User.email} = ${email}`)
-      .limit(1)
-      .then((users) => (users.length > 0 ? users[0] : undefined));
+      const user = await UserRepository.findByEmail(email);
 
-    if (!user) {
-      returnCode(response, 404, MessageCodes.LOGIN_INCORRECT_DATA);
-      return;
-    }
+      if (!user) {
+        returnCode(response, 404, MessageCodes.LOGIN_INCORRECT_DATA);
+        return;
+      }
 
-    // Password verification and response to the user.
-    if (await verifyPassword(user.password, password)) {
-      let content = {
-        id: user.userId,
-        token: generateToken(user.email, user.userId),
-      };
-
-      return returnJson(response, 200, content);
-    } else {
-      returnCode(response, 404, MessageCodes.LOGIN_INCORRECT_DATA);
+      if (await verifyPassword(user.password, password)) {
+        const content = {
+          id: user.userId,
+          token: generateToken(user.email, user.userId),
+        };
+        return returnJson(response, 200, content);
+      } else {
+        returnCode(response, 404, MessageCodes.LOGIN_INCORRECT_DATA);
+      }
+    } catch (error) {
+      console.error("Error in connectUser:", error);
+      return returnJson(response, 500, { code: 500, message: "Internal server error" });
     }
   }
 
   export async function patchUser(request: Request, response: Response) {
-    // Checks if the user is authentificated and if he requests to update its own informations.
-    let userId = request.params.id as unknown as number;
-    if (!authorizeRequest(request, response, "", userId)) return;
+    try {
+      const userId = Number(request.params.id);
+      if (!authorizeRequest(request, response, "", userId)) return;
 
-    // Validate request
-    if (!(await validateUserUpdate(request, response))) return;
+      if (!(await validateUserUpdate(request, response))) return;
 
-    // Find user
-    let user = await db
-      .select()
-      .from(User)
-      .where(sql`${User.userId} = ${userId}`)
-      .limit(1)
-      .then((users) => (users.length > 0 ? users[0] : undefined));
+      const user = await UserRepository.findById(userId);
 
-    let modifications: any = {};
+      if (!user) {
+        returnCode(response, 404, MessageCodes.USER_NOT_FOUND);
+        return;
+      }
 
-    if (!user) {
-      returnCode(response, 404, MessageCodes.USER_NOT_FOUND);
-      return;
+      const modifications: any = {};
+
+      if (request.body.email) modifications.email = request.body.email;
+      if (request.body.username) modifications.username = request.body.username;
+      if (request.body.password) modifications.password = await hashPassword(request.body.password);
+
+      await UserRepository.updateUser(user.userId, modifications);
+
+      modifications.id = user.userId;
+      if (modifications.password) delete modifications.password;
+
+      returnJson(response, 200, modifications);
+    } catch (error) {
+      console.error("Error in patchUser:", error);
+      return returnJson(response, 500, { code: 500, message: "Internal server error" });
     }
-
-    // Application modifications provided by the user
-    if (request.body.email) modifications.email = request.body.email;
-
-    if (request.body.username) modifications.username = request.body.username;
-
-    if (request.body.password) modifications.password = await hashPassword(request.body.password);
-
-    await db
-      .update(User)
-      .set(modifications)
-      .where(sql`${User.userId} = ${user.userId}`);
-
-    modifications.id = user.userId;
-
-    // Don't send the hashed password to the client.
-    if (modifications.password) delete modifications.password;
-
-    returnJson(response, 200, modifications);
   }
 
   export async function getUser(request: Request, response: Response) {
-    if (!authorizeRequest(request, response)) return;
+    try {
+      if (!authorizeRequest(request, response)) return;
 
-    // Safe, it would not have matched this route if the id was not a valid number.
-    let requestedUser = request.params.id as unknown as number;
-    if (!requestedUser) {
-      returnCode(response, 400, MessageCodes.USER_NO_ID);
-      return;
-    }
+      const requestedUser = Number(request.params.id);
+      if (!requestedUser || isNaN(requestedUser)) {
+        returnCode(response, 400, MessageCodes.USER_NO_ID);
+        return;
+      }
 
-    let user = await db
-      .select()
-      .from(User)
-      .where(sql`${User.userId} = ${requestedUser}`);
-    if (user.length == 0) {
-      returnCode(response, 404, MessageCodes.USER_NOT_FOUND);
-    } else {
-      returnJson(response, 200, {
-        id: user[0].userId,
-        username: user[0].username,
-        lastname: user[0].lastname,
-        firstname: user[0].firstname,
-        email: user[0].email,
-      });
+      const user = await UserRepository.findById(requestedUser);
+      if (!user) {
+        returnCode(response, 404, MessageCodes.USER_NOT_FOUND);
+      } else {
+        returnJson(response, 200, {
+          id: user.userId,
+          username: user.username,
+          lastname: user.lastname,
+          firstname: user.firstname,
+          email: user.email,
+        });
+      }
+    } catch (error) {
+      console.error("Error in getUser:", error);
+      return returnJson(response, 500, { code: 500, message: "Internal server error" });
     }
   }
 }
