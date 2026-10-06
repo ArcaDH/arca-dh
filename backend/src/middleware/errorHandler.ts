@@ -1,9 +1,10 @@
 import { ErrorRequestHandler } from "express";
 import { ZodError } from "zod";
-import { ConflictError, NotFoundError, UnauthorizedError } from "../errors";
+import { BadRequestError, ConflictError, NotFoundError, UnauthorizedError } from "../errors";
 import { log } from "../lib/logger";
 
 const STATUS_BY_ERROR = new Map<Function, number>([
+  [BadRequestError, 400],
   [UnauthorizedError, 401],
   [NotFoundError, 404],
   [ConflictError, 409],
