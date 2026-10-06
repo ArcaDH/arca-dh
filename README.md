@@ -34,7 +34,7 @@ docker compose up frontend   # frontend only
 - Frontend: http://localhost:3000
 - Backend: http://localhost:3001 (Swagger at http://localhost:3001/api-docs)
 - Adminer (DB UI): http://localhost:8080
-- Postgres: localhost:5433
+- Postgres: localhost:5434
 
 ### Production build
 

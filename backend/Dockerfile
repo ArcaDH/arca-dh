@@ -25,5 +25,8 @@ ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json ./
+# swagger-jsdoc reads route source files at runtime (apis: ["./src/routes/*.ts"]),
+# so the source is required for the API docs to populate.
+COPY src ./src
 EXPOSE 3000
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/app.js"]
