@@ -1,0 +1,27 @@
+"use client";
+
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { useLogout } from "@/models/useAuth";
+import SidebarView from "@/components/sidebar/SidebarView";
+
+export default function SidebarPresenter() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const logout = useLogout();
+  const [collapsed, setCollapsed] = useState(false);
+
+  function handleLogout() {
+    logout.mutate(undefined, { onSettled: () => router.replace("/login") });
+  }
+
+  return (
+    <SidebarView
+      pathname={pathname}
+      collapsed={collapsed}
+      isLoggingOut={logout.isPending}
+      onToggleCollapsed={() => setCollapsed((current) => !current)}
+      onLogout={handleLogout}
+    />
+  );
+}
