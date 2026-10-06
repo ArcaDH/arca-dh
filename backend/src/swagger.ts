@@ -12,7 +12,7 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "http://localhost:3000", // Change this to match your server URL
+        url: "http://localhost:3001", // Change this to match your server URL
       },
     ],
     components: {
