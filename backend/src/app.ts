@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import * as dotenv from "dotenv";
 import UserRoute from "./routes/users";
 import PlanRoute from "./routes/plans";
+import TransactionRoute from "./routes/transactions";
 import { setupSwagger } from "./swagger";
 import { exceptionMiddleware } from "./services/apiService";
 
@@ -41,6 +42,7 @@ setupSwagger(app);
 
 app.use("/users", UserRoute);
 app.use("/plans", PlanRoute);
+app.use("/transactions", TransactionRoute);
 // app.use("/" + staticServerUrl, express.static(storagePath));
 app.use(exceptionMiddleware);
 

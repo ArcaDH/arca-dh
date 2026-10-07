@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { PlanHandler } from "../handlers/plans";
+import { TransactionHandler } from "../handlers/transactions";
+import { SavingsGoalHandler } from "../handlers/savingsGoals";
 
 const router = Router();
 
@@ -7,6 +9,88 @@ const router = Router();
  * @swagger
  * components:
  *   schemas:
+ *     TransactionType:
+ *       type: string
+ *       enum: [EXPENSE, SAVING]
+ *     TransactionInput:
+ *       type: object
+ *       required:
+ *         - amount
+ *         - date
+ *         - type
+ *       properties:
+ *         amount:
+ *           type: number
+ *           format: decimal
+ *           example: 42.50
+ *         date:
+ *           type: string
+ *           format: date
+ *           example: "2026-09-15"
+ *         description:
+ *           type: string
+ *           example: "Grocery shopping"
+ *         type:
+ *           $ref: '#/components/schemas/TransactionType'
+ *         categoryId:
+ *           type: string
+ *           format: uuid
+ *           description: Required for EXPENSE
+ *         subcategoryId:
+ *           type: string
+ *           format: uuid
+ *           description: Optional, must belong to the category
+ *         savingsGoalId:
+ *           type: string
+ *           format: uuid
+ *           description: Required for SAVING
+ *     Transaction:
+ *       allOf:
+ *         - $ref: '#/components/schemas/TransactionInput'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *               format: uuid
+ *               example: "123e4567-e89b-12d3-a456-426614174000"
+ *     SavingsGoalInput:
+ *       type: object
+ *       required:
+ *         - name
+ *         - targetAmount
+ *       properties:
+ *         name:
+ *           type: string
+ *           example: "Emergency Fund"
+ *         targetAmount:
+ *           type: number
+ *           format: decimal
+ *           example: 1000.00
+ *         deadline:
+ *           type: string
+ *           format: date
+ *           nullable: true
+ *           example: "2026-12-31"
+ *     SavingsGoal:
+ *       allOf:
+ *         - $ref: '#/components/schemas/SavingsGoalInput'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *               format: uuid
+ *               example: "123e4567-e89b-12d3-a456-426614174000"
+ *             savedAmount:
+ *               type: number
+ *               format: decimal
+ *               readOnly: true
+ *               example: 250.00
+ *             progress:
+ *               type: number
+ *               format: double
+ *               readOnly: true
+ *               description: savedAmount / targetAmount (0 to 1)
+ *               example: 0.25
  *     BudgetPlanInput:
  *       type: object
  *       required:
@@ -217,5 +301,151 @@ router.route("/current").get(PlanHandler.getCurrentPlan).put(PlanHandler.setCurr
  *         description: Unauthorized
  */
 router.route("/:planId").get(PlanHandler.getPlanById).put(PlanHandler.updatePlan).delete(PlanHandler.deletePlan);
+
+/**
+ * @swagger
+ * /plans/{planId}/transactions:
+ *   get:
+ *     tags: [Transactions]
+ *     summary: List transactions of a plan
+ *     description: Sorted by date, newest first. Use `month` to get one month only.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - name: month
+ *         in: query
+ *         description: Month to filter on (YYYY-MM)
+ *         schema:
+ *           type: string
+ *           example: "2026-09"
+ *       - name: categoryId
+ *         in: query
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - name: type
+ *         in: query
+ *         schema:
+ *           $ref: '#/components/schemas/TransactionType'
+ *     responses:
+ *       '200':
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Transaction'
+ *       '401':
+ *         description: Unauthorized
+ *       '404':
+ *         description: Plan not found
+ *   post:
+ *     tags: [Transactions]
+ *     summary: Create a transaction
+ *     description: |
+ *       An EXPENSE needs a `categoryId` (and optionally a `subcategoryId`).
+ *       A SAVING needs a `savingsGoalId`.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/TransactionInput'
+ *     responses:
+ *       '201':
+ *         description: Created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Transaction'
+ *       '400':
+ *         description: Invalid transaction (missing category or goal, or mismatched fields)
+ *       '401':
+ *         description: Unauthorized
+ *       '404':
+ *         description: Plan not found
+ */
+router
+  .route("/:planId/transactions")
+  .get(TransactionHandler.getTransactions)
+  .post(TransactionHandler.createTransaction);
+
+/**
+ * @swagger
+ * /plans/{planId}/goals:
+ *   get:
+ *     tags: [Savings goals]
+ *     summary: List savings goals with their progress
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       '200':
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/SavingsGoal'
+ *       '401':
+ *         description: Unauthorized
+ *       '404':
+ *         description: Plan not found
+ *   post:
+ *     tags: [Savings goals]
+ *     summary: Create a savings goal
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SavingsGoalInput'
+ *     responses:
+ *       '201':
+ *         description: Created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SavingsGoal'
+ *       '400':
+ *         description: Invalid input data
+ *       '401':
+ *         description: Unauthorized
+ *       '404':
+ *         description: Plan not found
+ */
+router.route("/:planId/goals").get(SavingsGoalHandler.getGoals).post(SavingsGoalHandler.createGoal);
 
 export default router;
