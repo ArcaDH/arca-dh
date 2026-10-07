@@ -4,6 +4,10 @@ import * as dotenv from "dotenv";
 import UserRoute from "./routes/users";
 import PlanRoute from "./routes/plans";
 import TransactionRoute from "./routes/transactions";
+import GoalRoute from "./routes/goals";
+import CategoryRoute from "./routes/categories";
+import SubcategoryRoute from "./routes/subcategories";
+import IncomeSourceRoute from "./routes/incomeSources";
 import { setupSwagger } from "./swagger";
 import { exceptionMiddleware } from "./services/apiService";
 
@@ -43,6 +47,10 @@ setupSwagger(app);
 app.use("/users", UserRoute);
 app.use("/plans", PlanRoute);
 app.use("/transactions", TransactionRoute);
+app.use("/goals", GoalRoute);
+app.use("/categories", CategoryRoute);
+app.use("/subcategories", SubcategoryRoute);
+app.use("/income-sources", IncomeSourceRoute);
 // app.use("/" + staticServerUrl, express.static(storagePath));
 app.use(exceptionMiddleware);
 

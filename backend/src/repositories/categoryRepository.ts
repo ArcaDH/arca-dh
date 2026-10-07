@@ -1,6 +1,11 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../db";
-import { categories, subcategories } from "../db/schema";
+import {
+  categories,
+  budgetPlans,
+  CategoryModel,
+  NewCategoryModel,
+} from "../db/schema";
 
 export namespace CategoryRepository {
   /**
@@ -16,27 +21,53 @@ export namespace CategoryRepository {
   }
 
   /**
-   * Find a subcategory by ID
+   * Find a category by ID, verifying it belongs to the authenticated user (via plan)
    */
-  export async function findSubcategoryById(subcategoryId: string) {
-    return db
-      .select()
-      .from(subcategories)
-      .where(eq(subcategories.id, subcategoryId))
-      .limit(1)
-      .then((rows) => rows[0]);
+  export async function findCategoryByIdAndUserId(categoryId: string, userId: number) {
+    const rows = await db
+      .select({ category: categories })
+      .from(categories)
+      .innerJoin(budgetPlans, eq(categories.budgetPlanId, budgetPlans.id))
+      .where(and(eq(categories.id, categoryId), eq(budgetPlans.userId, userId)))
+      .limit(1);
+    return rows[0]?.category ?? null;
   }
 
   /**
-   * Check if a subcategory belongs to a specific category
+   * List all categories for a plan
    */
-  export async function isSubcategoryOfCategory(subcategoryId: string, categoryId: string) {
-    const subcat = await db
-      .select()
-      .from(subcategories)
-      .where(and(eq(subcategories.id, subcategoryId), eq(subcategories.categoryId, categoryId)))
-      .limit(1)
-      .then((rows) => rows[0]);
-    return !!subcat;
+  export async function findCategoriesByPlanId(planId: string) {
+    return db.select().from(categories).where(eq(categories.budgetPlanId, planId));
+  }
+
+  /**
+   * Create a category
+   */
+  export async function createCategory(data: NewCategoryModel) {
+    const [created] = await db.insert(categories).values(data).returning();
+    return created;
+  }
+
+  /**
+   * Update a category
+   */
+  export async function updateCategory(
+    categoryId: string,
+    data: Pick<CategoryModel, "name" | "maxBudget">,
+  ) {
+    const [updated] = await db
+      .update(categories)
+      .set(data)
+      .where(eq(categories.id, categoryId))
+      .returning();
+    return updated ?? null;
+  }
+
+  /**
+   * Delete a category
+   */
+  export async function deleteCategory(categoryId: string) {
+    const result = await db.delete(categories).where(eq(categories.id, categoryId)).returning();
+    return result.length > 0;
   }
 }

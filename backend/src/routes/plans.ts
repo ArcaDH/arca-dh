@@ -2,6 +2,8 @@ import { Router } from "express";
 import { PlanHandler } from "../handlers/plans";
 import { TransactionHandler } from "../handlers/transactions";
 import { SavingsGoalHandler } from "../handlers/savingsGoals";
+import { CategoryHandler } from "../handlers/categories";
+import { IncomeSourceHandler } from "../handlers/incomeSources";
 
 const router = Router();
 
@@ -128,7 +130,28 @@ const router = Router();
  *         planId:
  *           type: string
  *           format: uuid
- *           example: "123e4567-e89b-12d3-a456-426614174000"
+ *     IncomeSourceInput:
+ *       type: object
+ *       required:
+ *         - name
+ *         - monthlyAmount
+ *       properties:
+ *         name:
+ *           type: string
+ *           example: "Salary"
+ *         monthlyAmount:
+ *           type: number
+ *           format: decimal
+ *           example: 2500.00
+ *     IncomeSource:
+ *       allOf:
+ *         - $ref: '#/components/schemas/IncomeSourceInput'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *               format: uuid
+ *               example: "123e4567-e89b-12d3-a456-426614174000"
  */
 
 /**
@@ -448,4 +471,184 @@ router
  */
 router.route("/:planId/goals").get(SavingsGoalHandler.getGoals).post(SavingsGoalHandler.createGoal);
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CategoryInput:
+ *       type: object
+ *       required:
+ *         - name
+ *         - maxBudget
+ *       properties:
+ *         name:
+ *           type: string
+ *           example: "Food"
+ *         maxBudget:
+ *           type: number
+ *           format: decimal
+ *           example: 600.00
+ *     Category:
+ *       allOf:
+ *         - $ref: '#/components/schemas/CategoryInput'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *               format: uuid
+ *     SubcategoryInput:
+ *       type: object
+ *       required:
+ *         - name
+ *         - limit
+ *       properties:
+ *         name:
+ *           type: string
+ *           example: "Restaurants"
+ *         limit:
+ *           type: number
+ *           format: decimal
+ *           example: 200.00
+ *     Subcategory:
+ *       allOf:
+ *         - $ref: '#/components/schemas/SubcategoryInput'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *               format: uuid
+ */
+
+/**
+ * @swagger
+ * /plans/{planId}/categories:
+ *   get:
+ *     tags: [Categories]
+ *     summary: List categories of a plan
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       '200':
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Category'
+ *       '404':
+ *         description: Plan not found
+ *       '401':
+ *         description: Unauthorized
+ *   post:
+ *     tags: [Categories]
+ *     summary: Create a category
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CategoryInput'
+ *     responses:
+ *       '201':
+ *         description: Created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Category'
+ *       '400':
+ *         description: Invalid input data
+ *       '404':
+ *         description: Plan not found
+ *       '401':
+ *         description: Unauthorized
+ */
+router
+  .route("/:planId/categories")
+  .get(CategoryHandler.getCategories)
+  .post(CategoryHandler.createCategory);
+
+/**
+ * @swagger
+ * /plans/{planId}/income-sources:
+ *   get:
+ *     tags: [Income sources]
+ *     summary: List income sources of a plan
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       '200':
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/IncomeSource'
+ *       '404':
+ *         description: Plan not found
+ *       '401':
+ *         description: Unauthorized
+ *   post:
+ *     tags: [Income sources]
+ *     summary: Add an income source
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/IncomeSourceInput'
+ *     responses:
+ *       '201':
+ *         description: Created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/IncomeSource'
+ *       '400':
+ *         description: Invalid input data
+ *       '404':
+ *         description: Plan not found
+ *       '401':
+ *         description: Unauthorized
+ */
+router
+  .route("/:planId/income-sources")
+  .get(IncomeSourceHandler.getIncomeSources)
+  .post(IncomeSourceHandler.createIncomeSource);
+
 export default router;
+
+

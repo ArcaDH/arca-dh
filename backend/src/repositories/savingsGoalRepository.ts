@@ -1,6 +1,6 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../db";
-import { savingsGoals, transactions, NewSavingsGoalModel } from "../db/schema";
+import { savingsGoals, budgetPlans, transactions, NewSavingsGoalModel, SavingsGoalModel } from "../db/schema";
 
 export namespace SavingsGoalRepository {
   /**
@@ -13,6 +13,19 @@ export namespace SavingsGoalRepository {
       .where(eq(savingsGoals.id, goalId))
       .limit(1)
       .then((rows) => rows[0]);
+  }
+
+  /**
+   * Find a savings goal by ID, verifying it belongs to the given user (via plan ownership)
+   */
+  export async function findByIdAndUserId(goalId: string, userId: number) {
+    const rows = await db
+      .select({ goal: savingsGoals })
+      .from(savingsGoals)
+      .innerJoin(budgetPlans, eq(savingsGoals.budgetPlanId, budgetPlans.id))
+      .where(and(eq(savingsGoals.id, goalId), eq(budgetPlans.userId, userId)))
+      .limit(1);
+    return rows[0]?.goal ?? null;
   }
 
   /**
@@ -68,5 +81,30 @@ export namespace SavingsGoalRepository {
       savedAmount: 0,
       progress: 0,
     };
+  }
+
+  /**
+   * Update an existing savings goal
+   */
+  export async function updateGoal(
+    goalId: string,
+    data: Pick<SavingsGoalModel, "name" | "targetAmount" | "deadline">,
+  ) {
+    const [updated] = await db
+      .update(savingsGoals)
+      .set(data)
+      .where(eq(savingsGoals.id, goalId))
+      .returning();
+
+    if (!updated) return null;
+    return getGoalWithProgress(updated);
+  }
+
+  /**
+   * Delete a savings goal by ID
+   */
+  export async function deleteGoal(goalId: string) {
+    const result = await db.delete(savingsGoals).where(eq(savingsGoals.id, goalId)).returning();
+    return result.length > 0;
   }
 }

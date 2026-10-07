@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { authorizeRequest, returnCode, returnJson, userIdFromToken } from "../services/apiService";
 import { CategoryRepository } from "../repositories/categoryRepository";
+import { SubcategoryRepository } from "../repositories/subcategoryRepository";
 import { SavingsGoalRepository } from "../repositories/savingsGoalRepository";
 import { PlanRepository } from "../repositories/planRepository";
 import { TransactionRepository } from "../repositories/transactionRepository";
@@ -99,7 +100,7 @@ export async function validateTransactionData(body: any, response: Response) {
         return null;
       }
 
-      const isBelonging = await CategoryRepository.isSubcategoryOfCategory(normSubcategory, normCategory);
+      const isBelonging = await SubcategoryRepository.isSubcategoryOfCategory(normSubcategory, normCategory);
       if (!isBelonging) {
         returnJson(response, 400, {
           code: 400,
