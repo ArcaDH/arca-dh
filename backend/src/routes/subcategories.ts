@@ -57,9 +57,6 @@ const router = Router();
  *       '401':
  *         description: Unauthorized
  */
-router
-  .route("/:id")
-  .put(SubcategoryHandler.updateSubcategory)
-  .delete(SubcategoryHandler.deleteSubcategory);
+router.route("/:id").put(SubcategoryHandler.updateSubcategory).delete(SubcategoryHandler.deleteSubcategory);
 
 export default router;

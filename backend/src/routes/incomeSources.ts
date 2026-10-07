@@ -57,9 +57,6 @@ const router = Router();
  *       '401':
  *         description: Unauthorized
  */
-router
-  .route("/:id")
-  .put(IncomeSourceHandler.updateIncomeSource)
-  .delete(IncomeSourceHandler.deleteIncomeSource);
+router.route("/:id").put(IncomeSourceHandler.updateIncomeSource).delete(IncomeSourceHandler.deleteIncomeSource);
 
 export default router;

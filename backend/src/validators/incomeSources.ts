@@ -48,8 +48,7 @@ export function validateIncomeSourceData(body: any, response: Response) {
     return null;
   }
 
-  const parsedAmount =
-    typeof monthlyAmount === "number" ? monthlyAmount : parseFloat(monthlyAmount);
+  const parsedAmount = typeof monthlyAmount === "number" ? monthlyAmount : parseFloat(monthlyAmount);
   if (isNaN(parsedAmount) || parsedAmount <= 0) {
     returnJson(response, 400, {
       code: 400,

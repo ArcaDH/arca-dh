@@ -579,10 +579,7 @@ router.route("/:planId/goals").get(SavingsGoalHandler.getGoals).post(SavingsGoal
  *       '401':
  *         description: Unauthorized
  */
-router
-  .route("/:planId/categories")
-  .get(CategoryHandler.getCategories)
-  .post(CategoryHandler.createCategory);
+router.route("/:planId/categories").get(CategoryHandler.getCategories).post(CategoryHandler.createCategory);
 
 /**
  * @swagger
@@ -650,5 +647,3 @@ router
   .post(IncomeSourceHandler.createIncomeSource);
 
 export default router;
-
-

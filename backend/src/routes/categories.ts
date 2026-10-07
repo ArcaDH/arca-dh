@@ -120,9 +120,6 @@ router.route("/:id").put(CategoryHandler.updateCategory).delete(CategoryHandler.
  *       '401':
  *         description: Unauthorized
  */
-router
-  .route("/:id/subcategories")
-  .get(SubcategoryHandler.getSubcategories)
-  .post(SubcategoryHandler.createSubcategory);
+router.route("/:id/subcategories").get(SubcategoryHandler.getSubcategories).post(SubcategoryHandler.createSubcategory);
 
 export default router;

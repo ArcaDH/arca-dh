@@ -48,8 +48,7 @@ export function validateCategoryData(body: any, response: Response) {
     return null;
   }
 
-  const parsedBudget =
-    typeof maxBudget === "number" ? maxBudget : parseFloat(maxBudget);
+  const parsedBudget = typeof maxBudget === "number" ? maxBudget : parseFloat(maxBudget);
   if (isNaN(parsedBudget) || parsedBudget < 0) {
     returnJson(response, 400, {
       code: 400,

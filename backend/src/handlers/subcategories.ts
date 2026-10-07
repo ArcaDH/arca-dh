@@ -72,10 +72,7 @@ export namespace SubcategoryHandler {
       if (!userId) return returnCode(response, 401);
 
       const subcategoryId = request.params.id as string;
-      const existing = await SubcategoryRepository.findSubcategoryByIdAndUserId(
-        subcategoryId,
-        userId,
-      );
+      const existing = await SubcategoryRepository.findSubcategoryByIdAndUserId(subcategoryId, userId);
       if (!existing) {
         return returnJson(response, 404, { code: 404, message: "Subcategory not found" });
       }
@@ -106,10 +103,7 @@ export namespace SubcategoryHandler {
       if (!userId) return returnCode(response, 401);
 
       const subcategoryId = request.params.id as string;
-      const existing = await SubcategoryRepository.findSubcategoryByIdAndUserId(
-        subcategoryId,
-        userId,
-      );
+      const existing = await SubcategoryRepository.findSubcategoryByIdAndUserId(subcategoryId, userId);
       if (!existing) {
         return returnJson(response, 404, { code: 404, message: "Subcategory not found" });
       }

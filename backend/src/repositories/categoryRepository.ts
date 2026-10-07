@@ -1,11 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../db";
-import {
-  categories,
-  budgetPlans,
-  CategoryModel,
-  NewCategoryModel,
-} from "../db/schema";
+import { categories, budgetPlans, CategoryModel, NewCategoryModel } from "../db/schema";
 
 export namespace CategoryRepository {
   /**
@@ -51,15 +46,8 @@ export namespace CategoryRepository {
   /**
    * Update a category
    */
-  export async function updateCategory(
-    categoryId: string,
-    data: Pick<CategoryModel, "name" | "maxBudget">,
-  ) {
-    const [updated] = await db
-      .update(categories)
-      .set(data)
-      .where(eq(categories.id, categoryId))
-      .returning();
+  export async function updateCategory(categoryId: string, data: Pick<CategoryModel, "name" | "maxBudget">) {
+    const [updated] = await db.update(categories).set(data).where(eq(categories.id, categoryId)).returning();
     return updated ?? null;
   }
 

@@ -1,10 +1,7 @@
 import { Request, Response } from "express";
 import { CategoryRepository } from "../repositories/categoryRepository";
 import { returnJson, returnCode, authorizeRequest, userIdFromToken } from "../services/apiService";
-import {
-  validateRequest,
-  validateCategoryData,
-} from "../validators/categories";
+import { validateRequest, validateCategoryData } from "../validators/categories";
 
 export namespace CategoryHandler {
   /**

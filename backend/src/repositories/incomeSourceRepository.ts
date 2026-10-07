@@ -1,11 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../db";
-import {
-  incomeSources,
-  budgetPlans,
-  IncomeSourceModel,
-  NewIncomeSourceModel,
-} from "../db/schema";
+import { incomeSources, budgetPlans, IncomeSourceModel, NewIncomeSourceModel } from "../db/schema";
 
 export namespace IncomeSourceRepository {
   /**
@@ -37,10 +32,7 @@ export namespace IncomeSourceRepository {
    * List all income sources for a plan
    */
   export async function findByPlanId(planId: string) {
-    return db
-      .select()
-      .from(incomeSources)
-      .where(eq(incomeSources.budgetPlanId, planId));
+    return db.select().from(incomeSources).where(eq(incomeSources.budgetPlanId, planId));
   }
 
   /**
@@ -54,15 +46,8 @@ export namespace IncomeSourceRepository {
   /**
    * Update an income source
    */
-  export async function updateIncomeSource(
-    id: string,
-    data: Pick<IncomeSourceModel, "name" | "monthlyAmount">,
-  ) {
-    const [updated] = await db
-      .update(incomeSources)
-      .set(data)
-      .where(eq(incomeSources.id, id))
-      .returning();
+  export async function updateIncomeSource(id: string, data: Pick<IncomeSourceModel, "name" | "monthlyAmount">) {
+    const [updated] = await db.update(incomeSources).set(data).where(eq(incomeSources.id, id)).returning();
     return updated ?? null;
   }
 
@@ -70,10 +55,7 @@ export namespace IncomeSourceRepository {
    * Delete an income source
    */
   export async function deleteIncomeSource(id: string) {
-    const result = await db
-      .delete(incomeSources)
-      .where(eq(incomeSources.id, id))
-      .returning();
+    const result = await db.delete(incomeSources).where(eq(incomeSources.id, id)).returning();
     return result.length > 0;
   }
 }

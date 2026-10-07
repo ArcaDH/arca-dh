@@ -86,15 +86,8 @@ export namespace SavingsGoalRepository {
   /**
    * Update an existing savings goal
    */
-  export async function updateGoal(
-    goalId: string,
-    data: Pick<SavingsGoalModel, "name" | "targetAmount" | "deadline">,
-  ) {
-    const [updated] = await db
-      .update(savingsGoals)
-      .set(data)
-      .where(eq(savingsGoals.id, goalId))
-      .returning();
+  export async function updateGoal(goalId: string, data: Pick<SavingsGoalModel, "name" | "targetAmount" | "deadline">) {
+    const [updated] = await db.update(savingsGoals).set(data).where(eq(savingsGoals.id, goalId)).returning();
 
     if (!updated) return null;
     return getGoalWithProgress(updated);

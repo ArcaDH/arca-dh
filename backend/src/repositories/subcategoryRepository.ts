@@ -1,12 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../db";
-import {
-  categories,
-  subcategories,
-  budgetPlans,
-  SubcategoryModel,
-  NewSubcategoryModel,
-} from "../db/schema";
+import { categories, subcategories, budgetPlans, SubcategoryModel, NewSubcategoryModel } from "../db/schema";
 
 export namespace SubcategoryRepository {
   /**
@@ -53,15 +47,8 @@ export namespace SubcategoryRepository {
   /**
    * Update a subcategory
    */
-  export async function updateSubcategory(
-    subcategoryId: string,
-    data: Pick<SubcategoryModel, "name" | "limit">,
-  ) {
-    const [updated] = await db
-      .update(subcategories)
-      .set(data)
-      .where(eq(subcategories.id, subcategoryId))
-      .returning();
+  export async function updateSubcategory(subcategoryId: string, data: Pick<SubcategoryModel, "name" | "limit">) {
+    const [updated] = await db.update(subcategories).set(data).where(eq(subcategories.id, subcategoryId)).returning();
     return updated ?? null;
   }
 
@@ -69,10 +56,7 @@ export namespace SubcategoryRepository {
    * Delete a subcategory
    */
   export async function deleteSubcategory(subcategoryId: string) {
-    const result = await db
-      .delete(subcategories)
-      .where(eq(subcategories.id, subcategoryId))
-      .returning();
+    const result = await db.delete(subcategories).where(eq(subcategories.id, subcategoryId)).returning();
     return result.length > 0;
   }
 
