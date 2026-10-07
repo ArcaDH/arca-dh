@@ -7,7 +7,7 @@ export enum TokenValidationResult {
 }
 
 export function generateToken(email: string, userId: number): string {
-  let payload = {
+  const payload = {
     email: email,
     user: userId,
     created_at: Date.now(),
