@@ -1,14 +1,16 @@
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 import { isAuthenticated } from "@/api/client";
 
 export const currentUserKey = ["auth", "me"];
 
-export function useCurrentUser() {
-  const [isMounted, setIsMounted] = useState(false);
+const emptySubscribe = () => () => {};
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+export function useCurrentUser() {
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true, // client snapshot
+    () => false, // server snapshot
+  );
 
   return {
     isLoggedIn: isMounted ? isAuthenticated() : false,
