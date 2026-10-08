@@ -6,8 +6,7 @@ import { Endpoints } from "./endpoints";
 type LoginResponse = { id: number; token: string };
 
 export const authApi = {
-  register: (input: RegisterInput) =>
-    apiClient.post<void>(Endpoints.Users.register(), input),
+  register: (input: RegisterInput) => apiClient.post<void>(Endpoints.Users.register(), input),
 
   login: async (input: LoginInput): Promise<{ id: number }> => {
     const data = await apiClient.post<LoginResponse>(Endpoints.Users.login(), input);
