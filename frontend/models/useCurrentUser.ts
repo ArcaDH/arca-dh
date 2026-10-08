@@ -4,16 +4,14 @@ import { isAuthenticated } from "@/api/client";
 export const currentUserKey = ["auth", "me"];
 
 export function useCurrentUser() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setLoggedIn(isAuthenticated());
-    setIsLoading(false);
+    setIsMounted(true);
   }, []);
 
   return {
-    isLoggedIn: loggedIn,
-    isLoading,
+    isLoggedIn: isMounted ? isAuthenticated() : false,
+    isLoading: !isMounted,
   };
 }
