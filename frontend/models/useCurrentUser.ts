@@ -1,20 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
-import { authApi } from "@/api/auth";
-import type { User } from "@/types/user";
+import { useState, useEffect } from "react";
+import { isAuthenticated } from "@/api/client";
 
 export const currentUserKey = ["auth", "me"];
 
 export function useCurrentUser() {
-  const { data, isLoading, error } = useQuery<User | null>({
-    queryKey: currentUserKey,
-    queryFn: authApi.getCurrentUser,
-    staleTime: Infinity,
-    retry: false,
-  });
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setLoggedIn(isAuthenticated());
+    setIsLoading(false);
+  }, []);
 
   return {
-    user: data ?? null,
+    isLoggedIn: loggedIn,
     isLoading,
-    error,
   };
 }

@@ -2,8 +2,7 @@
 
 import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { authApi } from "@/api/auth";
-import { ApiError } from "@/api/request";
+import { ApiError, clearTokenCookie } from "@/api/client";
 
 const isClientError = (error: unknown) => error instanceof ApiError && error.status >= 400 && error.status < 500;
 
@@ -12,7 +11,9 @@ function createQueryClient() {
     queryCache: new QueryCache({
       onError: (error) => {
         if (error instanceof ApiError && error.status === 401) {
-          authApi.logout().finally(() => window.location.assign("/login"));
+          // Token is invalid/expired – clear it and redirect to login
+          clearTokenCookie();
+          window.location.assign("/login");
         }
       },
     }),

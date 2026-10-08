@@ -38,6 +38,7 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://postgres:test@db:5432/postgres
       TOKEN_SECRET: dev-secret-change-me
+      FRONTEND_URL: http://localhost:3000
     ports:
       - "3001:3000"
     volumes:

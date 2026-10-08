@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLogin } from "@/models/useAuth";
 import LoginView from "@/features/login/LoginView";
 
@@ -12,7 +12,7 @@ export default function LoginPresenter() {
   const [password, setPassword] = useState("");
 
   function handleSubmit() {
-    login.mutate({ email, password }, { onSuccess: () => router.replace("/") });
+    login.mutate({ email, password }, { onSuccess: () => router.push("/") });
   }
 
   return (

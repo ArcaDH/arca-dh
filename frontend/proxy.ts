@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const AUTH_COOKIE = "arca_token";
+const AUTH_COOKIE = "auth_token";
 
 const AUTH_PAGES = ["/login", "/register"];
 

@@ -1,18 +1,22 @@
-import type { LoginInput, RegisterInput, User } from "@/types/user";
-import { requestHelper } from "./request";
+import type { LoginInput, RegisterInput } from "@/types/user";
+import { apiClient } from "./ApiClient";
+import { setTokenCookie, clearTokenCookie } from "./cookies";
+import { Endpoints } from "./endpoints";
 
-const loginEndpoint = "/auth/login";
-const registerEndpoint = "/auth/register";
-const logoutEndpoint = "/auth/logout";
-const currentUserEndpoint = "/auth/me";
+type LoginResponse = { id: number; token: string };
 
 export const authApi = {
   register: (input: RegisterInput) =>
-    requestHelper<User>(registerEndpoint, { method: "POST", body: JSON.stringify(input) }),
+    apiClient.post<void>(Endpoints.Users.register(), input),
 
-  login: (input: LoginInput) => requestHelper<User>(loginEndpoint, { method: "POST", body: JSON.stringify(input) }),
+  login: async (input: LoginInput): Promise<{ id: number }> => {
+    const data = await apiClient.post<LoginResponse>(Endpoints.Users.login(), input);
+    setTokenCookie(data.token);
+    return { id: data.id };
+  },
 
-  logout: () => requestHelper<void>(logoutEndpoint, { method: "POST" }),
-
-  getCurrentUser: () => requestHelper<User>(currentUserEndpoint),
+  logout: (): Promise<void> => {
+    clearTokenCookie();
+    return Promise.resolve();
+  },
 };
