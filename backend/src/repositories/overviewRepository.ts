@@ -1,0 +1,167 @@
+import { eq, and, sql } from "drizzle-orm";
+import { db } from "../db";
+import {
+  incomeSources,
+  categories,
+  subcategories,
+  transactions,
+  savingsGoals,
+} from "../db/schema";
+
+export namespace OverviewRepository {
+  /**
+   * Build the full MonthlyOverview for a given plan and month (YYYY-MM).
+   */
+  export async function getMonthlyOverview(planId: string, month: string) {
+    const monthPrefix = `${month}%`;
+
+    // 1. Total income — sum of all income sources for this plan
+    const [incomeRow] = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(${incomeSources.monthlyAmount}), 0)`,
+      })
+      .from(incomeSources)
+      .where(eq(incomeSources.budgetPlanId, planId));
+
+    const totalIncome = parseFloat(incomeRow?.total || "0");
+
+    // 2. Total expenses — sum of EXPENSE transactions in the given month
+    const [expenseRow] = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.budgetPlanId, planId),
+          eq(transactions.type, "EXPENSE"),
+          sql`${transactions.date}::text LIKE ${monthPrefix}`,
+        ),
+      );
+
+    const totalExpenses = parseFloat(expenseRow?.total || "0");
+
+    // 3. Total savings — sum of SAVING transactions in the given month
+    const [savingRow] = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.budgetPlanId, planId),
+          eq(transactions.type, "SAVING"),
+          sql`${transactions.date}::text LIKE ${monthPrefix}`,
+        ),
+      );
+
+    const savings = parseFloat(savingRow?.total || "0");
+
+    // 4. Spending by category (with subcategories)
+    const planCategories = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.budgetPlanId, planId));
+
+    const spendingByCategory = [];
+
+    for (const cat of planCategories) {
+      // Total spent in this category this month
+      const [catSpentRow] = await db
+        .select({
+          spent: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.budgetPlanId, planId),
+            eq(transactions.categoryId, cat.id),
+            eq(transactions.type, "EXPENSE"),
+            sql`${transactions.date}::text LIKE ${monthPrefix}`,
+          ),
+        );
+
+      // Subcategories with their spending
+      const catSubcategories = await db
+        .select()
+        .from(subcategories)
+        .where(eq(subcategories.categoryId, cat.id));
+
+      const subcategorySpending = [];
+      for (const sub of catSubcategories) {
+        const [subSpentRow] = await db
+          .select({
+            spent: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+          })
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.budgetPlanId, planId),
+              eq(transactions.subcategoryId, sub.id),
+              eq(transactions.type, "EXPENSE"),
+              sql`${transactions.date}::text LIKE ${monthPrefix}`,
+            ),
+          );
+
+        subcategorySpending.push({
+          subcategoryId: sub.id,
+          name: sub.name,
+          limit: parseFloat(sub.limit),
+          spent: parseFloat(subSpentRow?.spent || "0"),
+        });
+      }
+
+      spendingByCategory.push({
+        categoryId: cat.id,
+        name: cat.name,
+        maxBudget: parseFloat(cat.maxBudget),
+        spent: parseFloat(catSpentRow?.spent || "0"),
+        subcategories: subcategorySpending,
+      });
+    }
+
+    // 5. Goal progress — all-time saved amounts (not filtered by month)
+    const goals = await db
+      .select()
+      .from(savingsGoals)
+      .where(eq(savingsGoals.budgetPlanId, planId));
+
+    const goalProgress = [];
+    for (const goal of goals) {
+      const [goalSavedRow] = await db
+        .select({
+          totalSaved: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.savingsGoalId, goal.id),
+            eq(transactions.type, "SAVING"),
+          ),
+        );
+
+      const savedAmount = parseFloat(goalSavedRow?.totalSaved || "0");
+      const targetAmount = parseFloat(goal.targetAmount);
+      const progress = targetAmount > 0 ? parseFloat((savedAmount / targetAmount).toFixed(4)) : 0;
+
+      goalProgress.push({
+        goalId: goal.id,
+        name: goal.name,
+        targetAmount,
+        savedAmount,
+        progress,
+      });
+    }
+
+    // 6. Assemble response
+    return {
+      month,
+      totalIncome,
+      totalExpenses,
+      remaining: totalIncome - totalExpenses - savings,
+      savings,
+      spendingByCategory,
+      goalProgress,
+    };
+  }
+}

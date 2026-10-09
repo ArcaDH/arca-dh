@@ -4,6 +4,7 @@ import { TransactionHandler } from "../handlers/transactions";
 import { SavingsGoalHandler } from "../handlers/savingsGoals";
 import { CategoryHandler } from "../handlers/categories";
 import { IncomeSourceHandler } from "../handlers/incomeSources";
+import { OverviewHandler } from "../handlers/overview";
 
 const router = Router();
 
@@ -646,4 +647,123 @@ router
   .get(IncomeSourceHandler.getIncomeSources)
   .post(IncomeSourceHandler.createIncomeSource);
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CategorySpending:
+ *       type: object
+ *       properties:
+ *         categoryId:
+ *           type: string
+ *           format: uuid
+ *         name:
+ *           type: string
+ *         maxBudget:
+ *           type: number
+ *           format: decimal
+ *         spent:
+ *           type: number
+ *           format: decimal
+ *         subcategories:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               subcategoryId:
+ *                 type: string
+ *                 format: uuid
+ *               name:
+ *                 type: string
+ *               limit:
+ *                 type: number
+ *                 format: decimal
+ *               spent:
+ *                 type: number
+ *                 format: decimal
+ *     GoalProgress:
+ *       type: object
+ *       properties:
+ *         goalId:
+ *           type: string
+ *           format: uuid
+ *         name:
+ *           type: string
+ *         targetAmount:
+ *           type: number
+ *           format: decimal
+ *         savedAmount:
+ *           type: number
+ *           format: decimal
+ *         progress:
+ *           type: number
+ *           format: double
+ *     MonthlyOverview:
+ *       type: object
+ *       properties:
+ *         month:
+ *           type: string
+ *           example: "2026-09"
+ *         totalIncome:
+ *           type: number
+ *           format: decimal
+ *         totalExpenses:
+ *           type: number
+ *           format: decimal
+ *         remaining:
+ *           type: number
+ *           format: decimal
+ *           description: totalIncome - totalExpenses - savings
+ *         savings:
+ *           type: number
+ *           format: decimal
+ *         spendingByCategory:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CategorySpending'
+ *         goalProgress:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/GoalProgress'
+ */
+
+/**
+ * @swagger
+ * /plans/{planId}/overview:
+ *   get:
+ *     tags: [Overview]
+ *     summary: Monthly overview of a plan
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - name: month
+ *         in: query
+ *         required: true
+ *         description: Month (YYYY-MM)
+ *         schema:
+ *           type: string
+ *           example: "2026-09"
+ *     responses:
+ *       '200':
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MonthlyOverview'
+ *       '400':
+ *         description: Missing or invalid month parameter
+ *       '401':
+ *         description: Unauthorized
+ *       '404':
+ *         description: Plan not found
+ */
+router.route("/:planId/overview").get(OverviewHandler.getOverview);
+
 export default router;
+
