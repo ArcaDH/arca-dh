@@ -1,20 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
-import { authApi } from "@/api/auth";
-import type { User } from "@/types/user";
+import { useSyncExternalStore } from "react";
+import { isAuthenticated } from "@/api/client";
 
 export const currentUserKey = ["auth", "me"];
 
+const emptySubscribe = () => () => {};
+
 export function useCurrentUser() {
-  const { data, isLoading, error } = useQuery<User | null>({
-    queryKey: currentUserKey,
-    queryFn: authApi.getCurrentUser,
-    staleTime: Infinity,
-    retry: false,
-  });
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true, // client snapshot
+    () => false, // server snapshot
+  );
 
   return {
-    user: data ?? null,
-    isLoading,
-    error,
+    isLoggedIn: isMounted ? isAuthenticated() : false,
+    isLoading: !isMounted,
   };
 }

@@ -35,7 +35,7 @@ export function returnJson(response: Response, code: number, content: any) {
 }
 
 export function authorizeRequestWithoutAnswer(request: Request, email: String = "", id: number = -1): boolean {
-  let token = request.headers.authorization;
+  const token = request.headers.authorization;
 
   // No token provided
   if (!token || token.length == 0) {
@@ -53,7 +53,7 @@ export function authorizeRequestWithoutAnswer(request: Request, email: String = 
  * @param id If provided, it will check that this token belon to this id (token.userId = id)
  */
 export function authorizeRequest(request: Request, response: Response, email: String = "", id: number = -1): boolean {
-  let token = request.headers.authorization;
+  const token = request.headers.authorization;
 
   // No token provided
   if (!token || token.length == 0) {
@@ -61,7 +61,7 @@ export function authorizeRequest(request: Request, response: Response, email: St
     return false;
   }
 
-  let result = verifyToken(token, email, id);
+  const result = verifyToken(token, email, id);
 
   if (result == TokenValidationResult.SUCCESS) {
     return true;
@@ -79,7 +79,7 @@ export function authorizeRequest(request: Request, response: Response, email: St
  * @param request
  */
 export function userIdFromToken(request: Request): number | undefined {
-  let token = request.headers.authorization;
+  const token = request.headers.authorization;
   if (!token || token.length == 0) return undefined;
 
   return decodeToken(token)?.user;
@@ -90,7 +90,7 @@ export function userIdFromToken(request: Request): number | undefined {
  * @param request
  */
 export function emailFromToken(request: Request): string | undefined {
-  let token = request.headers.authorization;
+  const token = request.headers.authorization;
   if (!token || token.length == 0) return undefined;
 
   return decodeToken(token)?.email;

@@ -30,7 +30,7 @@ export function generateToken(email: string, userId: number): string {
 export function verifyToken(token: string, email: String = "", id: number = -1): TokenValidationResult {
   if (token.includes("Bearer ")) token = token.replace("Bearer ", "");
 
-  let decoded = decodeToken(token);
+  const decoded = decodeToken(token);
   if (!decoded) return TokenValidationResult.INVALID;
 
   // Email mismatch
