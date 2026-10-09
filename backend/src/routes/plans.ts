@@ -766,4 +766,3 @@ router
 router.route("/:planId/overview").get(OverviewHandler.getOverview);
 
 export default router;
-

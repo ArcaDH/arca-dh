@@ -1,12 +1,6 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../db";
-import {
-  incomeSources,
-  categories,
-  subcategories,
-  transactions,
-  savingsGoals,
-} from "../db/schema";
+import { incomeSources, categories, subcategories, transactions, savingsGoals } from "../db/schema";
 
 export namespace OverviewRepository {
   /**
@@ -58,10 +52,7 @@ export namespace OverviewRepository {
     const savings = parseFloat(savingRow?.total || "0");
 
     // 4. Spending by category (with subcategories)
-    const planCategories = await db
-      .select()
-      .from(categories)
-      .where(eq(categories.budgetPlanId, planId));
+    const planCategories = await db.select().from(categories).where(eq(categories.budgetPlanId, planId));
 
     const spendingByCategory = [];
 
@@ -82,10 +73,7 @@ export namespace OverviewRepository {
         );
 
       // Subcategories with their spending
-      const catSubcategories = await db
-        .select()
-        .from(subcategories)
-        .where(eq(subcategories.categoryId, cat.id));
+      const catSubcategories = await db.select().from(subcategories).where(eq(subcategories.categoryId, cat.id));
 
       const subcategorySpending = [];
       for (const sub of catSubcategories) {
@@ -121,10 +109,7 @@ export namespace OverviewRepository {
     }
 
     // 5. Goal progress — all-time saved amounts (not filtered by month)
-    const goals = await db
-      .select()
-      .from(savingsGoals)
-      .where(eq(savingsGoals.budgetPlanId, planId));
+    const goals = await db.select().from(savingsGoals).where(eq(savingsGoals.budgetPlanId, planId));
 
     const goalProgress = [];
     for (const goal of goals) {
@@ -133,12 +118,7 @@ export namespace OverviewRepository {
           totalSaved: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
         })
         .from(transactions)
-        .where(
-          and(
-            eq(transactions.savingsGoalId, goal.id),
-            eq(transactions.type, "SAVING"),
-          ),
-        );
+        .where(and(eq(transactions.savingsGoalId, goal.id), eq(transactions.type, "SAVING")));
 
       const savedAmount = parseFloat(goalSavedRow?.totalSaved || "0");
       const targetAmount = parseFloat(goal.targetAmount);
