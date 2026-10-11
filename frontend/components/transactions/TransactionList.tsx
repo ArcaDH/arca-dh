@@ -1,0 +1,61 @@
+"use client";
+
+import { Receipt, Trash2 } from "lucide-react";
+import { iconButtonClass } from "@/components/ui/transactions/styles";
+import { formatDay } from "@/lib/format";
+import { formatKr } from "@/lib/money";
+import type { TransactionRow } from "@/types/transaction";
+
+interface TransactionListProps {
+  rows: TransactionRow[];
+  isRefreshing: boolean;
+  isFiltered: boolean;
+  onDelete: (row: TransactionRow) => void;
+}
+
+export default function TransactionList({ rows, isRefreshing, isFiltered, onDelete }: TransactionListProps) {
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-foreground/20 px-6 py-12 text-center">
+        <p className="font-heading text-lg font-semibold">{isFiltered ? "No matches" : "Add your first transaction"}</p>
+        <p className="mt-1 text-sm text-foreground/60">
+          {isFiltered
+            ? "Try changing or clearing the filters."
+            : "Fill in the form and your transactions will show up here."}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ul className={isRefreshing ? "opacity-60 transition-opacity" : "transition-opacity"}>
+      {rows.map((row) => {
+        const meta = [row.categoryName, row.subcategoryName, formatDay(row.date)].filter(Boolean).join(" · ");
+
+        return (
+          <li key={row.id} className="group flex items-center gap-3 border-t border-foreground/10 py-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Receipt size={16} aria-hidden />
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm">{row.description ?? row.categoryName ?? "Transaction"}</p>
+              <p className="truncate text-xs text-foreground/60">{meta}</p>
+            </div>
+
+            <span className="w-28 shrink-0 text-right font-mono text-sm">{formatKr(row.amount)}</span>
+
+            <button
+              type="button"
+              onClick={() => onDelete(row)}
+              aria-label={`Delete ${row.description ?? "transaction"}`}
+              className={`${iconButtonClass} shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100`}
+            >
+              <Trash2 size={15} aria-hidden />
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
