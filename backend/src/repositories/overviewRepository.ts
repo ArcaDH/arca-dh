@@ -9,6 +9,9 @@ export namespace OverviewRepository {
   export async function getMonthlyOverview(planId: string, month: string) {
     const monthPrefix = `${month}%`;
 
+    // Expenses are stored as negative amounts (money out), so their sums are negated here to give a positive
+    // "spent". Money in (a positive EXPENSE row) then lowers the total. Savings are stored positive and unchanged.
+
     // 1. Total income — sum of all income sources for this plan
     const [incomeRow] = await db
       .select({
@@ -22,7 +25,7 @@ export namespace OverviewRepository {
     // 2. Total expenses — sum of EXPENSE transactions in the given month
     const [expenseRow] = await db
       .select({
-        total: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+        total: sql<string>`-COALESCE(SUM(${transactions.amount}), 0)`,
       })
       .from(transactions)
       .where(
@@ -60,7 +63,7 @@ export namespace OverviewRepository {
       // Total spent in this category this month
       const [catSpentRow] = await db
         .select({
-          spent: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+          spent: sql<string>`-COALESCE(SUM(${transactions.amount}), 0)`,
         })
         .from(transactions)
         .where(
@@ -79,7 +82,7 @@ export namespace OverviewRepository {
       for (const sub of catSubcategories) {
         const [subSpentRow] = await db
           .select({
-            spent: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+            spent: sql<string>`-COALESCE(SUM(${transactions.amount}), 0)`,
           })
           .from(transactions)
           .where(

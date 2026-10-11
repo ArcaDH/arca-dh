@@ -2,6 +2,9 @@
 
 export type TransactionType = "EXPENSE" | "SAVING";
 
+/** Whether money leaves ("out") or comes into ("in") the budget. See MONEY_OUT_IS_NEGATIVE in lib/money.ts. */
+export type MoneyDirection = "out" | "in";
+
 export type Transaction = {
   id: string;
   amount: number; // kronor, with decimals (91.2 = 91,20 kr)
@@ -26,7 +29,7 @@ export type NewTransaction = {
 /** A transaction with its category names filled in, ready to show in the list. */
 export type TransactionRow = {
   id: string;
-  amount: number;
+  amount: number; // money flow in kronor: negative = money out, positive = money in
   date: string;
   description: string | null;
   categoryName: string | null;

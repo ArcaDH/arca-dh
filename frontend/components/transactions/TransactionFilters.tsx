@@ -2,7 +2,8 @@
 
 import { Search } from "lucide-react";
 import Button from "@/components/ui/button";
-import { inputClass } from "@/components/ui/transactions/styles";
+import Input from "@/components/ui/input";
+import Select from "@/components/ui/select";
 import { DEFAULT_FILTERS, type TransactionFilters } from "@/types/transaction";
 
 const SORT_OPTIONS = [
@@ -27,15 +28,15 @@ export default function TransactionFiltersBar({ filters, onChange, categories }:
       <div className="flex flex-wrap gap-2">
         <div className="relative min-w-48 flex-1">
           <Search size={15} className="pointer-events-none absolute top-2.5 left-3 text-foreground/40" aria-hidden />
-          <input
+          <Input
             value={filters.q}
             onChange={(event) => update({ q: event.target.value })}
             placeholder="Search description"
             aria-label="Search description"
-            className={`${inputClass} pl-9`}
+            className="pl-9"
           />
         </div>
-        <select
+        <Select
           value={`${filters.sort}:${filters.dir}`}
           onChange={(event) => {
             const [sort, dir] = event.target.value.split(":") as [
@@ -45,22 +46,22 @@ export default function TransactionFiltersBar({ filters, onChange, categories }:
             update({ sort, dir });
           }}
           aria-label="Sort"
-          className={`${inputClass} w-44`}
+          className="w-44"
         >
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <select
+        <Select
           value={filters.categoryId}
           onChange={(event) => update({ categoryId: event.target.value })}
           aria-label="Category"
-          className={`${inputClass} w-44`}
+          className="w-44"
         >
           <option value="">All categories</option>
           {categories.map((category) => (
@@ -68,22 +69,22 @@ export default function TransactionFiltersBar({ filters, onChange, categories }:
               {category.name}
             </option>
           ))}
-        </select>
-        <input
+        </Select>
+        <Input
           value={filters.minKr}
           onChange={(event) => update({ minKr: event.target.value })}
           inputMode="decimal"
           placeholder="Min kr"
           aria-label="Minimum amount in kronor"
-          className={`${inputClass} w-24 font-mono`}
+          className="w-24 font-mono"
         />
-        <input
+        <Input
           value={filters.maxKr}
           onChange={(event) => update({ maxKr: event.target.value })}
           inputMode="decimal"
           placeholder="Max kr"
           aria-label="Maximum amount in kronor"
-          className={`${inputClass} w-24 font-mono`}
+          className="w-24 font-mono"
         />
         {isFiltered && (
           <Button variant="ghost" size="sm" onClick={() => onChange(DEFAULT_FILTERS)}>

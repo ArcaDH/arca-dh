@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
 import { currentMonth, shiftMonth } from "@/lib/format";
-import { parseKr, sumKr } from "@/lib/money";
+import { parseKr, sumKr, toMoneyFlow } from "@/lib/money";
 import { useCategories } from "@/models/useCategories";
 import { useCurrentPlan } from "@/models/useCurrentPlan";
 import { useDeleteTransaction, useExpenses } from "@/models/useTransactions";
@@ -19,7 +19,7 @@ function toRows(transactions: Transaction[], categories: CategoryWithSubcategori
     const subcategory = category?.subcategories.find((s) => s.id === transaction.subcategoryId);
     return {
       id: transaction.id,
-      amount: transaction.amount,
+      amount: toMoneyFlow(transaction.amount),
       date: transaction.date,
       description: transaction.description ?? null,
       categoryName: category?.name ?? null,
@@ -29,7 +29,10 @@ function toRows(transactions: Transaction[], categories: CategoryWithSubcategori
   });
 }
 
-/** The backend only filters by month, so search, category, amount and sort are applied here. */
+/**
+ * The backend only filters by month, so search, category, amount and sort are applied here.
+ * Amounts are compared by size, since money out is a negative number.
+ */
 function applyFilters(rows: TransactionRow[], filters: TransactionFilters): TransactionRow[] {
   const query = filters.q.trim().toLowerCase();
   const min = parseKr(filters.minKr);
@@ -39,13 +42,14 @@ function applyFilters(rows: TransactionRow[], filters: TransactionFilters): Tran
     (row) =>
       (!query || (row.description ?? "").toLowerCase().includes(query)) &&
       (!filters.categoryId || row.categoryId === filters.categoryId) &&
-      (min === null || row.amount >= min) &&
-      (max === null || row.amount <= max),
+      (min === null || Math.abs(row.amount) >= min) &&
+      (max === null || Math.abs(row.amount) <= max),
   );
 
   const direction = filters.dir === "asc" ? 1 : -1;
   return matching.sort(
-    (a, b) => direction * (filters.sort === "amount" ? a.amount - b.amount : a.date.localeCompare(b.date)),
+    (a, b) =>
+      direction * (filters.sort === "amount" ? Math.abs(a.amount) - Math.abs(b.amount) : a.date.localeCompare(b.date)),
   );
 }
 
@@ -66,8 +70,8 @@ export default function TransactionsPresenter() {
     [expenses.data, categories.data],
   );
   const rows = useMemo(() => (allRows ? applyFilters(allRows, filters) : null), [allRows, filters]);
-  // The total covers the whole month, whatever the filters are set to
-  const total = expenses.data ? sumKr(expenses.data.map((transaction) => transaction.amount)) : null;
+  // Money in minus money out for the whole month, whatever the filters are set to
+  const net = expenses.data ? sumKr(expenses.data.map((transaction) => toMoneyFlow(transaction.amount))) : null;
 
   const isFiltered = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS);
   const noPlanYet = plan.error instanceof ApiError && plan.error.status === 404;
@@ -95,7 +99,7 @@ export default function TransactionsPresenter() {
         planId && categories.data ? <TransactionFormPresenter planId={planId} categories={categories.data} /> : null
       }
       month={month}
-      total={total}
+      net={net}
       filters={filters}
       isFiltered={isFiltered}
       categories={categories.data ?? []}

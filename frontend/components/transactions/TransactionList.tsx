@@ -1,9 +1,9 @@
 "use client";
 
 import { Receipt, Trash2 } from "lucide-react";
-import { iconButtonClass } from "@/components/ui/transactions/styles";
+import IconButton from "@/components/ui/IconButton";
 import { formatDay } from "@/lib/format";
-import { formatKr } from "@/lib/money";
+import { formatSignedKr } from "@/lib/money";
 import type { TransactionRow } from "@/types/transaction";
 
 interface TransactionListProps {
@@ -43,16 +43,17 @@ export default function TransactionList({ rows, isRefreshing, isFiltered, onDele
               <p className="truncate text-xs text-foreground/60">{meta}</p>
             </div>
 
-            <span className="w-28 shrink-0 text-right font-mono text-sm">{formatKr(row.amount)}</span>
+            <span className={`w-28 shrink-0 text-right font-mono text-sm ${row.amount > 0 ? "text-success" : ""}`}>
+              {formatSignedKr(row.amount)}
+            </span>
 
-            <button
-              type="button"
+            <IconButton
               onClick={() => onDelete(row)}
               aria-label={`Delete ${row.description ?? "transaction"}`}
-              className={`${iconButtonClass} shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100`}
+              className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
             >
               <Trash2 size={15} aria-hidden />
-            </button>
+            </IconButton>
           </li>
         );
       })}

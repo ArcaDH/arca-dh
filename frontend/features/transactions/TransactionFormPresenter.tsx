@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toISODate } from "@/lib/format";
-import { MAX_AMOUNT_KR, MIN_AMOUNT_KR, parseKr } from "@/lib/money";
+import { MAX_AMOUNT_KR, MIN_AMOUNT_KR, parseKr, toBackendAmount } from "@/lib/money";
 import { useCreateExpense } from "@/models/useTransactions";
 import type { CategoryWithSubcategories } from "@/types/category";
 import TransactionFormView, { type FormState } from "./TransactionFormView";
@@ -12,6 +12,7 @@ const DRAFT_KEY = "arca.transactionDraft.v2";
 
 const emptyForm = (): FormState => ({
   amount: "",
+  direction: "out",
   date: toISODate(new Date()),
   description: "",
   categoryId: "",
@@ -70,7 +71,8 @@ export default function TransactionFormPresenter({ planId, categories }: Transac
     setError(null);
     try {
       await createExpense.mutateAsync({
-        amount,
+        // The user types a plain number, the backend wants money out as a negative amount
+        amount: toBackendAmount(amount, form.direction),
         date: form.date,
         description: form.description.trim() || undefined,
         type: "EXPENSE",

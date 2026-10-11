@@ -9,6 +9,10 @@ import { TransactionRepository } from "../repositories/transactionRepository";
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
+// Limits for the size of an amount in kronor. The sign is not part of the size: a minus means money out.
+const MIN_AMOUNT = 1;
+const MAX_AMOUNT = 1_000_000;
+
 /**
  * Validates request data for transaction creation and updates
  */
@@ -21,6 +25,15 @@ export async function validateTransactionData(body: any, response: Response) {
     returnJson(response, 400, {
       code: 400,
       message: "Invalid input: 'amount' must be a valid number.",
+    });
+    return null;
+  }
+
+  // 1b. Size limits, whatever the sign
+  if (Math.abs(parsedAmount) < MIN_AMOUNT || Math.abs(parsedAmount) > MAX_AMOUNT) {
+    returnJson(response, 400, {
+      code: 400,
+      message: "Invalid input: 'amount' must be between 1 and 1000000 (a minus sign means money out).",
     });
     return null;
   }
@@ -148,7 +161,7 @@ export async function validateTransactionData(body: any, response: Response) {
   };
 }
 export async function validateRequest(request: any, response: any) {
-  if (!authorizeRequest(request, response)) returnCode(response, 401);
+  if (!authorizeRequest(request, response)) return null;
 
   const userId = userIdFromToken(request);
   if (!userId) {
@@ -159,11 +172,13 @@ export async function validateRequest(request: any, response: any) {
   const planId = request.params.planId;
   if (typeof planId !== "string" || !UUID_REGEX.test(planId)) {
     returnJson(response, 404, { code: 404, message: "Plan not found" });
+    return null;
   }
 
   const plan = await PlanRepository.findByIdAndUserId(planId, userId);
   if (!plan) {
     returnJson(response, 404, { code: 404, message: "Plan not found" });
+    return null;
   }
   return planId;
 }
