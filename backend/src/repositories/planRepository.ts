@@ -4,17 +4,10 @@ import { budgetPlans } from "../db/schema";
 
 export namespace PlanRepository {
   /**
-   * Fetch all budget plans for a specific user, with optional month filter
+   * Fetch all budget plans for a specific user
    */
-  export async function findByUserId(userId: number, filterMonth?: string) {
-    const conditions = [eq(budgetPlans.userId, userId)];
-    if (filterMonth) {
-      conditions.push(eq(budgetPlans.month, filterMonth));
-    }
-    return db
-      .select()
-      .from(budgetPlans)
-      .where(and(...conditions));
+  export async function findByUserId(userId: number) {
+    return db.select().from(budgetPlans).where(eq(budgetPlans.userId, userId));
   }
 
   /**
@@ -32,7 +25,7 @@ export namespace PlanRepository {
   /**
    * Create a new budget plan
    */
-  export async function createPlan(planData: { name: string; month: string; userId: number }) {
+  export async function createPlan(planData: { name: string; userId: number }) {
     const [newPlan] = await db.insert(budgetPlans).values(planData).returning();
     return newPlan;
   }
@@ -40,7 +33,7 @@ export namespace PlanRepository {
   /**
    * Update an existing budget plan
    */
-  export async function updatePlan(planId: string, modifications: { name?: string; month?: string }) {
+  export async function updatePlan(planId: string, modifications: { name?: string }) {
     await db.update(budgetPlans).set(modifications).where(eq(budgetPlans.id, planId));
   }
 

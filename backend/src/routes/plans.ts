@@ -101,11 +101,7 @@ const router = Router();
  *       properties:
  *         name:
  *           type: string
- *           example: "My 2026 Budget Plan"
- *         month:
- *           type: string
- *           example: "2026-10"
- *           description: Target month in YYYY-MM format. Defaults to current month if omitted. Must be current or future month.
+ *           example: "Personal"
  *     BudgetPlan:
  *       allOf:
  *         - $ref: '#/components/schemas/BudgetPlanInput'
@@ -115,9 +111,6 @@ const router = Router();
  *               type: string
  *               format: uuid
  *               example: "123e4567-e89b-12d3-a456-426614174000"
- *             month:
- *               type: string
- *               example: "2026-10"
  *             current:
  *               type: boolean
  *               readOnly: true
@@ -193,7 +186,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/BudgetPlan'
  *       '400':
- *         description: Invalid input data or month in the past
+ *         description: Invalid input data
  *       '401':
  *         description: Unauthorized
  */
@@ -298,7 +291,7 @@ router.route("/current").get(PlanHandler.getCurrentPlan).put(PlanHandler.setCurr
  *             schema:
  *               $ref: '#/components/schemas/BudgetPlan'
  *       '400':
- *         description: Invalid input data or month in the past
+ *         description: Invalid input data
  *       '404':
  *         description: Plan not found
  *       '401':

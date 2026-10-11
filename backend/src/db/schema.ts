@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, varchar, integer, numeric, date, AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, uuid, varchar, integer, numeric, date, unique, AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations, InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 // Enums
@@ -25,7 +25,6 @@ export const users = User;
 export const budgetPlans = pgTable("budget_plans", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
-  month: varchar("month", { length: 7 }).notNull(), // YearMonth formatted as "YYYY-MM"
   userId: integer("user_id")
     .notNull()
     .references(() => User.userId, { onDelete: "cascade" }),
@@ -68,6 +67,22 @@ export const subcategories = pgTable("subcategories", {
 });
 
 export const Subcategory = subcategories;
+
+//how much money is assigned to a category in a given month.
+export const assignments = pgTable(
+  "assignments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => categories.id, { onDelete: "cascade" }),
+    month: varchar("month", { length: 7 }).notNull(), // YearMonth formatted as "YYYY-MM"
+    assigned: numeric("assigned", { precision: 12, scale: 2 }).notNull(),
+  },
+  (table) => [unique("assignments_category_month_unique").on(table.categoryId, table.month)],
+);
+
+export const Assignment = assignments;
 
 // 6. SavingsGoals
 export const savingsGoals = pgTable("savings_goals", {
@@ -137,7 +152,15 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
     references: [budgetPlans.id],
   }),
   subcategories: many(subcategories),
+  assignments: many(assignments),
   transactions: many(transactions),
+}));
+
+export const assignmentsRelations = relations(assignments, ({ one }) => ({
+  category: one(categories, {
+    fields: [assignments.categoryId],
+    references: [categories.id],
+  }),
 }));
 
 export const subcategoriesRelations = relations(subcategories, ({ one, many }) => ({
@@ -191,6 +214,9 @@ export type NewCategoryModel = InferInsertModel<typeof categories>;
 
 export type SubcategoryModel = InferSelectModel<typeof subcategories>;
 export type NewSubcategoryModel = InferInsertModel<typeof subcategories>;
+
+export type AssignmentModel = InferSelectModel<typeof assignments>;
+export type NewAssignmentModel = InferInsertModel<typeof assignments>;
 
 export type SavingsGoalModel = InferSelectModel<typeof savingsGoals>;
 export type NewSavingsGoalModel = InferInsertModel<typeof savingsGoals>;

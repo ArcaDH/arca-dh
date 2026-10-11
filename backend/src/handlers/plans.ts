@@ -4,12 +4,11 @@ import { PlanRepository } from "../repositories/planRepository";
 import { authorizeRequest, userIdFromToken, returnCode, returnJson } from "../services/apiService";
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export namespace PlanHandler {
   /**
    * GET /plans
-   * List budget plans for the logged-in user (optional query parameter: ?month=YYYY-MM)
+   * List budget plans for the logged-in user
    */
   export async function getPlans(request: Request, response: Response) {
     try {
@@ -21,16 +20,6 @@ export namespace PlanHandler {
         return;
       }
 
-      const queryMonth = request.query.month;
-      if (queryMonth !== undefined && queryMonth !== null && queryMonth !== "") {
-        if (typeof queryMonth !== "string" || !MONTH_REGEX.test(queryMonth.trim())) {
-          return returnJson(response, 400, {
-            code: 400,
-            message: "Invalid query parameter: 'month' must be in YYYY-MM format.",
-          });
-        }
-      }
-
       const user = await UserRepository.findById(userId);
 
       if (!user) {
@@ -38,13 +27,11 @@ export namespace PlanHandler {
         return;
       }
 
-      const filterMonth = typeof queryMonth === "string" && queryMonth.trim() !== "" ? queryMonth.trim() : undefined;
-      const plans = await PlanRepository.findByUserId(userId, filterMonth);
+      const plans = await PlanRepository.findByUserId(userId);
 
       const result = plans.map((plan) => ({
         id: plan.id,
         name: plan.name,
-        month: plan.month,
         current: user.currentPlanId === plan.id,
       }));
 
@@ -70,40 +57,12 @@ export namespace PlanHandler {
       }
 
       const name = request.body?.name;
-      const monthInput = request.body?.month;
 
       if (!name || typeof name !== "string" || name.trim() === "") {
         return returnJson(response, 400, {
           code: 400,
           message: "Invalid input: 'name' is required.",
         });
-      }
-
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      let planMonth: string;
-
-      if (
-        monthInput === null ||
-        monthInput === undefined ||
-        (typeof monthInput === "string" && monthInput.trim() === "")
-      ) {
-        planMonth = currentMonth;
-      } else {
-        if (typeof monthInput !== "string" || !MONTH_REGEX.test(monthInput.trim())) {
-          return returnJson(response, 400, {
-            code: 400,
-            message: "Invalid input: 'month' must be in YYYY-MM format (e.g. 2026-10).",
-          });
-        }
-
-        planMonth = monthInput.trim();
-
-        if (planMonth < currentMonth) {
-          return returnJson(response, 400, {
-            code: 400,
-            message: "Invalid input: 'month' cannot be in the past. It must be the current month or a future month.",
-          });
-        }
       }
 
       const user = await UserRepository.findById(userId);
@@ -115,7 +74,6 @@ export namespace PlanHandler {
 
       const newPlan = await PlanRepository.createPlan({
         name: name.trim(),
-        month: planMonth,
         userId: userId,
       });
 
@@ -130,7 +88,6 @@ export namespace PlanHandler {
       return returnJson(response, 201, {
         id: newPlan.id,
         name: newPlan.name,
-        month: newPlan.month,
         current: isCurrent,
       });
     } catch (error) {
@@ -174,7 +131,6 @@ export namespace PlanHandler {
       return returnJson(response, 200, {
         id: plan.id,
         name: plan.name,
-        month: plan.month,
         current: true,
       });
     } catch (error) {
@@ -219,7 +175,6 @@ export namespace PlanHandler {
       return returnJson(response, 200, {
         id: plan.id,
         name: plan.name,
-        month: plan.month,
         current: true,
       });
     } catch (error) {
@@ -269,7 +224,6 @@ export namespace PlanHandler {
       return returnJson(response, 200, {
         id: plan.id,
         name: plan.name,
-        month: plan.month,
         current: user.currentPlanId === plan.id,
       });
     } catch (error) {
@@ -301,7 +255,6 @@ export namespace PlanHandler {
       }
 
       const name = request.body?.name;
-      const monthInput = request.body?.month;
 
       if (!name || typeof name !== "string" || name.trim() === "") {
         return returnJson(response, 400, {
@@ -326,32 +279,11 @@ export namespace PlanHandler {
         });
       }
 
-      let updatedMonth = plan.month;
-      if (monthInput !== undefined && monthInput !== null && monthInput !== "") {
-        if (typeof monthInput !== "string" || !MONTH_REGEX.test(monthInput.trim())) {
-          return returnJson(response, 400, {
-            code: 400,
-            message: "Invalid input: 'month' must be in YYYY-MM format.",
-          });
-        }
-
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        const newMonth = monthInput.trim();
-        if (newMonth < currentMonth) {
-          return returnJson(response, 400, {
-            code: 400,
-            message: "Invalid input: 'month' cannot be in the past. It must be the current month or a future month.",
-          });
-        }
-        updatedMonth = newMonth;
-      }
-
-      await PlanRepository.updatePlan(planId, { name: name.trim(), month: updatedMonth });
+      await PlanRepository.updatePlan(planId, { name: name.trim() });
 
       return returnJson(response, 200, {
         id: plan.id,
         name: name.trim(),
-        month: updatedMonth,
         current: user.currentPlanId === plan.id,
       });
     } catch (error) {
