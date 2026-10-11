@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, varchar, integer, numeric, date, AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, uuid, varchar, integer, numeric, date, unique, AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations, InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 // Enums
@@ -46,26 +46,36 @@ export const incomeSources = pgTable("income_sources", {
 export const IncomeSource = incomeSources;
 
 // 4. Categories
-export const categories = pgTable("categories", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 255 }).notNull().unique(),
-  maxBudget: numeric("max_budget", { precision: 12, scale: 2 }).notNull(),
-  budgetPlanId: uuid("budget_plan_id")
-    .notNull()
-    .references(() => budgetPlans.id, { onDelete: "cascade" }),
-});
+export const categories = pgTable(
+  "categories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 255 }).notNull(),
+    maxBudget: numeric("max_budget", { precision: 12, scale: 2 }).notNull(),
+    budgetPlanId: uuid("budget_plan_id")
+      .notNull()
+      .references(() => budgetPlans.id, { onDelete: "cascade" }),
+  },
+  // A name can be used once per plan, so two users can both have "Food"
+  (table) => [unique("categories_plan_name_unique").on(table.budgetPlanId, table.name)],
+);
 
 export const Category = categories;
 
 // 5. Subcategories
-export const subcategories = pgTable("subcategories", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 255 }).notNull().unique(),
-  limit: numeric("limit", { precision: 12, scale: 2 }).notNull(),
-  categoryId: uuid("category_id")
-    .notNull()
-    .references(() => categories.id, { onDelete: "cascade" }),
-});
+export const subcategories = pgTable(
+  "subcategories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 255 }).notNull(),
+    limit: numeric("limit", { precision: 12, scale: 2 }).notNull(),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => categories.id, { onDelete: "cascade" }),
+  },
+  // A name can be used once per category, so "Rent" can exist under two different categories
+  (table) => [unique("subcategories_category_name_unique").on(table.categoryId, table.name)],
+);
 
 export const Subcategory = subcategories;
 
