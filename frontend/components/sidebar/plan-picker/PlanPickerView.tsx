@@ -1,7 +1,7 @@
 import { Check, ChevronsUpDown, Plus, Settings } from "lucide-react";
-import type { ReactNode } from "react";
-import Dropdown from "@/components/ui/Dropdown";
-import MenuItem from "@/components/ui/MenuItem";
+import type { FC, ReactNode } from "react";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { MenuItem } from "@/components/ui/MenuItem";
 import type { Plan } from "@/types/plan";
 
 interface PlanPickerViewProps {
@@ -9,15 +9,22 @@ interface PlanPickerViewProps {
   currentPlan: Plan | null;
   collapsed: boolean;
   isSwitching: boolean;
-  /** The open create or manage popup, if any. */
   dialog: ReactNode;
   onSelect: (planId: string) => void;
   onCreate: () => void;
   onManage: () => void;
 }
 
-export default function PlanPickerView(props: PlanPickerViewProps) {
-  const { plans, currentPlan, collapsed } = props;
+export const PlanPickerView: FC<PlanPickerViewProps> = ({
+  plans,
+  currentPlan,
+  collapsed,
+  isSwitching,
+  dialog,
+  onSelect,
+  onCreate,
+  onManage,
+}) => {
   const name = currentPlan?.name ?? "No plan yet";
 
   return (
@@ -25,7 +32,7 @@ export default function PlanPickerView(props: PlanPickerViewProps) {
       <Dropdown
         label={collapsed ? `Current plan: ${name}` : undefined}
         triggerClassName={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-foreground/5 ${
-          props.isSwitching ? "opacity-60" : ""
+          isSwitching ? "opacity-60" : ""
         }`}
         trigger={
           <>
@@ -50,7 +57,7 @@ export default function PlanPickerView(props: PlanPickerViewProps) {
                 role="menuitemradio"
                 aria-checked={plan.current}
                 onClick={() => {
-                  props.onSelect(plan.id);
+                  onSelect(plan.id);
                   close();
                 }}
               >
@@ -63,7 +70,7 @@ export default function PlanPickerView(props: PlanPickerViewProps) {
 
             <MenuItem
               onClick={() => {
-                props.onCreate();
+                onCreate();
                 close();
               }}
             >
@@ -72,7 +79,7 @@ export default function PlanPickerView(props: PlanPickerViewProps) {
             </MenuItem>
             <MenuItem
               onClick={() => {
-                props.onManage();
+                onManage();
                 close();
               }}
             >
@@ -83,7 +90,7 @@ export default function PlanPickerView(props: PlanPickerViewProps) {
         )}
       </Dropdown>
 
-      {props.dialog}
+      {dialog}
     </>
   );
-}
+};

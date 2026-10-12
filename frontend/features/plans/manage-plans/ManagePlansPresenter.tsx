@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FC } from "react";
 import { useDeletePlan, usePlans, useSetCurrentPlan, useUpdatePlan } from "@/models/usePlans";
 import type { Plan } from "@/types/plan";
-import ManagePlansView from "./ManagePlansView";
+import { ManagePlansView } from "./ManagePlansView";
 
 interface ManagePlansPresenterProps {
   onClose: () => void;
 }
 
-export default function ManagePlansPresenter({ onClose }: ManagePlansPresenterProps) {
+export const ManagePlansPresenter: FC<ManagePlansPresenterProps> = ({ onClose }) => {
   const [editing, setEditing] = useState<{ planId: string; name: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const plans = usePlans();
@@ -65,4 +65,4 @@ export default function ManagePlansPresenter({ onClose }: ManagePlansPresenterPr
       onClose={onClose}
     />
   );
-}
+};

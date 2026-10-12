@@ -1,19 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type FC } from "react";
 
 interface DropdownProps {
-  /** What the button shows. */
   trigger: ReactNode;
-  /** Accessible name for the button, needed when the trigger is only an icon. */
   label?: string;
   triggerClassName?: string;
-  /** The menu. Call close() after an item is chosen. */
+  align?: "start" | "end";
   children: (close: () => void) => ReactNode;
 }
 
-/** A button that opens a menu below it. A click outside or Escape closes the menu. */
-export default function Dropdown({ trigger, label, triggerClassName = "", children }: DropdownProps) {
+export const Dropdown: FC<DropdownProps> = ({ trigger, label, triggerClassName = "", align = "start", children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
@@ -50,11 +47,13 @@ export default function Dropdown({ trigger, label, triggerClassName = "", childr
       {isOpen && (
         <div
           role="menu"
-          className="absolute top-full left-0 z-40 mt-1 w-60 rounded-xl border border-foreground/10 bg-white p-1 shadow-lg"
+          className={`absolute top-full z-40 mt-1 w-max max-w-96 min-w-60 rounded-xl border border-foreground/10 bg-white p-1 shadow-lg ${
+            align === "end" ? "right-0" : "left-0"
+          }`}
         >
           {children(() => setIsOpen(false))}
         </div>
       )}
     </div>
   );
-}
+};
