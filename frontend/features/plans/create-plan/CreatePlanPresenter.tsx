@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FC } from "react";
 import { useCreatePlan, useSetCurrentPlan } from "@/models/usePlans";
-import CreatePlanView from "./CreatePlanView";
+import { CreatePlanView } from "./CreatePlanView";
 
 interface CreatePlanPresenterProps {
   onClose: () => void;
 }
 
-export default function CreatePlanPresenter({ onClose }: CreatePlanPresenterProps) {
+export const CreatePlanPresenter: FC<CreatePlanPresenterProps> = ({ onClose }) => {
   const [name, setName] = useState("");
   const createPlan = useCreatePlan();
   const setCurrentPlan = useSetCurrentPlan();
@@ -30,4 +30,4 @@ export default function CreatePlanPresenter({ onClose }: CreatePlanPresenterProp
       onClose={onClose}
     />
   );
-}
+};

@@ -1,4 +1,4 @@
-import SidebarPresenter from "@/components/sidebar/SidebarPresenter";
+import { SidebarPresenter } from "@/components/sidebar/SidebarPresenter";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (

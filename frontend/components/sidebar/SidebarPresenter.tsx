@@ -2,11 +2,11 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import PlanPickerPresenter from "@/components/plan-picker/PlanPickerPresenter";
+import { PlanPickerPresenter } from "@/components/sidebar/plan-picker/PlanPickerPresenter";
 import { useLogout } from "@/models/useAuth";
-import SidebarView from "@/components/sidebar/SidebarView";
+import { SidebarView } from "@/components/sidebar/SidebarView";
 
-export default function SidebarPresenter() {
+export const SidebarPresenter = () => {
   const router = useRouter();
   const pathname = usePathname();
   const logout = useLogout();
@@ -26,4 +26,4 @@ export default function SidebarPresenter() {
       onLogout={handleLogout}
     />
   );
-}
+};

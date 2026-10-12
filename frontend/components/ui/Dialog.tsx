@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type FC } from "react";
 
 interface DialogProps {
   title: string;
@@ -9,7 +9,7 @@ interface DialogProps {
   role?: "dialog" | "alertdialog";
 }
 
-export default function Dialog({ title, children, onClose, role = "dialog" }: DialogProps) {
+export const Dialog: FC<DialogProps> = ({ title, children, onClose, role = "dialog" }) => {
   const latestOnClose = useRef(onClose);
 
   useEffect(() => {
@@ -40,4 +40,4 @@ export default function Dialog({ title, children, onClose, role = "dialog" }: Di
       </div>
     </div>
   );
-}
+};
