@@ -17,6 +17,8 @@ export class Endpoints {
     static readonly categories = (planId: string) => `/plans/${planId}/categories` as const;
 
     static readonly incomeSources = (planId: string) => `/plans/${planId}/income-sources` as const;
+
+    static readonly overview = (planId: string) => `/plans/${planId}/overview` as const;
   };
 
   static readonly Transactions = class {

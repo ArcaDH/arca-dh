@@ -16,3 +16,15 @@ export type Subcategory = {
 
 /** The backend lists subcategories per category, so the app joins them together. */
 export type CategoryWithSubcategories = Category & { subcategories: Subcategory[] };
+
+//What the page sends to create or update a category
+export type CategoryInput = {
+  name: string;
+  maxBudget: number;
+};
+
+//What the page sends to create or update a subcategory
+export type SubcategoryInput = {
+  name: string;
+  limit: number;
+};

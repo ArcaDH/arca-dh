@@ -13,7 +13,15 @@ const signedFormatter = new Intl.NumberFormat("sv-SE", {
   signDisplay: "exceptZero",
 });
 
+const wholeFormatter = new Intl.NumberFormat("sv-SE", {
+  style: "currency",
+  currency: "SEK",
+  maximumFractionDigits: 0,
+});
+
 export const formatKr = (kr: number): string => formatter.format(kr);
+
+export const formatWholeKr = (kr: number): string => wholeFormatter.format(kr);
 
 /** Like formatKr, but always shows the sign: "−91,20 kr" or "+500,00 kr". */
 export const formatSignedKr = (kr: number): string => signedFormatter.format(kr);
@@ -25,12 +33,6 @@ export function parseKr(input: string): number | null {
   return Number(cleaned);
 }
 
-/**
- * How the backend stores the sign of an amount. Rami's rule is that money going out is stored as a
- * negative number (true). The sign rule lives only here: flip this one value and both what the page
- * sends and what it shows follow. NOTE: the backend's overview endpoint currently adds expenses up
- * as if they were positive, so the team needs to agree on one rule.
- */
 export const MONEY_OUT_IS_NEGATIVE = true;
 
 /** The amount to send to the backend for a plain number the user typed. */

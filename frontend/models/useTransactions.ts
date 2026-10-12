@@ -23,7 +23,12 @@ export function useCreateExpense(planId: string) {
 
   return useMutation({
     mutationFn: (input: NewTransaction) => transactionsApi.create(planId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: transactionKeys.all }),
+    // The overview's spending per category depends on the transactions too
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: transactionKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ["overview"] }),
+      ]),
   });
 }
 
@@ -32,6 +37,10 @@ export function useDeleteTransaction() {
 
   return useMutation({
     mutationFn: transactionsApi.remove,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: transactionKeys.all }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: transactionKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ["overview"] }),
+      ]),
   });
 }

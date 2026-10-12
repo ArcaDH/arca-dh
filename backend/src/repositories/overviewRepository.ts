@@ -55,7 +55,11 @@ export namespace OverviewRepository {
     const savings = parseFloat(savingRow?.total || "0");
 
     // 4. Spending by category (with subcategories)
-    const planCategories = await db.select().from(categories).where(eq(categories.budgetPlanId, planId));
+    const planCategories = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.budgetPlanId, planId))
+      .orderBy(categories.createdAt);
 
     const spendingByCategory = [];
 
@@ -76,7 +80,11 @@ export namespace OverviewRepository {
         );
 
       // Subcategories with their spending
-      const catSubcategories = await db.select().from(subcategories).where(eq(subcategories.categoryId, cat.id));
+      const catSubcategories = await db
+        .select()
+        .from(subcategories)
+        .where(eq(subcategories.categoryId, cat.id))
+        .orderBy(subcategories.createdAt);
 
       const subcategorySpending = [];
       for (const sub of catSubcategories) {
