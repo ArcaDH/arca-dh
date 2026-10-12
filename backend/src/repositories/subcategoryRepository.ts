@@ -33,7 +33,11 @@ export namespace SubcategoryRepository {
    * List all subcategories for a category
    */
   export async function findSubcategoriesByCategoryId(categoryId: string) {
-    return db.select().from(subcategories).where(eq(subcategories.categoryId, categoryId));
+    return db
+      .select()
+      .from(subcategories)
+      .where(eq(subcategories.categoryId, categoryId))
+      .orderBy(subcategories.createdAt);
   }
 
   /**

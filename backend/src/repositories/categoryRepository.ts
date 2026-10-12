@@ -32,7 +32,7 @@ export namespace CategoryRepository {
    * List all categories for a plan
    */
   export async function findCategoriesByPlanId(planId: string) {
-    return db.select().from(categories).where(eq(categories.budgetPlanId, planId));
+    return db.select().from(categories).where(eq(categories.budgetPlanId, planId)).orderBy(categories.createdAt);
   }
 
   /**
