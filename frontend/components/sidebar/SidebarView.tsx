@@ -9,6 +9,7 @@ import {
   LogOut,
 } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import Button from "../ui/button";
 
 type NavItem = {
@@ -26,6 +27,8 @@ const navItems: NavItem[] = [
 
 interface SidebarViewProps {
   pathname: string;
+  /** The plan picker, shown under the logo. */
+  planPicker: ReactNode;
   collapsed: boolean;
   isLoggingOut: boolean;
   onToggleCollapsed: () => void;
@@ -34,6 +37,7 @@ interface SidebarViewProps {
 
 export default function SidebarView({
   pathname,
+  planPicker,
   collapsed,
   isLoggingOut,
   onToggleCollapsed,
@@ -41,12 +45,12 @@ export default function SidebarView({
 }: SidebarViewProps) {
   return (
     <aside
-      className={`flex shrink-0 flex-col overflow-hidden border-r border-foreground/10 px-3 transition-[width] duration-200 ${
+      className={`flex shrink-0 flex-col border-r border-foreground/10 px-3 transition-[width] duration-200 ${
         collapsed ? "w-17" : "w-64"
       }`}
     >
       <div
-        className={`flex h-16 items-center border-b border-foreground/10 ${
+        className={`flex h-16 items-center overflow-hidden border-b border-foreground/10 ${
           collapsed ? "justify-center" : "justify-between pl-3"
         }`}
       >
@@ -71,7 +75,9 @@ export default function SidebarView({
         </Button>
       </div>
 
-      <nav className="py-5">
+      <div className="border-b border-foreground/10 py-3">{planPicker}</div>
+
+      <nav className="overflow-hidden py-5">
         <ul className="flex flex-col gap-1">
           {navItems.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href || pathname.startsWith(`${href}/`);
@@ -101,7 +107,7 @@ export default function SidebarView({
           })}
         </ul>
       </nav>
-      <div className="mt-auto border-t border-foreground/10 py-4">
+      <div className="mt-auto overflow-hidden border-t border-foreground/10 py-4">
         <Button
           variant="ghost"
           onClick={onLogout}

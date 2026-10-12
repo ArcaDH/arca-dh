@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import PlanPickerPresenter from "@/components/plan-picker/PlanPickerPresenter";
 import { useLogout } from "@/models/useAuth";
 import SidebarView from "@/components/sidebar/SidebarView";
 
@@ -18,6 +19,7 @@ export default function SidebarPresenter() {
   return (
     <SidebarView
       pathname={pathname}
+      planPicker={<PlanPickerPresenter collapsed={collapsed} />}
       collapsed={collapsed}
       isLoggingOut={logout.isPending}
       onToggleCollapsed={() => setCollapsed((current) => !current)}

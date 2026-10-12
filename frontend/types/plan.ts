@@ -2,6 +2,9 @@
 export type Plan = {
   id: string;
   name: string;
-  month: string; // "YYYY-MM"
-  current: boolean;
+  current: boolean; // true for the plan the user is working in
+};
+
+export type PlanInput = {
+  name: string;
 };

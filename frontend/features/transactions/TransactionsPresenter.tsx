@@ -5,7 +5,7 @@ import { ApiError } from "@/api/client";
 import { currentMonth, shiftMonth } from "@/lib/format";
 import { parseKr, sumKr, toMoneyFlow } from "@/lib/money";
 import { useCategories } from "@/models/useCategories";
-import { useCurrentPlan } from "@/models/useCurrentPlan";
+import { useCurrentPlan } from "@/models/usePlans";
 import { useDeleteTransaction, useExpenses } from "@/models/useTransactions";
 import type { CategoryWithSubcategories } from "@/types/category";
 import { DEFAULT_FILTERS, type Transaction, type TransactionFilters, type TransactionRow } from "@/types/transaction";
