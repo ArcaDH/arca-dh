@@ -41,5 +41,5 @@
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
   },
-  "exclude": ["drizzle.config.ts"]
+  "exclude": ["drizzle.config.ts", "tests", "vitest.config.mts"]
 }
