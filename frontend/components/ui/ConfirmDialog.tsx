@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Button from "@/components/ui/button";
-import Dialog from "@/components/ui/Dialog";
+import { Dialog } from "@/components/ui/Dialog";
 
 type DialogAction = {
   label: string;
@@ -17,7 +17,6 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-/** A popup that asks the user to confirm. Cancel is focused first, and Escape or a click outside cancels. */
 export default function ConfirmDialog({ title, children, actions, onCancel }: ConfirmDialogProps) {
   return (
     <Dialog title={title} onClose={onCancel} role="alertdialog">

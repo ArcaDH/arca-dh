@@ -1,4 +1,15 @@
-import { pgTable, pgEnum, uuid, varchar, integer, numeric, date, unique, AnyPgColumn } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  pgEnum,
+  uuid,
+  varchar,
+  integer,
+  numeric,
+  date,
+  timestamp,
+  unique,
+  AnyPgColumn,
+} from "drizzle-orm/pg-core";
 import { relations, InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 // Enums
@@ -52,6 +63,7 @@ export const categories = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: varchar("name", { length: 255 }).notNull(),
     maxBudget: numeric("max_budget", { precision: 12, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     budgetPlanId: uuid("budget_plan_id")
       .notNull()
       .references(() => budgetPlans.id, { onDelete: "cascade" }),
@@ -69,6 +81,7 @@ export const subcategories = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: varchar("name", { length: 255 }).notNull(),
     limit: numeric("limit", { precision: 12, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     categoryId: uuid("category_id")
       .notNull()
       .references(() => categories.id, { onDelete: "cascade" }),

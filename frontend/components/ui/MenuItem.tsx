@@ -1,9 +1,9 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, FC } from "react";
 
 type MenuItemProps = ComponentProps<"button"> & { danger?: boolean };
 
-/** One choice in a Dropdown menu. Pass role="menuitemradio" and aria-checked for items that show a selection. */
-export default function MenuItem({ danger = false, className = "", children, ...rest }: MenuItemProps) {
+// One item in a Dropdown menu
+export const MenuItem: FC<MenuItemProps> = ({ danger = false, className = "", children, ...rest }) => {
   const color = danger
     ? "text-accent hover:bg-accent/10"
     : "text-foreground/80 hover:bg-foreground/5 hover:text-foreground";
@@ -18,4 +18,4 @@ export default function MenuItem({ danger = false, className = "", children, ...
       {children}
     </button>
   );
-}
+};

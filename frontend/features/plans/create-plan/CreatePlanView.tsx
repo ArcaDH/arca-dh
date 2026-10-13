@@ -1,5 +1,6 @@
+import type { FC } from "react";
 import Button from "@/components/ui/button";
-import Dialog from "@/components/ui/Dialog";
+import { Dialog } from "@/components/ui/Dialog";
 import Input from "@/components/ui/input";
 import Label from "@/components/ui/label";
 
@@ -12,14 +13,7 @@ interface CreatePlanViewProps {
   onClose: () => void;
 }
 
-export default function CreatePlanView({
-  name,
-  error,
-  isSaving,
-  onNameChange,
-  onSubmit,
-  onClose,
-}: CreatePlanViewProps) {
+export const CreatePlanView: FC<CreatePlanViewProps> = ({ name, error, isSaving, onNameChange, onSubmit, onClose }) => {
   return (
     <Dialog title="Create plan" onClose={onClose}>
       <form
@@ -59,4 +53,4 @@ export default function CreatePlanView({
       </form>
     </Dialog>
   );
-}
+};

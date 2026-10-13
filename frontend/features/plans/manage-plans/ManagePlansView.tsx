@@ -1,6 +1,7 @@
+import type { FC } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button";
-import Dialog from "@/components/ui/Dialog";
+import { Dialog } from "@/components/ui/Dialog";
 import IconButton from "@/components/ui/IconButton";
 import Input from "@/components/ui/input";
 import type { Plan } from "@/types/plan";
@@ -21,11 +22,23 @@ interface ManagePlansViewProps {
   onClose: () => void;
 }
 
-export default function ManagePlansView(props: ManagePlansViewProps) {
-  const { plans, editing, deletingId, isSaving } = props;
-
+export const ManagePlansView: FC<ManagePlansViewProps> = ({
+  plans,
+  editing,
+  deletingId,
+  isSaving,
+  error,
+  onStartEdit,
+  onEditName,
+  onSaveEdit,
+  onCancelEdit,
+  onAskDelete,
+  onConfirmDelete,
+  onCancelDelete,
+  onClose,
+}) => {
   return (
-    <Dialog title="Manage plans" onClose={props.onClose}>
+    <Dialog title="Manage plans" onClose={onClose}>
       {plans.length === 0 ? (
         <p className="mt-4 text-sm text-foreground/60">You don&apos;t have any plans yet.</p>
       ) : (
@@ -36,7 +49,7 @@ export default function ManagePlansView(props: ManagePlansViewProps) {
                 <form
                   onSubmit={(event) => {
                     event.preventDefault();
-                    props.onSaveEdit();
+                    onSaveEdit();
                   }}
                   className="flex flex-1 items-center gap-2"
                 >
@@ -47,9 +60,9 @@ export default function ManagePlansView(props: ManagePlansViewProps) {
                     maxLength={255}
                     aria-label="Plan name"
                     value={editing.name}
-                    onChange={(event) => props.onEditName(event.target.value)}
+                    onChange={(event) => onEditName(event.target.value)}
                   />
-                  <Button variant="ghost" size="sm" onClick={props.onCancelEdit}>
+                  <Button variant="ghost" size="sm" onClick={onCancelEdit}>
                     Cancel
                   </Button>
                   <Button type="submit" size="sm" isLoading={isSaving}>
@@ -61,10 +74,10 @@ export default function ManagePlansView(props: ManagePlansViewProps) {
                   <p className="min-w-0 flex-1 text-sm">
                     Delete <span className="font-medium">{plan.name}</span> and everything in it?
                   </p>
-                  <Button variant="ghost" size="sm" onClick={props.onCancelDelete}>
+                  <Button variant="ghost" size="sm" onClick={onCancelDelete}>
                     Cancel
                   </Button>
-                  <Button variant="danger" size="sm" isLoading={isSaving} onClick={props.onConfirmDelete}>
+                  <Button variant="danger" size="sm" isLoading={isSaving} onClick={onConfirmDelete}>
                     Delete
                   </Button>
                 </>
@@ -74,10 +87,10 @@ export default function ManagePlansView(props: ManagePlansViewProps) {
                   {plan.current && (
                     <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Current</span>
                   )}
-                  <IconButton aria-label={`Rename ${plan.name}`} onClick={() => props.onStartEdit(plan)}>
+                  <IconButton aria-label={`Rename ${plan.name}`} onClick={() => onStartEdit(plan)}>
                     <Pencil size={15} aria-hidden />
                   </IconButton>
-                  <IconButton aria-label={`Delete ${plan.name}`} onClick={() => props.onAskDelete(plan.id)}>
+                  <IconButton aria-label={`Delete ${plan.name}`} onClick={() => onAskDelete(plan.id)}>
                     <Trash2 size={15} aria-hidden />
                   </IconButton>
                 </>
@@ -87,17 +100,17 @@ export default function ManagePlansView(props: ManagePlansViewProps) {
         </ul>
       )}
 
-      {props.error && (
+      {error && (
         <p role="alert" className="mt-3 text-sm text-accent">
-          {props.error}
+          {error}
         </p>
       )}
 
       <div className="mt-5 flex justify-end">
-        <Button variant="ghost" size="sm" onClick={props.onClose}>
+        <Button variant="ghost" size="sm" onClick={onClose}>
           Done
         </Button>
       </div>
     </Dialog>
   );
-}
+};

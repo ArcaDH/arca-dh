@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import CreatePlanPresenter from "@/features/plans/CreatePlanPresenter";
-import ManagePlansPresenter from "@/features/plans/ManagePlansPresenter";
+import { useState, type FC } from "react";
+import { CreatePlanPresenter } from "@/features/plans/create-plan/CreatePlanPresenter";
+import { ManagePlansPresenter } from "@/features/plans/manage-plans/ManagePlansPresenter";
 import { useCurrentPlan, usePlans, useSetCurrentPlan } from "@/models/usePlans";
-import PlanPickerView from "./PlanPickerView";
+import { PlanPickerView } from "./PlanPickerView";
 
 type OpenDialog = "create" | "manage" | null;
 
@@ -12,7 +12,7 @@ interface PlanPickerPresenterProps {
   collapsed: boolean;
 }
 
-export default function PlanPickerPresenter({ collapsed }: PlanPickerPresenterProps) {
+export const PlanPickerPresenter: FC<PlanPickerPresenterProps> = ({ collapsed }) => {
   const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
   const plans = usePlans();
   const currentPlan = useCurrentPlan();
@@ -36,4 +36,4 @@ export default function PlanPickerPresenter({ collapsed }: PlanPickerPresenterPr
       onManage={() => setOpenDialog("manage")}
     />
   );
-}
+};
