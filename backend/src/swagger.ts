@@ -12,7 +12,12 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "http://localhost:3001", // Change this to match your server URL
+        url: process.env.API_URL || "https://arca-dh-main.onrender.com",
+        description: "Production server (Render)",
+      },
+      {
+        url: `http://localhost:${process.env.PORT || 3001}`,
+        description: "Local development server",
       },
     ],
     components: {

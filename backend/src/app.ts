@@ -38,8 +38,25 @@ setupSwagger(app);
 // initializeStorage();
 
 app.use((req, res, next) => {
-  const allowedOrigin = process.env.FRONTEND_URL ?? "http://localhost:3000";
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(",").map((o) => o.trim())
+    : ["http://localhost:3000"];
+
+  const requestOrigin = req.headers.origin;
+
+  if (
+    requestOrigin &&
+    (allowedOrigins.includes(requestOrigin) ||
+      allowedOrigins.includes("*") ||
+      requestOrigin.endsWith(".github.io") ||
+      requestOrigin.endsWith(".onrender.com") ||
+      requestOrigin.startsWith("http://localhost:"))
+  ) {
+    res.setHeader("Access-Control-Allow-Origin", requestOrigin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigins[0] ?? "*");
+  }
+
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   // Respond immediately to preflight requests
