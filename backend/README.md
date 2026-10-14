@@ -10,9 +10,14 @@ This repository is an API serving the backend service.
 
 ### The project is now installed. To start the API locally, simply run:
 
-`npm run start`
+`npm run dev`
 
-You may need to install an additional package. You can then access the local API on port 3000:
+Pending database migrations are applied automatically before the server starts
+(the `predev` script runs `npm run db:migrate`), so you don't need to touch the
+database by hand. For a production-style run use `npm start`, which migrates and
+then runs the compiled server.
+
+You can then access the local API on port 3000:
 
 `http://localhost:3000/`
 
@@ -20,11 +25,19 @@ To access the Swagger API documentation: `http://localhost:3000/api-docs`
 
 ## Drizzle ORM
 
-To apply database schema updates:
+Migrations are applied automatically on startup, so normally you don't need to
+run anything manually. When you change `src/db/schema.ts`, generate a new
+migration and commit it:
 
-```ts
-npx drizzle-kit push
+```bash
+npm run db:generate   # create a new SQL migration from the schema
+npm run db:migrate    # apply pending migrations (also runs automatically on start)
 ```
+
+`npm run db:push` is also available for throwaway/prototyping databases (applies
+the schema directly without a migration file). Prefer `db:generate` +
+`db:migrate` for anything shared, since those migrations are committed and run
+automatically for everyone.
 
 Make sure that your database user has sufficient privileges. Otherwise, you might encounter an error such as:
 

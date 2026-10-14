@@ -31,6 +31,10 @@ docker compose up backend    # backend only (pulls in Postgres)
 docker compose up frontend   # frontend only
 ```
 
+Database migrations are applied automatically when the backend starts, so a
+fresh `docker compose up` brings the whole app up ready to use — no manual
+database setup step.
+
 - Frontend: http://localhost:3000
 - Backend: http://localhost:3001 (Swagger at http://localhost:3001/api-docs)
 - Adminer (DB UI): http://localhost:8080

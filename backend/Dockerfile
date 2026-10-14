@@ -10,6 +10,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json tsconfig.json ./
 COPY src ./src
+COPY drizzle ./drizzle
 RUN npm run build
 
 # prod-deps
@@ -25,8 +26,10 @@ ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json ./
+# SQL migrations applied on startup via `npm start` (node dist/db/migrate.js).
+COPY drizzle ./drizzle
 # swagger-jsdoc reads route source files at runtime (apis: ["./src/routes/*.ts"]),
 # so the source is required for the API docs to populate.
 COPY src ./src
 EXPOSE 3000
-CMD ["node", "dist/app.js"]
+CMD ["npm", "start"]
