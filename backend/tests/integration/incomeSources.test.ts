@@ -38,6 +38,27 @@ describe("IncomeSourceHandler (incomeSources.ts)", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    it("should return 401 if token has no userId", async () => {
+      const token = generateTokenWithoutUserId();
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const res = createMockResponse();
+
+      await IncomeSourceHandler.getIncomeSources(req, res as any);
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("should return 404 if planId is not a valid UUID", async () => {
+      const req = createMockRequest({ params: { planId: "not-a-uuid" }, tokenUserId: userId });
+      const res = createMockResponse();
+
+      await IncomeSourceHandler.getIncomeSources(req, res as any);
+      expect(res.statusCode).toBe(404);
+      expect(res.body).toEqual({ code: 404, message: "Plan not found" });
+    });
+
     it("should return 404 if plan is not found or not owned by user", async () => {
       vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce(null);
 
@@ -103,7 +124,31 @@ describe("IncomeSourceHandler (incomeSources.ts)", () => {
       expect(res.body.message).toContain("name");
     });
 
-    it("should return 400 if monthlyAmount is zero or negative", async () => {
+    it("should return 400 if body is missing or name is not a string", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        tokenUserId: userId,
+      });
+      (req as any).body = undefined;
+      const res = createMockResponse();
+
+      await IncomeSourceHandler.createIncomeSource(req, res as any);
+      expect(res.statusCode).toBe(400);
+
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      const req2 = createMockRequest({
+        params: { planId: validPlanId },
+        body: { name: 999, monthlyAmount: 3000 },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await IncomeSourceHandler.createIncomeSource(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
+    });
+
+    it("should return 400 if monthlyAmount is zero, negative, or NaN", async () => {
       vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
 
       const req = createMockRequest({
@@ -116,6 +161,16 @@ describe("IncomeSourceHandler (incomeSources.ts)", () => {
       await IncomeSourceHandler.createIncomeSource(req, res as any);
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toContain("monthlyAmount");
+
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      const req2 = createMockRequest({
+        params: { planId: validPlanId },
+        body: { name: "Salary", monthlyAmount: "not-a-number" },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await IncomeSourceHandler.createIncomeSource(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
     });
 
     it("should return 201 with created income source on success", async () => {

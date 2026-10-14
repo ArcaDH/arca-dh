@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OverviewHandler } from "../../src/handlers/overview";
 import { OverviewRepository } from "../../src/repositories/overviewRepository";
 import { PlanRepository } from "../../src/repositories/planRepository";
-import { createMockRequest, createMockResponse } from "./helpers";
+import { createMockRequest, createMockResponse, generateTokenWithoutUserId } from "./helpers";
 
 vi.mock("../../src/repositories/overviewRepository", () => ({
   OverviewRepository: {
@@ -26,6 +26,19 @@ describe("OverviewHandler (overview.ts)", () => {
 
   it("should return 401 if unauthorized", async () => {
     const req = createMockRequest({ params: { planId: validPlanId }, query: { month: "2026-10" } });
+    const res = createMockResponse();
+
+    await OverviewHandler.getOverview(req, res as any);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("should return 401 if token has no userId", async () => {
+    const token = generateTokenWithoutUserId();
+    const req = createMockRequest({
+      params: { planId: validPlanId },
+      query: { month: "2026-10" },
+      headers: { authorization: `Bearer ${token}` },
+    });
     const res = createMockResponse();
 
     await OverviewHandler.getOverview(req, res as any);

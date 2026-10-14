@@ -5,7 +5,7 @@ import { PlanRepository } from "../../src/repositories/planRepository";
 import { CategoryRepository } from "../../src/repositories/categoryRepository";
 import { SubcategoryRepository } from "../../src/repositories/subcategoryRepository";
 import { SavingsGoalRepository } from "../../src/repositories/savingsGoalRepository";
-import { createMockRequest, createMockResponse } from "./helpers";
+import { createMockRequest, createMockResponse, generateTokenWithoutUserId } from "./helpers";
 
 vi.mock("../../src/repositories/transactionRepository", () => ({
   TransactionRepository: {
@@ -60,6 +60,27 @@ describe("TransactionHandler (transactions.ts)", () => {
 
       await TransactionHandler.getTransactions(req, res as any);
       expect(res.statusCode).toBe(401);
+    });
+
+    it("should return 401 if token has no userId", async () => {
+      const token = generateTokenWithoutUserId();
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const res = createMockResponse();
+
+      await TransactionHandler.getTransactions(req, res as any);
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("should return 404 if planId is not a valid UUID", async () => {
+      const req = createMockRequest({ params: { planId: "not-a-uuid" }, tokenUserId: userId });
+      const res = createMockResponse();
+
+      await TransactionHandler.getTransactions(req, res as any);
+      expect(res.statusCode).toBe(404);
+      expect(res.body).toEqual({ code: 404, message: "Plan not found" });
     });
 
     it("should return 404 if plan is not found for user", async () => {
@@ -161,19 +182,233 @@ describe("TransactionHandler (transactions.ts)", () => {
       expect(res.statusCode).toBe(401);
     });
 
-    it("should return 400 if validation fails (e.g. invalid amount)", async () => {
+    it("should return 400 if body is missing", async () => {
       vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
 
       const req = createMockRequest({
         params: { planId: validPlanId },
-        body: { amount: "not-a-number", date: "2026-10-14", type: "EXPENSE" },
         tokenUserId: userId,
       });
+      (req as any).body = undefined;
       const res = createMockResponse();
 
       await TransactionHandler.createTransaction(req, res as any);
       expect(res.statusCode).toBe(400);
-      expect(res.body.message).toContain("amount");
+    });
+
+    it("should return 400 if amount is out of range (< 1 or > 1000000)", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req1 = createMockRequest({
+        params: { planId: validPlanId },
+        body: { amount: 0, date: "2026-10-14", type: "EXPENSE" },
+        tokenUserId: userId,
+      });
+      const res1 = createMockResponse();
+      await TransactionHandler.createTransaction(req1, res1 as any);
+      expect(res1.statusCode).toBe(400);
+      expect(res1.body.message).toContain("between 1 and 1000000");
+
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      const req2 = createMockRequest({
+        params: { planId: validPlanId },
+        body: { amount: 2000000, date: "2026-10-14", type: "EXPENSE" },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await TransactionHandler.createTransaction(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
+    });
+
+    it("should return 400 if date is missing, non-string, or invalid format", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req1 = createMockRequest({
+        params: { planId: validPlanId },
+        body: { amount: 50, date: "", type: "EXPENSE" },
+        tokenUserId: userId,
+      });
+      const res1 = createMockResponse();
+      await TransactionHandler.createTransaction(req1, res1 as any);
+      expect(res1.statusCode).toBe(400);
+      expect(res1.body.message).toContain("YYYY-MM-DD");
+
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      const req2 = createMockRequest({
+        params: { planId: validPlanId },
+        body: { amount: 50, date: "2026-13-45", type: "EXPENSE" },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await TransactionHandler.createTransaction(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
+    });
+
+    it("should return 400 if type is missing or not EXPENSE/SAVING", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: { amount: 50, date: "2026-10-14", type: "INVALID" },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+      await TransactionHandler.createTransaction(req, res as any);
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain("EXPENSE");
+    });
+
+    it("should return 400 if SAVING transaction has non-positive amount", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: { amount: -50, date: "2026-10-14", type: "SAVING", savingsGoalId: validGoalId },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+      await TransactionHandler.createTransaction(req, res as any);
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain("positive number");
+    });
+
+    it("should return 400 if EXPENSE transaction has savingsGoalId", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: {
+          amount: 50,
+          date: "2026-10-14",
+          type: "EXPENSE",
+          categoryId: validCategoryId,
+          savingsGoalId: validGoalId,
+        },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+      await TransactionHandler.createTransaction(req, res as any);
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain("cannot have a 'savingsGoalId'");
+    });
+
+    it("should return 400 if EXPENSE transaction is missing valid categoryId", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: { amount: 50, date: "2026-10-14", type: "EXPENSE", categoryId: "not-a-uuid" },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+      await TransactionHandler.createTransaction(req, res as any);
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain("requires a valid 'categoryId'");
+    });
+
+    it("should return 400 if EXPENSE categoryId does not exist", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      vi.mocked(CategoryRepository.findCategoryById).mockResolvedValueOnce(null);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: { amount: 50, date: "2026-10-14", type: "EXPENSE", categoryId: validCategoryId },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+      await TransactionHandler.createTransaction(req, res as any);
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain("does not exist");
+    });
+
+    it("should return 400 if EXPENSE subcategoryId is invalid UUID or does not belong", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      vi.mocked(CategoryRepository.findCategoryById).mockResolvedValueOnce({ id: validCategoryId } as any);
+
+      const req1 = createMockRequest({
+        params: { planId: validPlanId },
+        body: {
+          amount: 50,
+          date: "2026-10-14",
+          type: "EXPENSE",
+          categoryId: validCategoryId,
+          subcategoryId: "not-a-uuid",
+        },
+        tokenUserId: userId,
+      });
+      const res1 = createMockResponse();
+      await TransactionHandler.createTransaction(req1, res1 as any);
+      expect(res1.statusCode).toBe(400);
+      expect(res1.body.message).toContain("must be a valid UUID");
+
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      vi.mocked(CategoryRepository.findCategoryById).mockResolvedValueOnce({ id: validCategoryId } as any);
+      vi.mocked(SubcategoryRepository.isSubcategoryOfCategory).mockResolvedValueOnce(false);
+
+      const req2 = createMockRequest({
+        params: { planId: validPlanId },
+        body: {
+          amount: 50,
+          date: "2026-10-14",
+          type: "EXPENSE",
+          categoryId: validCategoryId,
+          subcategoryId: validSubcategoryId,
+        },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await TransactionHandler.createTransaction(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
+      expect(res2.body.message).toContain("does not belong");
+    });
+
+    it("should return 400 if SAVING transaction has categoryId or subcategoryId", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: {
+          amount: 100,
+          date: "2026-10-14",
+          type: "SAVING",
+          categoryId: validCategoryId,
+          savingsGoalId: validGoalId,
+        },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+      await TransactionHandler.createTransaction(req, res as any);
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain("cannot have a 'categoryId'");
+    });
+
+    it("should return 400 if SAVING transaction is missing valid savingsGoalId", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: { amount: 100, date: "2026-10-14", type: "SAVING", savingsGoalId: "not-a-uuid" },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+      await TransactionHandler.createTransaction(req, res as any);
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain("requires a valid 'savingsGoalId'");
+    });
+
+    it("should return 400 if SAVING savingsGoalId does not exist", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      vi.mocked(SavingsGoalRepository.findById).mockResolvedValueOnce(null);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: { amount: 100, date: "2026-10-14", type: "SAVING", savingsGoalId: validGoalId },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+      await TransactionHandler.createTransaction(req, res as any);
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain("does not exist");
     });
 
     it("should return 201 with created expense transaction on success", async () => {
@@ -185,6 +420,7 @@ describe("TransactionHandler (transactions.ts)", () => {
         id: validTxId,
         amount: "50.00",
         date: "2026-10-14",
+        description: "Lunch",
         type: "EXPENSE",
         categoryId: validCategoryId,
         subcategoryId: validSubcategoryId,
@@ -198,6 +434,7 @@ describe("TransactionHandler (transactions.ts)", () => {
         body: {
           amount: 50,
           date: "2026-10-14",
+          description: " Lunch ",
           type: "EXPENSE",
           categoryId: validCategoryId,
           subcategoryId: validSubcategoryId,
@@ -276,8 +513,53 @@ describe("TransactionHandler (transactions.ts)", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    it("should return 401 if token has no userId", async () => {
+      const token = generateTokenWithoutUserId();
+      const req = createMockRequest({
+        params: { id: validTxId },
+        headers: { authorization: `Bearer ${token}` },
+        body: { amount: 60 },
+      });
+      const res = createMockResponse();
+
+      await TransactionHandler.updateTransaction(req, res as any);
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("should return 404 if transaction id is not a valid UUID", async () => {
+      const req = createMockRequest({
+        params: { id: "not-a-uuid" },
+        body: { amount: 60 },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await TransactionHandler.updateTransaction(req, res as any);
+      expect(res.statusCode).toBe(404);
+      expect(res.body).toEqual({ code: 404, message: "Transaction not found" });
+    });
+
     it("should return 404 if transaction is not found", async () => {
       vi.mocked(TransactionRepository.findById).mockResolvedValueOnce(null);
+
+      const req = createMockRequest({
+        params: { id: validTxId },
+        body: { amount: 60 },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await TransactionHandler.updateTransaction(req, res as any);
+      expect(res.statusCode).toBe(404);
+      expect(res.body).toEqual({ code: 404, message: "Transaction not found" });
+    });
+
+    it("should return 404 if plan for existing transaction does not belong to user", async () => {
+      vi.mocked(TransactionRepository.findById).mockResolvedValueOnce({
+        id: validTxId,
+        budgetPlanId: validPlanId,
+      } as any);
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce(null);
 
       const req = createMockRequest({
         params: { id: validTxId },
@@ -369,6 +651,27 @@ describe("TransactionHandler (transactions.ts)", () => {
 
       await TransactionHandler.deleteTransaction(req, res as any);
       expect(res.statusCode).toBe(401);
+    });
+
+    it("should return 401 if token has no userId", async () => {
+      const token = generateTokenWithoutUserId();
+      const req = createMockRequest({
+        params: { id: validTxId },
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const res = createMockResponse();
+
+      await TransactionHandler.deleteTransaction(req, res as any);
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("should return 404 if transaction id is not a valid UUID", async () => {
+      const req = createMockRequest({ params: { id: "not-a-uuid" }, tokenUserId: userId });
+      const res = createMockResponse();
+
+      await TransactionHandler.deleteTransaction(req, res as any);
+      expect(res.statusCode).toBe(404);
+      expect(res.body).toEqual({ code: 404, message: "Transaction not found" });
     });
 
     it("should return 404 if transaction is not found", async () => {

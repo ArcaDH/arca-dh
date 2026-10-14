@@ -252,6 +252,18 @@ describe("UserHandler (users.ts)", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    it("should return 401 if auth token is invalid or malformed", async () => {
+      const req = createMockRequest({
+        params: { id: "1" },
+        body: { username: "newname" },
+        headers: { authorization: "Bearer invalid.malformed.jwt" },
+      });
+      const res = createMockResponse();
+
+      await UserHandler.patchUser(req, res as any);
+      expect(res.statusCode).toBe(401);
+    });
+
     it("should return 403 if token userId mismatches requested id", async () => {
       const req = createMockRequest({
         params: { id: "2" }, // Requesting id 2

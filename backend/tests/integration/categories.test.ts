@@ -38,6 +38,18 @@ describe("CategoryHandler (categories.ts)", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    it("should return 401 if token has no userId", async () => {
+      const token = generateTokenWithoutUserId();
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const res = createMockResponse();
+
+      await CategoryHandler.getCategories(req, res as any);
+      expect(res.statusCode).toBe(401);
+    });
+
     it("should return 404 if planId is not a valid UUID", async () => {
       const req = createMockRequest({ params: { planId: "not-a-uuid" }, tokenUserId: userId });
       const res = createMockResponse();
@@ -117,7 +129,31 @@ describe("CategoryHandler (categories.ts)", () => {
       expect(res.body.message).toContain("name");
     });
 
-    it("should return 400 if maxBudget is negative or invalid", async () => {
+    it("should return 400 if body is missing or name is not a string", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        tokenUserId: userId,
+      });
+      (req as any).body = undefined;
+      const res = createMockResponse();
+
+      await CategoryHandler.createCategory(req, res as any);
+      expect(res.statusCode).toBe(400);
+
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      const req2 = createMockRequest({
+        params: { planId: validPlanId },
+        body: { name: 12345, maxBudget: 100 },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await CategoryHandler.createCategory(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
+    });
+
+    it("should return 400 if maxBudget is negative, NaN, or invalid", async () => {
       vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
 
       const req = createMockRequest({
@@ -130,6 +166,16 @@ describe("CategoryHandler (categories.ts)", () => {
       await CategoryHandler.createCategory(req, res as any);
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toContain("maxBudget");
+
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      const req2 = createMockRequest({
+        params: { planId: validPlanId },
+        body: { name: "Food", maxBudget: "not-a-number" },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await CategoryHandler.createCategory(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
     });
 
     it("should return 201 with created category on success", async () => {

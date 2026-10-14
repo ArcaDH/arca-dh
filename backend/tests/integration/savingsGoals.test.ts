@@ -39,6 +39,27 @@ describe("SavingsGoalHandler (savingsGoals.ts)", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    it("should return 401 if token has no userId", async () => {
+      const token = generateTokenWithoutUserId();
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const res = createMockResponse();
+
+      await SavingsGoalHandler.getGoals(req, res as any);
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("should return 404 if planId is not a valid UUID", async () => {
+      const req = createMockRequest({ params: { planId: "not-a-uuid" }, tokenUserId: userId });
+      const res = createMockResponse();
+
+      await SavingsGoalHandler.getGoals(req, res as any);
+      expect(res.statusCode).toBe(404);
+      expect(res.body).toEqual({ code: 404, message: "Plan not found" });
+    });
+
     it("should return 404 if plan not found for user", async () => {
       vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce(null);
 
@@ -101,7 +122,31 @@ describe("SavingsGoalHandler (savingsGoals.ts)", () => {
       expect(res.body.message).toContain("name");
     });
 
-    it("should return 400 if targetAmount is non-positive", async () => {
+    it("should return 400 if body is missing or name is not a string", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        tokenUserId: userId,
+      });
+      (req as any).body = undefined;
+      const res = createMockResponse();
+
+      await SavingsGoalHandler.createGoal(req, res as any);
+      expect(res.statusCode).toBe(400);
+
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      const req2 = createMockRequest({
+        params: { planId: validPlanId },
+        body: { name: 123, targetAmount: 5000 },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await SavingsGoalHandler.createGoal(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
+    });
+
+    it("should return 400 if targetAmount is non-positive or NaN", async () => {
       vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
 
       const req = createMockRequest({
@@ -114,6 +159,30 @@ describe("SavingsGoalHandler (savingsGoals.ts)", () => {
       await SavingsGoalHandler.createGoal(req, res as any);
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toContain("targetAmount");
+
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      const req2 = createMockRequest({
+        params: { planId: validPlanId },
+        body: { name: "Car", targetAmount: "not-a-number" },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await SavingsGoalHandler.createGoal(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
+    });
+
+    it("should return 400 if deadline is not a string", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: { name: "Car", targetAmount: 5000, deadline: 12345 },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await SavingsGoalHandler.createGoal(req, res as any);
+      expect(res.statusCode).toBe(400);
     });
 
     it("should return 400 if deadline format is invalid", async () => {

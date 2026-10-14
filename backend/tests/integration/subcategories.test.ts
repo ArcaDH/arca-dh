@@ -140,7 +140,31 @@ describe("SubcategoryHandler (subcategories.ts)", () => {
       expect(res.body.message).toContain("name");
     });
 
-    it("should return 400 if limit is negative", async () => {
+    it("should return 400 if body is missing or name is not a string", async () => {
+      vi.mocked(CategoryRepository.findCategoryByIdAndUserId).mockResolvedValueOnce({ id: validCategoryId } as any);
+
+      const req = createMockRequest({
+        params: { id: validCategoryId },
+        tokenUserId: userId,
+      });
+      (req as any).body = undefined;
+      const res = createMockResponse();
+
+      await SubcategoryHandler.createSubcategory(req, res as any);
+      expect(res.statusCode).toBe(400);
+
+      vi.mocked(CategoryRepository.findCategoryByIdAndUserId).mockResolvedValueOnce({ id: validCategoryId } as any);
+      const req2 = createMockRequest({
+        params: { id: validCategoryId },
+        body: { name: 12345, limit: 100 },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await SubcategoryHandler.createSubcategory(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
+    });
+
+    it("should return 400 if limit is negative or NaN", async () => {
       vi.mocked(CategoryRepository.findCategoryByIdAndUserId).mockResolvedValueOnce({ id: validCategoryId } as any);
 
       const req = createMockRequest({
@@ -153,6 +177,33 @@ describe("SubcategoryHandler (subcategories.ts)", () => {
       await SubcategoryHandler.createSubcategory(req, res as any);
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toContain("limit");
+
+      vi.mocked(CategoryRepository.findCategoryByIdAndUserId).mockResolvedValueOnce({ id: validCategoryId } as any);
+      const req2 = createMockRequest({
+        params: { id: validCategoryId },
+        body: { name: "Dining", limit: "not-a-number" },
+        tokenUserId: userId,
+      });
+      const res2 = createMockResponse();
+      await SubcategoryHandler.createSubcategory(req2, res2 as any);
+      expect(res2.statusCode).toBe(400);
+    });
+
+    it("should accept string limit and parse it correctly", async () => {
+      vi.mocked(CategoryRepository.findCategoryByIdAndUserId).mockResolvedValueOnce({ id: validCategoryId } as any);
+      const created = { id: validSubcategoryId, name: "Dining", limit: "150", categoryId: validCategoryId };
+      vi.mocked(SubcategoryRepository.createSubcategory).mockResolvedValueOnce(created as any);
+
+      const req = createMockRequest({
+        params: { id: validCategoryId },
+        body: { name: "Dining", limit: "150" },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await SubcategoryHandler.createSubcategory(req, res as any);
+      expect(res.statusCode).toBe(201);
+      expect(res.body).toEqual(created);
     });
 
     it("should return 201 with created subcategory on success", async () => {

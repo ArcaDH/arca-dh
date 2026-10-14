@@ -8,7 +8,12 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
-      include: ["src/handlers/**/*.ts"],
+      include: [
+        "src/handlers/**/*.ts",
+        "src/validators/**/*.ts",
+        "src/services/passwordService.ts",
+        "src/services/tokenService.ts",
+      ],
     },
   },
 });
