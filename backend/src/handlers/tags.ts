@@ -1,0 +1,75 @@
+import { Request, Response } from "express";
+import { TagRepository } from "../repositories/tagRepository";
+import { returnJson } from "../services/apiService";
+import { validateRequest, validateTagData, validateTagId } from "../validators/tags";
+
+const UNIQUE_VIOLATION = "23505";
+
+const duplicateName = (response: Response) =>
+  returnJson(response, 409, { code: 409, message: "You already have a tag with that name." });
+
+export namespace TagHandler {
+  /**
+   * GET /tags
+   * List the tags of the logged-in user
+   */
+  export async function getTags(request: Request, response: Response) {
+    try {
+      const userId = validateRequest(request, response);
+      if (userId == null) return;
+
+      const result = await TagRepository.findByUserId(userId);
+      return returnJson(response, 200, result);
+    } catch (error) {
+      console.error("Error in getTags:", error);
+      return returnJson(response, 500, { code: 500, message: "Internal server error" });
+    }
+  }
+
+  /**
+   * POST /tags
+   * Create a tag. The name is unique per user, ignoring capital letters.
+   */
+  export async function createTag(request: Request, response: Response) {
+    try {
+      const userId = validateRequest(request, response);
+      if (userId == null) return;
+
+      const validData = validateTagData(request.body, response);
+      if (!validData) return;
+
+      if (await TagRepository.findByNameAndUserId(validData.name, userId)) return duplicateName(response);
+
+      const created = await TagRepository.createTag({ ...validData, userId });
+      return returnJson(response, 201, created);
+    } catch (error: any) {
+      // Two requests with the same name can pass the check above at the same time, the database index stops the second
+      if ((error?.code ?? error?.cause?.code) === UNIQUE_VIOLATION) return duplicateName(response);
+      console.error("Error in createTag:", error);
+      return returnJson(response, 500, { code: 500, message: "Internal server error" });
+    }
+  }
+
+  /**
+   * DELETE /tags/:id
+   * Delete a tag. It is removed from every transaction that had it.
+   */
+  export async function deleteTag(request: Request, response: Response) {
+    try {
+      const userId = validateRequest(request, response);
+      if (userId == null) return;
+
+      const id = validateTagId(request, response);
+      if (id == null) return;
+
+      const existing = await TagRepository.findByIdAndUserId(id, userId);
+      if (!existing) return returnJson(response, 404, { code: 404, message: "Tag not found" });
+
+      await TagRepository.deleteTag(id);
+      return response.status(204).send();
+    } catch (error) {
+      console.error("Error in deleteTag:", error);
+      return returnJson(response, 500, { code: 500, message: "Internal server error" });
+    }
+  }
+}

@@ -6,6 +6,7 @@ import IconButton from "@/components/ui/IconButton";
 import { formatDay } from "@/lib/format";
 import { formatSignedKr } from "@/lib/money";
 import type { TransactionRow } from "@/types/transaction";
+import TagChip from "./TagChip";
 
 // Expenses and savings look alike, apart from the icon
 const kindIcon: Record<TransactionRow["kind"], { icon: ReactNode; tint: string }> = {
@@ -50,6 +51,15 @@ export default function TransactionList({ rows, isRefreshing, isFiltered, onDele
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm">{row.title}</p>
               <p className="truncate text-xs text-foreground/60">{meta}</p>
+              {row.tags.length > 0 && (
+                <ul aria-label="Tags" className="mt-1 flex flex-wrap gap-1">
+                  {row.tags.map((tag) => (
+                    <li key={tag.id} className="max-w-full">
+                      <TagChip tag={tag} />
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <span className={`w-28 shrink-0 text-right font-mono text-sm ${row.amount > 0 ? "text-success" : ""}`}>

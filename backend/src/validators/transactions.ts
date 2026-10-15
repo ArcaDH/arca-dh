@@ -5,6 +5,8 @@ import { SubcategoryRepository } from "../repositories/subcategoryRepository";
 import { SavingsGoalRepository } from "../repositories/savingsGoalRepository";
 import { PlanRepository } from "../repositories/planRepository";
 import { TransactionRepository } from "../repositories/transactionRepository";
+import { TagRepository } from "../repositories/tagRepository";
+import { MAX_TAGS_PER_TRANSACTION } from "./tags";
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
@@ -14,9 +16,49 @@ const MIN_AMOUNT = 1;
 const MAX_AMOUNT = 1_000_000;
 
 /**
+ * Validates the optional list of tag ids on a transaction.
+ * Returns undefined when it was left out (keep the current tags), the cleaned list otherwise,
+ * or null if the response was already sent.
+ */
+async function validateTagIds(
+  tagIds: unknown,
+  userId: number,
+  response: Response,
+): Promise<string[] | undefined | null> {
+  if (tagIds === undefined || tagIds === null) return undefined;
+
+  if (!Array.isArray(tagIds) || tagIds.some((id) => typeof id !== "string" || !UUID_REGEX.test(id))) {
+    returnJson(response, 400, {
+      code: 400,
+      message: "Invalid input: 'tagIds' must be a list of tag ids.",
+    });
+    return null;
+  }
+
+  const unique = [...new Set(tagIds as string[])];
+  if (unique.length > MAX_TAGS_PER_TRANSACTION) {
+    returnJson(response, 400, {
+      code: 400,
+      message: `Invalid input: a transaction can have at most ${MAX_TAGS_PER_TRANSACTION} tags.`,
+    });
+    return null;
+  }
+
+  if ((await TagRepository.countByIdsAndUserId(unique, userId)) !== unique.length) {
+    returnJson(response, 400, {
+      code: 400,
+      message: "Invalid input: 'tagIds' contains a tag that does not exist.",
+    });
+    return null;
+  }
+
+  return unique;
+}
+
+/**
  * Validates request data for transaction creation and updates
  */
-export async function validateTransactionData(body: any, response: Response) {
+export async function validateTransactionData(body: any, response: Response, userId: number) {
   const { amount, date, description, type, categoryId, subcategoryId, savingsGoalId } = body || {};
 
   // 1. Amount validation (must be a valid number)
@@ -150,6 +192,10 @@ export async function validateTransactionData(body: any, response: Response) {
     }
   }
 
+  // 6. Tags (optional)
+  const normTagIds = await validateTagIds(body?.tagIds, userId, response);
+  if (normTagIds === null) return null;
+
   return {
     amount: parsedAmount.toFixed(2),
     date: date.trim(),
@@ -158,6 +204,7 @@ export async function validateTransactionData(body: any, response: Response) {
     categoryId: normCategory,
     subcategoryId: normSubcategory,
     savingsGoalId: normSavingsGoal,
+    tagIds: normTagIds,
   };
 }
 export async function validateRequest(request: any, response: any) {
