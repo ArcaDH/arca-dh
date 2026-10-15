@@ -63,6 +63,7 @@ const router = Router();
  *   delete:
  *     tags: [Savings goals]
  *     summary: Delete a savings goal
+ *     description: Also deletes the SAVING transactions linked to the goal.
  *     security:
  *       - bearerAuth: []
  *     parameters:

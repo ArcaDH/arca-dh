@@ -119,19 +119,25 @@ export namespace OverviewRepository {
       });
     }
 
-    // 5. Goal progress — all-time saved amounts (not filtered by month)
-    const goals = await db.select().from(savingsGoals).where(eq(savingsGoals.budgetPlanId, planId));
+    // 5. Goal progress — all-time saved amounts, plus what was saved in the given month
+    const goals = await db
+      .select()
+      .from(savingsGoals)
+      .where(eq(savingsGoals.budgetPlanId, planId))
+      .orderBy(savingsGoals.deadline, savingsGoals.name);
 
     const goalProgress = [];
     for (const goal of goals) {
       const [goalSavedRow] = await db
         .select({
           totalSaved: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+          savedThisMonth: sql<string>`COALESCE(SUM(${transactions.amount}) FILTER (WHERE ${transactions.date}::text LIKE ${monthPrefix}), 0)`,
         })
         .from(transactions)
         .where(and(eq(transactions.savingsGoalId, goal.id), eq(transactions.type, "SAVING")));
 
       const savedAmount = parseFloat(goalSavedRow?.totalSaved || "0");
+      const savedThisMonth = parseFloat(goalSavedRow?.savedThisMonth || "0");
       const targetAmount = parseFloat(goal.targetAmount);
       const progress = targetAmount > 0 ? parseFloat((savedAmount / targetAmount).toFixed(4)) : 0;
 
@@ -139,7 +145,11 @@ export namespace OverviewRepository {
         goalId: goal.id,
         name: goal.name,
         targetAmount,
+        deadline: goal.deadline,
+        createdAt: goal.createdAt,
+        monthlyAmount: goal.monthlyAmount === null ? null : parseFloat(goal.monthlyAmount),
         savedAmount,
+        savedThisMonth,
         progress,
       });
     }
