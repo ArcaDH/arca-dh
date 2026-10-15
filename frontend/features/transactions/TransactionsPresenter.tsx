@@ -5,11 +5,13 @@ import { ApiError } from "@/api/client";
 import { currentMonth, shiftMonth } from "@/lib/format";
 import { parseKr, sumKr, toMoneyFlow } from "@/lib/money";
 import { useCategories } from "@/models/useCategories";
+import { useTags } from "@/models/useTags";
 import { useCurrentPlan } from "@/models/usePlans";
 import { useGoals } from "@/models/useGoals";
 import { useDeleteTransaction, useMonthTransactions } from "@/models/useTransactions";
 import type { CategoryWithSubcategories } from "@/types/category";
 import type { SavingsGoal } from "@/types/goal";
+import type { Tag } from "@/types/tag";
 import { DEFAULT_FILTERS, type Transaction, type TransactionFilters, type TransactionRow } from "@/types/transaction";
 import TransactionFormPresenter from "./TransactionFormPresenter";
 import TransactionsView from "./TransactionsView";
@@ -37,6 +39,7 @@ function toRows(
       title: transaction.description ?? forName ?? "Transaction",
       detail: detail.filter(Boolean).join(" · "),
       categoryId: transaction.categoryId ?? null,
+      tags: transaction.tags,
     };
   });
 }
@@ -44,16 +47,22 @@ function toRows(
 /**
  * The backend only filters by month, so search, category, amount and sort are applied here.
  * Amounts are compared by size, since money out is a negative number.
+ * Tags: "any" keeps a transaction with at least one of the chosen tags, "all" one with every chosen tag.
+ * A chosen tag that has been deleted since is ignored, otherwise "all" would match nothing.
  */
-function applyFilters(rows: TransactionRow[], filters: TransactionFilters): TransactionRow[] {
+function applyFilters(rows: TransactionRow[], filters: TransactionFilters, tags: Tag[] | undefined): TransactionRow[] {
   const query = filters.q.trim().toLowerCase();
   const min = parseKr(filters.minKr);
   const max = parseKr(filters.maxKr);
+  const tagIds = tags ? filters.tagIds.filter((id) => tags.some((tag) => tag.id === id)) : filters.tagIds;
+  const hasTag = (row: TransactionRow, id: string) => row.tags.some((tag) => tag.id === id);
 
   const matching = rows.filter(
     (row) =>
       (!query || (row.description ?? "").toLowerCase().includes(query)) &&
       (!filters.categoryId || row.categoryId === filters.categoryId) &&
+      (tagIds.length === 0 ||
+        (filters.tagMode === "all" ? tagIds.every((id) => hasTag(row, id)) : tagIds.some((id) => hasTag(row, id)))) &&
       (min === null || Math.abs(row.amount) >= min) &&
       (max === null || Math.abs(row.amount) <= max),
   );
@@ -74,6 +83,7 @@ export default function TransactionsPresenter() {
   const plan = useCurrentPlan();
   const planId = plan.data?.id;
   const categories = useCategories(planId);
+  const tags = useTags();
   const expenses = useMonthTransactions(planId, month);
   const goals = useGoals(planId);
   const deleteTransaction = useDeleteTransaction();
@@ -82,7 +92,10 @@ export default function TransactionsPresenter() {
     () => (expenses.data ? toRows(expenses.data, categories.data ?? [], goals.data ?? []) : null),
     [expenses.data, categories.data, goals.data],
   );
-  const rows = useMemo(() => (allRows ? applyFilters(allRows, filters) : null), [allRows, filters]);
+  const rows = useMemo(
+    () => (allRows ? applyFilters(allRows, filters, tags.data) : null),
+    [allRows, filters, tags.data],
+  );
   // Money in minus money out for the whole month, whatever the filters are set to. Savings aren't spending
   const net = expenses.data
     ? sumKr(
@@ -124,6 +137,7 @@ export default function TransactionsPresenter() {
       filters={filters}
       isFiltered={isFiltered}
       categories={categories.data ?? []}
+      tags={tags.data ?? []}
       rows={rows}
       isRefreshing={expenses.isPlaceholderData}
       errorMessage={actionError ?? loadError ?? null}

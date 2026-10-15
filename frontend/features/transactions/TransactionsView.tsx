@@ -7,6 +7,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import IconButton from "@/components/ui/IconButton";
 import { formatDay, monthLabel } from "@/lib/format";
 import { formatKr, formatSignedKr } from "@/lib/money";
+import type { Tag } from "@/types/tag";
 import type { TransactionFilters, TransactionRow } from "@/types/transaction";
 
 interface TransactionsViewProps {
@@ -18,6 +19,7 @@ interface TransactionsViewProps {
   filters: TransactionFilters;
   isFiltered: boolean;
   categories: { id: string; name: string }[];
+  tags: Tag[];
   /** null until the first load has finished. */
   rows: TransactionRow[] | null;
   isRefreshing: boolean;
@@ -71,6 +73,7 @@ export default function TransactionsView(props: TransactionsViewProps) {
                 filters={props.filters}
                 onChange={props.onFiltersChange}
                 categories={props.categories}
+                tags={props.tags}
               />
             </div>
 

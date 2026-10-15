@@ -3,15 +3,18 @@
 import { useEffect, useState } from "react";
 import { toISODate } from "@/lib/format";
 import { MAX_AMOUNT_KR, MIN_AMOUNT_KR, parseKr, toBackendAmount } from "@/lib/money";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { forGroups } from "@/lib/transactions";
+import { useCreateTag, useDeleteTag, useTags } from "@/models/useTags";
 import { useCreateTransaction } from "@/models/useTransactions";
 import type { CategoryWithSubcategories } from "@/types/category";
 import type { SavingsGoal } from "@/types/goal";
+import type { Tag } from "@/types/tag";
 import type { ForOption } from "@/types/transaction";
 import TransactionFormView, { type FormState } from "./TransactionFormView";
 
 // sessionStorage keeps a half-filled form across a refresh, and forgets it when the tab is closed
-const DRAFT_KEY = "arca.transactionDraft.v3";
+const DRAFT_KEY = "arca.transactionDraft.v4";
 
 const emptyForm = (): FormState => ({
   amount: "",
@@ -19,6 +22,7 @@ const emptyForm = (): FormState => ({
   date: toISODate(new Date()),
   description: "",
   forId: "",
+  tagIds: [],
 });
 
 function restoreDraft(options: ForOption[]): FormState {
@@ -30,6 +34,8 @@ function restoreDraft(options: ForOption[]): FormState {
       ...fresh,
       ...saved,
       forId: options.some((option) => option.id === saved.forId) ? (saved.forId ?? "") : "",
+      // The tags may not have loaded yet, so a tag that no longer exists is dropped later, when they have
+      tagIds: Array.isArray(saved.tagIds) ? saved.tagIds : [],
     };
   } catch {
     return fresh;
@@ -48,7 +54,15 @@ export default function TransactionFormPresenter({ planId, categories, goals }: 
   // Only rendered once the page has loaded the categories, so reading sessionStorage here is safe
   const [form, setForm] = useState<FormState>(() => restoreDraft(options));
   const [error, setError] = useState<string | null>(null);
+  const [pendingDeleteTag, setPendingDeleteTag] = useState<Tag | null>(null);
   const createTransaction = useCreateTransaction(planId);
+  const tags = useTags();
+  const createTag = useCreateTag();
+  const deleteTag = useDeleteTag();
+
+  // A tag that was deleted (maybe in another tab) can still be in the draft, so it is dropped here
+  const knownTags = tags.data ?? [];
+  const tagIds = tags.data ? form.tagIds.filter((id) => knownTags.some((tag) => tag.id === id)) : form.tagIds;
 
   useEffect(() => {
     try {
@@ -79,9 +93,9 @@ export default function TransactionFormPresenter({ planId, categories, goals }: 
       await createTransaction.mutateAsync(
         target.type === "SAVING"
           ? // A saving is stored as a positive amount
-            { ...target, amount, date: form.date, description }
+            { ...target, amount, date: form.date, description, tagIds }
           : // The user types a plain number, the backend wants money out as a negative amount
-            { ...target, amount: toBackendAmount(amount, form.direction), date: form.date, description },
+            { ...target, amount: toBackendAmount(amount, form.direction), date: form.date, description, tagIds },
       );
       setForm(emptyForm());
     } catch (e) {
@@ -89,14 +103,37 @@ export default function TransactionFormPresenter({ planId, categories, goals }: 
     }
   }
 
+  function confirmDeleteTag() {
+    if (!pendingDeleteTag) return;
+    deleteTag.mutate(pendingDeleteTag.id, {
+      onSuccess: () => setError(null),
+      onError: (e) => setError(e.message),
+      onSettled: () => setPendingDeleteTag(null),
+    });
+  }
+
   return (
-    <TransactionFormView
-      form={form}
-      groups={groups}
-      error={error}
-      isSaving={createTransaction.isPending}
-      onChange={update}
-      onSubmit={handleSubmit}
-    />
+    <>
+      <TransactionFormView
+        form={{ ...form, tagIds }}
+        groups={groups}
+        tags={knownTags}
+        error={error}
+        isSaving={createTransaction.isPending}
+        onChange={update}
+        onCreateTag={createTag.mutateAsync}
+        onDeleteTag={setPendingDeleteTag}
+        onSubmit={handleSubmit}
+      />
+      {pendingDeleteTag && (
+        <ConfirmDialog
+          title={`Delete the tag "${pendingDeleteTag.name}"?`}
+          onCancel={() => setPendingDeleteTag(null)}
+          actions={[{ label: "Delete", danger: true, onClick: confirmDeleteTag }]}
+        >
+          It is removed from every transaction that has it. The transactions themselves are kept.
+        </ConfirmDialog>
+      )}
+    </>
   );
 }
