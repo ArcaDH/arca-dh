@@ -97,9 +97,9 @@ export default function TransactionsView(props: TransactionsViewProps) {
           onCancel={props.onCancelDialog}
           actions={[{ label: "Delete", danger: true, onClick: props.onConfirmDelete }]}
         >
-          &quot;{pendingDelete.description ?? pendingDelete.categoryName ?? "Transaction"}&quot;,{" "}
-          {formatSignedKr(pendingDelete.amount)} on {formatDay(pendingDelete.date)}, will be removed. This can&apos;t be
-          undone.
+          &quot;{pendingDelete.title}
+          &quot;, {formatSignedKr(pendingDelete.amount)} on {formatDay(pendingDelete.date)}, will be removed. This
+          can&apos;t be undone.
         </ConfirmDialog>
       )}
     </div>
