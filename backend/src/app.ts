@@ -10,6 +10,7 @@ import SubcategoryRoute from "./routes/subcategories";
 import IncomeSourceRoute from "./routes/incomeSources";
 import { setupSwagger } from "./swagger";
 import { exceptionMiddleware } from "./services/apiService";
+import TagRoute from "./routes/tags";
 
 dotenv.config();
 
@@ -74,6 +75,7 @@ app.use("/goals", GoalRoute);
 app.use("/categories", CategoryRoute);
 app.use("/subcategories", SubcategoryRoute);
 app.use("/income-sources", IncomeSourceRoute);
+app.use("/tags", TagRoute);
 // app.use("/" + staticServerUrl, express.static(storagePath));
 app.use(exceptionMiddleware);
 
