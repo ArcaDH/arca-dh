@@ -30,14 +30,34 @@ export type NewTransaction = {
   tagIds?: string[];
 };
 
-/** A transaction with its category names filled in, ready to show in the list. */
+// What the transactions page sends when money is put toward a savings goal
+export type NewSaving = {
+  amount: number; // kronor, always positive
+  date: string;
+  description?: string;
+  type: "SAVING";
+  savingsGoalId: string;
+  tagIds?: string[];
+};
+
+// What a transaction is for, picked in the form's "For" list
+export type ForTarget =
+  { type: "EXPENSE"; categoryId: string; subcategoryId?: string } | { type: "SAVING"; savingsGoalId: string };
+
+export type ForOption = { id: string; label: string; target: ForTarget };
+
+// A heading in that list: a category with its subcategories, or the savings goals
+export type ForGroup = { label: string; options: ForOption[] };
+
+/** A transaction with its names filled in, ready to show in the list. */
 export type TransactionRow = {
   id: string;
+  kind: "expense" | "saving";
   amount: number; // money flow in kronor: negative = money out, positive = money in
   date: string;
   description: string | null;
-  categoryName: string | null;
-  subcategoryName: string | null;
+  title: string; // the description, or what it was for
+  detail: string; // "Home · Rent" or "Savings · Trip to Japan"
   categoryId: string | null;
   tags: Tag[];
 };

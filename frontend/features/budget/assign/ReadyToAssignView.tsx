@@ -1,20 +1,20 @@
 import type { FC } from "react";
-import { ChevronDown, Pencil, Plus } from "lucide-react";
+import { ChevronDown, Goal, Pencil, Plus } from "lucide-react";
 import { SubcategoryIcon } from "@/components/icons/SubcategoryIcon";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { formatWholeKr } from "@/lib/money";
-import type { AssignGroup } from "@/types/budget";
+import type { BudgetGroup, BudgetLine } from "@/types/budget";
 
 interface ReadyToAssignViewProps {
   toAssign: number;
   income: number;
   assigned: number;
-  groups: AssignGroup[];
+  groups: BudgetGroup[];
   amount: string;
   error: string | null;
   isSaving: boolean;
   onAmountChange: (amount: string) => void;
-  onAssign: (subcategoryId: string, close: () => void) => void;
+  onAssign: (line: BudgetLine, close: () => void) => void;
   onEditIncome: () => void;
 }
 
@@ -36,7 +36,10 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
       : toAssign === 0
         ? "bg-success/10 text-success hover:bg-success/15"
         : "bg-primary/10 text-primary hover:bg-primary/15";
-  const filledGroups = groups.filter((group) => group.subcategories.length > 0);
+  // Reached goals doesnt need anything more, and empty headings have nothing to pick
+  const filledGroups = groups
+    .map((group) => ({ ...group, lines: group.lines.filter((line) => !line.isDone) }))
+    .filter((group) => group.lines.length > 0);
 
   return (
     <dl className="flex items-center gap-5 text-sm">
@@ -84,7 +87,9 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
             {(close) => (
               <div className="w-80 p-2 text-left text-sm font-normal text-foreground">
                 {filledGroups.length === 0 && (
-                  <p className="p-2 text-muted">Add a subcategory first, then assign money to it here.</p>
+                  <p className="p-2 text-muted">
+                    Add a subcategory or savings goal first, then assign money to it here.
+                  </p>
                 )}
                 {filledGroups.length > 0 && (
                   <div>
@@ -110,23 +115,25 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
                       {filledGroups.map((group) => (
                         <div key={group.name} role="group" aria-label={group.name}>
                           <p className="px-2 pt-2 pb-1 text-xs font-semibold text-muted">{group.name}</p>
-                          {group.subcategories.map((subcategory) => (
+                          {group.lines.map((line) => (
                             <button
-                              key={subcategory.id}
+                              key={line.id}
                               type="button"
                               disabled={isSaving}
-                              onClick={() => onAssign(subcategory.id, close)}
-                              aria-label={`Assign to ${subcategory.name}, now ${formatWholeKr(subcategory.assigned)}`}
+                              onClick={() => onAssign(line, close)}
+                              aria-label={`Assign to ${line.name}, now ${formatWholeKr(line.assigned)}`}
                               className="group flex w-full cursor-pointer items-center gap-2 border-b border-foreground/5 px-2 py-1.5 text-left transition-colors last:border-b-0 hover:bg-primary/10 focus-visible:bg-primary/10 focus-visible:outline-none disabled:cursor-wait disabled:opacity-60"
                             >
-                              <SubcategoryIcon size={15} className="shrink-0 text-muted" aria-hidden />
-                              <span className="min-w-0 flex-1 truncate group-hover:text-primary">
-                                {subcategory.name}
-                              </span>
+                              {line.kind === "goal" ? (
+                                <Goal size={15} strokeWidth={1.75} className="shrink-0 text-muted" aria-hidden />
+                              ) : (
+                                <SubcategoryIcon size={15} className="shrink-0 text-muted" aria-hidden />
+                              )}
+                              <span className="min-w-0 flex-1 truncate group-hover:text-primary">{line.name}</span>
                               <span
-                                className={`tabular-nums ${subcategory.assigned > 0 ? "text-foreground/80" : "text-muted"}`}
+                                className={`tabular-nums ${line.assigned > 0 ? "text-foreground/80" : "text-muted"}`}
                               >
-                                {formatWholeKr(subcategory.assigned)}
+                                {formatWholeKr(line.assigned)}
                               </span>
                               {/* A plus that lights up on hover, so the rows read as buttons */}
                               <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-foreground/5 text-foreground/40 transition-colors group-hover:bg-primary group-hover:text-white group-focus-visible:bg-primary group-focus-visible:text-white">

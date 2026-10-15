@@ -1,21 +1,19 @@
-import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Goal, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRef, type FC } from "react";
 import { SubcategoryIcon } from "@/components/icons/SubcategoryIcon";
+import Button from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { MenuItem } from "@/components/ui/MenuItem";
 import { MoneyProgress } from "@/components/ui/MoneyProgress";
 import type { ProgressTone } from "@/components/ui/MoneyProgress";
 import { budgetStatus, spentShare, type BudgetStatus } from "@/lib/budget";
 import { formatWholeKr } from "@/lib/money";
+import type { BudgetLine } from "@/types/budget";
 
-const statusTone: Record<BudgetStatus, ProgressTone> = { ok: "success", near: "warning", over: "accent" };
+const statusTone: Record<BudgetStatus, ProgressTone> = { ok: "success", near: "secondary", over: "accent" };
 
-const leftPill: Record<BudgetStatus, string> = {
-  ok: "bg-success/10 text-success",
-  near: "bg-warning/10 text-warning",
-  over: "bg-accent/10 text-accent",
-};
-
+// The inline Assigned input: Enter or leaving saves, Escape cancels
 function AmountInput(props: {
   label: string;
   value: string;
@@ -47,7 +45,10 @@ interface BudgetTableRowViewProps {
   name: string;
   assigned: number;
   spent: number;
-  isSubcategory?: boolean;
+  // A line under a heading, with an icon and a progress bar. Left out for a heading row
+  kind?: BudgetLine["kind"];
+  // A reached savings goal: a full green bar and Done instead of what's left
+  isDone?: boolean;
   amountEditing?: {
     value: string | null;
     onStart: () => void;
@@ -56,15 +57,16 @@ interface BudgetTableRowViewProps {
     onCancel: () => void;
   };
   onAddSubcategory?: () => void;
-  onRename: () => void;
-  onDelete: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
 }
 
 export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
   name,
   assigned,
   spent,
-  isSubcategory = false,
+  kind,
+  isDone = false,
   amountEditing,
   onAddSubcategory,
   onRename,
@@ -72,31 +74,35 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
 }) => {
   const status = budgetStatus(spent, assigned);
   const left = assigned - spent;
+  const isLine = kind !== undefined;
 
   return (
-    <tr className={`group border-t border-foreground/10 ${isSubcategory ? "" : "bg-foreground/[0.025] font-medium"}`}>
-      <td className={`py-2 pr-3 ${isSubcategory ? "pl-6" : "pl-3"}`}>
+    <tr className={`group border-t border-foreground/10 ${isLine ? "" : "bg-foreground/[0.025] font-medium"}`}>
+      <td className={`py-2 pr-3 ${isLine ? "pl-6" : "pl-3"}`}>
         <div className="flex items-center gap-2.5">
-          {isSubcategory && <SubcategoryIcon size={18} className="shrink-0 text-muted" aria-hidden />}
+          {kind === "subcategory" && <SubcategoryIcon size={18} className="shrink-0 text-muted" aria-hidden />}
+          {kind === "goal" && (
+            <Goal
+              size={18}
+              strokeWidth={1.75}
+              className={`shrink-0 ${isDone ? "text-success" : "text-muted"}`}
+              aria-hidden
+            />
+          )}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="truncate">{name}</span>
               {onAddSubcategory && (
-                <button
-                  type="button"
-                  aria-label={`Add subcategory to ${name}`}
-                  onClick={onAddSubcategory}
-                  className="flex cursor-pointer items-center gap-0.5 rounded-sm bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary transition-colors hover:bg-primary hover:text-white"
-                >
+                <Button size="xs" variant="soft" aria-label={`Add subcategory to ${name}`} onClick={onAddSubcategory}>
                   <Plus size={12} strokeWidth={2.5} aria-hidden />
                   Subcategory
-                </button>
+                </Button>
               )}
             </div>
-            {isSubcategory && (
+            {isLine && (
               <MoneyProgress
-                value={spentShare(spent, assigned)}
-                tone={statusTone[status]}
+                value={isDone ? 1 : spentShare(spent, assigned)}
+                tone={isDone ? "success" : statusTone[status]}
                 label={`${name}: ${formatWholeKr(spent)} of ${formatWholeKr(assigned)} spent`}
                 className="mt-1 w-36"
               />
@@ -131,42 +137,50 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
       <td className="w-32 px-3 py-2 text-right text-muted tabular-nums">{formatWholeKr(spent)}</td>
 
       <td className="w-32 px-3 py-2 text-right">
-        <span className={`inline-block rounded-sm px-2 py-0.5 tabular-nums ${leftPill[status]}`}>
-          {formatWholeKr(left)}
-        </span>
+        {isDone ? (
+          <StatusBadge tone="success" icon={Check} celebrate>
+            Done
+          </StatusBadge>
+        ) : (
+          <StatusBadge tone={statusTone[status]} variant="soft">
+            {formatWholeKr(left)}
+          </StatusBadge>
+        )}
       </td>
 
       <td className="w-10 py-2 pr-2">
-        <Dropdown
-          align="end"
-          label={`Actions for ${name}`}
-          triggerClassName="rounded-sm p-1 text-foreground/30 hover:bg-foreground/5 hover:text-foreground"
-          trigger={<MoreHorizontal size={16} aria-hidden />}
-        >
-          {(close) => (
-            <>
-              <MenuItem
-                onClick={() => {
-                  onRename();
-                  close();
-                }}
-              >
-                <Pencil size={16} aria-hidden />
-                Rename
-              </MenuItem>
-              <MenuItem
-                danger
-                onClick={() => {
-                  onDelete();
-                  close();
-                }}
-              >
-                <Trash2 size={16} aria-hidden />
-                Delete
-              </MenuItem>
-            </>
-          )}
-        </Dropdown>
+        {onRename && onDelete && (
+          <Dropdown
+            align="end"
+            label={`Actions for ${name}`}
+            triggerClassName="rounded-sm p-1 text-foreground/30 hover:bg-foreground/5 hover:text-foreground"
+            trigger={<MoreHorizontal size={16} aria-hidden />}
+          >
+            {(close) => (
+              <>
+                <MenuItem
+                  onClick={() => {
+                    onRename();
+                    close();
+                  }}
+                >
+                  <Pencil size={16} aria-hidden />
+                  Rename
+                </MenuItem>
+                <MenuItem
+                  danger
+                  onClick={() => {
+                    onDelete();
+                    close();
+                  }}
+                >
+                  <Trash2 size={16} aria-hidden />
+                  Delete
+                </MenuItem>
+              </>
+            )}
+          </Dropdown>
+        )}
       </td>
     </tr>
   );

@@ -7,25 +7,37 @@ import { parseKr, sumKr, toMoneyFlow } from "@/lib/money";
 import { useCategories } from "@/models/useCategories";
 import { useTags } from "@/models/useTags";
 import { useCurrentPlan } from "@/models/usePlans";
-import { useDeleteTransaction, useExpenses } from "@/models/useTransactions";
+import { useGoals } from "@/models/useGoals";
+import { useDeleteTransaction, useMonthTransactions } from "@/models/useTransactions";
 import type { CategoryWithSubcategories } from "@/types/category";
+import type { SavingsGoal } from "@/types/goal";
 import type { Tag } from "@/types/tag";
 import { DEFAULT_FILTERS, type Transaction, type TransactionFilters, type TransactionRow } from "@/types/transaction";
 import TransactionFormPresenter from "./TransactionFormPresenter";
 import TransactionsView from "./TransactionsView";
 
-/** The backend sends category ids only, so the names are looked up here. */
-function toRows(transactions: Transaction[], categories: CategoryWithSubcategories[]): TransactionRow[] {
+/** The backend sends category and goal ids only, so the names are looked up here. */
+function toRows(
+  transactions: Transaction[],
+  categories: CategoryWithSubcategories[],
+  goals: SavingsGoal[],
+): TransactionRow[] {
   return transactions.map((transaction) => {
     const category = categories.find((c) => c.id === transaction.categoryId);
     const subcategory = category?.subcategories.find((s) => s.id === transaction.subcategoryId);
+    const goal = goals.find((g) => g.id === transaction.savingsGoalId);
+    const isSaving = transaction.type === "SAVING";
+    const forName = isSaving ? (goal?.name ?? "Savings goal") : (subcategory?.name ?? category?.name);
+    const detail = isSaving ? ["Savings", forName] : [category?.name, subcategory?.name];
     return {
       id: transaction.id,
-      amount: toMoneyFlow(transaction.amount),
+      kind: isSaving ? "saving" : "expense",
+      // Savings are stored positive, but the money leaves the account like an expense
+      amount: isSaving ? -transaction.amount : toMoneyFlow(transaction.amount),
       date: transaction.date,
       description: transaction.description ?? null,
-      categoryName: category?.name ?? null,
-      subcategoryName: subcategory?.name ?? null,
+      title: transaction.description ?? forName ?? "Transaction",
+      detail: detail.filter(Boolean).join(" · "),
       categoryId: transaction.categoryId ?? null,
       tags: transaction.tags,
     };
@@ -72,19 +84,26 @@ export default function TransactionsPresenter() {
   const planId = plan.data?.id;
   const categories = useCategories(planId);
   const tags = useTags();
-  const expenses = useExpenses(planId, month);
+  const expenses = useMonthTransactions(planId, month);
+  const goals = useGoals(planId);
   const deleteTransaction = useDeleteTransaction();
 
   const allRows = useMemo(
-    () => (expenses.data ? toRows(expenses.data, categories.data ?? []) : null),
-    [expenses.data, categories.data],
+    () => (expenses.data ? toRows(expenses.data, categories.data ?? [], goals.data ?? []) : null),
+    [expenses.data, categories.data, goals.data],
   );
   const rows = useMemo(
     () => (allRows ? applyFilters(allRows, filters, tags.data) : null),
     [allRows, filters, tags.data],
   );
-  // Money in minus money out for the whole month, whatever the filters are set to
-  const net = expenses.data ? sumKr(expenses.data.map((transaction) => toMoneyFlow(transaction.amount))) : null;
+  // Money in minus money out for the whole month, whatever the filters are set to. Savings aren't spending
+  const net = expenses.data
+    ? sumKr(
+        expenses.data
+          .filter((transaction) => transaction.type === "EXPENSE")
+          .map((transaction) => toMoneyFlow(transaction.amount)),
+      )
+    : null;
 
   const isFiltered = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS);
   const noPlanYet = plan.error instanceof ApiError && plan.error.status === 404;
@@ -109,7 +128,9 @@ export default function TransactionsPresenter() {
   return (
     <TransactionsView
       form={
-        planId && categories.data ? <TransactionFormPresenter planId={planId} categories={categories.data} /> : null
+        planId && categories.data && goals.data ? (
+          <TransactionFormPresenter planId={planId} categories={categories.data} goals={goals.data} />
+        ) : null
       }
       month={month}
       net={net}

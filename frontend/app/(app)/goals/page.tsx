@@ -1,3 +1,5 @@
-export default function PlansPage() {
-  return <div>Budget Plans</div>;
+import { GoalsPresenter } from "@/features/goals/GoalsPresenter";
+
+export default function GoalsPage() {
+  return <GoalsPresenter />;
 }

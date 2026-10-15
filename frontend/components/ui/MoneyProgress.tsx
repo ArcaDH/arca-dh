@@ -2,18 +2,18 @@
 
 import { useEffect, useState, type FC } from "react";
 
-export type ProgressTone = "success" | "warning" | "accent" | "primary";
+export type ProgressTone = "success" | "secondary" | "accent" | "primary";
 
 const toneText: Record<ProgressTone, string> = {
   success: "text-success",
-  warning: "text-warning",
+  secondary: "text-secondary",
   accent: "text-accent",
   primary: "text-primary",
 };
 
 const toneFill: Record<ProgressTone, string> = {
   success: "bg-success",
-  warning: "bg-warning",
+  secondary: "bg-secondary",
   accent: "bg-accent",
   primary: "bg-primary",
 };
