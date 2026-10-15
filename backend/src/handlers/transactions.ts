@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { TransactionRepository } from "../repositories/transactionRepository";
 import { validateExistingRequest, validateRequest, validateTransactionData } from "../validators/transactions";
-import { returnJson } from "../services/apiService";
+import { returnJson, userIdFromToken } from "../services/apiService";
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -65,13 +65,11 @@ export namespace TransactionHandler {
       const planId = await validateRequest(request, response);
       if (planId == null) return;
 
-      const validData = await validateTransactionData(request.body, response);
+      const validData = await validateTransactionData(request.body, response, userIdFromToken(request) as number);
       if (!validData) return;
 
-      const newTx = await TransactionRepository.createTransaction({
-        ...validData,
-        budgetPlanId: planId,
-      });
+      const { tagIds, ...fields } = validData;
+      const newTx = await TransactionRepository.createTransaction({ ...fields, budgetPlanId: planId }, tagIds);
 
       return returnJson(response, 201, newTx);
     } catch (error) {
@@ -89,10 +87,11 @@ export namespace TransactionHandler {
       const id = await validateExistingRequest(request, response);
       if (id == null) return;
 
-      const validData = await validateTransactionData(request.body, response);
+      const validData = await validateTransactionData(request.body, response, userIdFromToken(request) as number);
       if (!validData) return;
 
-      const updatedTx = await TransactionRepository.updateTransaction(id, validData);
+      const { tagIds, ...fields } = validData;
+      const updatedTx = await TransactionRepository.updateTransaction(id, fields, tagIds);
       return returnJson(response, 200, updatedTx);
     } catch (error) {
       console.error("Error in updateTransaction:", error);

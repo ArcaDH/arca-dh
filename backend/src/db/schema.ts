@@ -8,12 +8,29 @@ import {
   date,
   timestamp,
   unique,
+  uniqueIndex,
+  primaryKey,
   AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import { relations, InferSelectModel, InferInsertModel } from "drizzle-orm";
+import { relations, sql, InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 // Enums
 export const transactionTypeEnum = pgEnum("transaction_type", ["EXPENSE", "SAVING"]);
+
+// Tailwind's built-in color names, so tags don't depend on the app theme
+export const TAG_COLORS = [
+  "blue",
+  "teal",
+  "emerald",
+  "amber",
+  "orange",
+  "red",
+  "pink",
+  "violet",
+  "slate",
+  "lime",
+] as const;
+export const tagColorEnum = pgEnum("tag_color", TAG_COLORS);
 
 // Tables
 
@@ -126,6 +143,38 @@ export const transactions = pgTable("transactions", {
 
 export const Transaction = transactions;
 
+// 8. Tags (belong to a user, so they can be reused across plans)
+export const tags = pgTable(
+  "tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 30 }).notNull(),
+    color: tagColorEnum("color").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => User.userId, { onDelete: "cascade" }),
+  },
+  // A user can use a name once, whatever the capital letters: "Food" and "food" are the same tag
+  (table) => [uniqueIndex("tags_user_name_unique").on(table.userId, sql`lower(${table.name})`)],
+);
+
+export const Tag = tags;
+
+// 9. Which tags a transaction has (many to many)
+export const transactionTags = pgTable(
+  "transaction_tags",
+  {
+    transactionId: uuid("transaction_id")
+      .notNull()
+      .references(() => transactions.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.transactionId, table.tagId] })],
+);
+
 // Relations
 
 export const usersRelations = relations(User, ({ one, many }) => ({
@@ -134,6 +183,7 @@ export const usersRelations = relations(User, ({ one, many }) => ({
     references: [budgetPlans.id],
   }),
   budgetPlans: many(budgetPlans),
+  tags: many(tags),
 }));
 
 export const budgetPlansRelations = relations(budgetPlans, ({ one, many }) => ({
@@ -179,7 +229,7 @@ export const savingsGoalsRelations = relations(savingsGoals, ({ one, many }) => 
   transactions: many(transactions),
 }));
 
-export const transactionsRelations = relations(transactions, ({ one }) => ({
+export const transactionsRelations = relations(transactions, ({ one, many }) => ({
   budgetPlan: one(budgetPlans, {
     fields: [transactions.budgetPlanId],
     references: [budgetPlans.id],
@@ -195,6 +245,26 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   savingsGoal: one(savingsGoals, {
     fields: [transactions.savingsGoalId],
     references: [savingsGoals.id],
+  }),
+  tags: many(transactionTags),
+}));
+
+export const tagsRelations = relations(tags, ({ one, many }) => ({
+  user: one(User, {
+    fields: [tags.userId],
+    references: [User.userId],
+  }),
+  transactions: many(transactionTags),
+}));
+
+export const transactionTagsRelations = relations(transactionTags, ({ one }) => ({
+  transaction: one(transactions, {
+    fields: [transactionTags.transactionId],
+    references: [transactions.id],
+  }),
+  tag: one(tags, {
+    fields: [transactionTags.tagId],
+    references: [tags.id],
   }),
 }));
 
@@ -220,3 +290,6 @@ export type NewSavingsGoalModel = InferInsertModel<typeof savingsGoals>;
 
 export type TransactionModel = InferSelectModel<typeof transactions>;
 export type NewTransactionModel = InferInsertModel<typeof transactions>;
+
+export type TagModel = InferSelectModel<typeof tags>;
+export type NewTagModel = InferInsertModel<typeof tags>;

@@ -1,6 +1,9 @@
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../db";
-import { transactions, NewTransactionModel } from "../db/schema";
+import { transactions, NewTransactionModel, TagModel } from "../db/schema";
+import { TagRepository } from "./tagRepository";
+
+type TransactionTags = Pick<TagModel, "id" | "name" | "color">[];
 
 export namespace TransactionRepository {
   /**
@@ -44,23 +47,28 @@ export namespace TransactionRepository {
       .where(and(...conditions))
       .orderBy(desc(transactions.date));
 
-    return rows.map(formatTransaction);
+    const tagsByTransaction = await TagRepository.findByTransactionIds(rows.map((row) => row.id));
+    return rows.map((row) => formatTransaction(row, tagsByTransaction.get(row.id) ?? []));
   }
 
   /**
-   * Create a new transaction
+   * Create a new transaction, with its tags (if any)
    */
-  export async function createTransaction(data: NewTransactionModel) {
+  export async function createTransaction(data: NewTransactionModel, tagIds: string[] = []) {
     const [tx] = await db.insert(transactions).values(data).returning();
-    return formatTransaction(tx);
+    if (tagIds.length > 0) await TagRepository.setTransactionTags(tx.id, tagIds);
+    const tagsByTransaction = await TagRepository.findByTransactionIds([tx.id]);
+    return formatTransaction(tx, tagsByTransaction.get(tx.id) ?? []);
   }
 
   /**
-   * Update an existing transaction
+   * Update an existing transaction. The tags are replaced only when `tagIds` is given.
    */
-  export async function updateTransaction(id: string, data: Partial<NewTransactionModel>) {
+  export async function updateTransaction(id: string, data: Partial<NewTransactionModel>, tagIds?: string[]) {
     const [tx] = await db.update(transactions).set(data).where(eq(transactions.id, id)).returning();
-    return formatTransaction(tx);
+    if (tagIds !== undefined) await TagRepository.setTransactionTags(id, tagIds);
+    const tagsByTransaction = await TagRepository.findByTransactionIds([id]);
+    return formatTransaction(tx, tagsByTransaction.get(id) ?? []);
   }
 
   /**
@@ -73,7 +81,7 @@ export namespace TransactionRepository {
   /**
    * Format transaction DB record for JSON output
    */
-  function formatTransaction(tx: typeof transactions.$inferSelect) {
+  function formatTransaction(tx: typeof transactions.$inferSelect, tags: TransactionTags) {
     return {
       id: tx.id,
       amount: parseFloat(tx.amount),
@@ -83,6 +91,7 @@ export namespace TransactionRepository {
       categoryId: tx.categoryId || undefined,
       subcategoryId: tx.subcategoryId || undefined,
       savingsGoalId: tx.savingsGoalId || undefined,
+      tags,
     };
   }
 }
