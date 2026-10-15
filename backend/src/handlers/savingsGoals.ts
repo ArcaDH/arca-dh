@@ -38,6 +38,7 @@ export namespace SavingsGoalHandler {
         name: validData.name,
         targetAmount: validData.targetAmount.toString(),
         deadline: validData.deadline,
+        monthlyAmount: validData.monthlyAmount?.toString() ?? null,
         budgetPlanId: planId,
       });
 
@@ -94,6 +95,7 @@ export namespace SavingsGoalHandler {
         name: validData.name,
         targetAmount: validData.targetAmount.toString(),
         deadline: validData.deadline,
+        monthlyAmount: validData.monthlyAmount?.toString() ?? null,
       });
 
       return returnJson(response, 200, updated);

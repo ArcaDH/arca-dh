@@ -114,7 +114,10 @@ export const savingsGoals = pgTable("savings_goals", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
   targetAmount: numeric("target_amount", { precision: 12, scale: 2 }).notNull(),
-  deadline: date("deadline").notNull(),
+  // Both optional: a goal without a deadline is a loose goal, saved toward at its own monthly pace
+  deadline: date("deadline"),
+  monthlyAmount: numeric("monthly_amount", { precision: 12, scale: 2 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   budgetPlanId: uuid("budget_plan_id")
     .notNull()
     .references(() => budgetPlans.id, { onDelete: "cascade" }),
