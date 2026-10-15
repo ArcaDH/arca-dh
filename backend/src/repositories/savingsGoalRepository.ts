@@ -62,6 +62,7 @@ export namespace SavingsGoalRepository {
       name: goal.name,
       targetAmount: targetAmount,
       deadline: goal.deadline || null,
+      monthlyAmount: goal.monthlyAmount === null ? null : parseFloat(goal.monthlyAmount),
       savedAmount: savedAmount,
       progress: progress,
     };
@@ -78,6 +79,7 @@ export namespace SavingsGoalRepository {
       name: newGoal.name,
       targetAmount: parseFloat(newGoal.targetAmount),
       deadline: newGoal.deadline || null,
+      monthlyAmount: newGoal.monthlyAmount === null ? null : parseFloat(newGoal.monthlyAmount),
       savedAmount: 0,
       progress: 0,
     };
@@ -86,7 +88,10 @@ export namespace SavingsGoalRepository {
   /**
    * Update an existing savings goal
    */
-  export async function updateGoal(goalId: string, data: Pick<SavingsGoalModel, "name" | "targetAmount" | "deadline">) {
+  export async function updateGoal(
+    goalId: string,
+    data: Pick<SavingsGoalModel, "name" | "targetAmount" | "deadline" | "monthlyAmount">,
+  ) {
     const [updated] = await db.update(savingsGoals).set(data).where(eq(savingsGoals.id, goalId)).returning();
 
     if (!updated) return null;
@@ -94,10 +99,13 @@ export namespace SavingsGoalRepository {
   }
 
   /**
-   * Delete a savings goal by ID
+   * Delete a savings goal by ID, together with the money saved toward it.
    */
   export async function deleteGoal(goalId: string) {
-    const result = await db.delete(savingsGoals).where(eq(savingsGoals.id, goalId)).returning();
-    return result.length > 0;
+    return db.transaction(async (tx) => {
+      await tx.delete(transactions).where(eq(transactions.savingsGoalId, goalId));
+      const result = await tx.delete(savingsGoals).where(eq(savingsGoals.id, goalId)).returning();
+      return result.length > 0;
+    });
   }
 }

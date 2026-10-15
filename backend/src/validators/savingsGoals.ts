@@ -32,7 +32,7 @@ export async function validateRequest(request: any, response: any) {
  * Validates request data for savings goal creation
  */
 export function validateSavingsGoalData(body: any, response: Response) {
-  const { name, targetAmount, deadline } = body || {};
+  const { name, targetAmount, deadline, monthlyAmount } = body || {};
 
   if (!name || typeof name !== "string" || name.trim() === "") {
     returnJson(response, 400, {
@@ -51,7 +51,7 @@ export function validateSavingsGoalData(body: any, response: Response) {
     return null;
   }
 
-  let deadlineValue: string = "";
+  let deadlineValue: string | null = null;
   if (deadline !== undefined && deadline !== null && deadline !== "") {
     if (typeof deadline !== "string" || !DATE_REGEX.test(deadline.trim())) {
       returnJson(response, 400, {
@@ -75,9 +75,23 @@ export function validateSavingsGoalData(body: any, response: Response) {
     deadlineValue = deadlineStr;
   }
 
+  let monthlyValue: number | null = null;
+  if (monthlyAmount !== undefined && monthlyAmount !== null && monthlyAmount !== "") {
+    const parsedMonthly = typeof monthlyAmount === "number" ? monthlyAmount : parseFloat(monthlyAmount);
+    if (isNaN(parsedMonthly) || parsedMonthly <= 0) {
+      returnJson(response, 400, {
+        code: 400,
+        message: "Invalid input: 'monthlyAmount' must be a positive number.",
+      });
+      return null;
+    }
+    monthlyValue = parsedMonthly;
+  }
+
   return {
     name: name.trim(),
     targetAmount: parsedTarget,
     deadline: deadlineValue,
+    monthlyAmount: monthlyValue,
   };
 }

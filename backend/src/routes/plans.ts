@@ -86,6 +86,12 @@ const router = Router();
  *           format: date
  *           nullable: true
  *           example: "2026-12-31"
+ *         monthlyAmount:
+ *           type: number
+ *           format: decimal
+ *           nullable: true
+ *           description: The planned amount to save each month
+ *           example: 250.00
  *     SavingsGoal:
  *       allOf:
  *         - $ref: '#/components/schemas/SavingsGoalInput'
@@ -704,9 +710,23 @@ router
  *         targetAmount:
  *           type: number
  *           format: decimal
+ *         deadline:
+ *           type: string
+ *           format: date
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         monthlyAmount:
+ *           type: number
+ *           format: decimal
+ *           nullable: true
  *         savedAmount:
  *           type: number
  *           format: decimal
+ *         savedThisMonth:
+ *           type: number
+ *           format: decimal
+ *           description: Saved toward the goal in the requested month
  *         progress:
  *           type: number
  *           format: double

@@ -240,8 +240,48 @@ describe("SavingsGoalHandler (savingsGoals.ts)", () => {
         name: "Car",
         targetAmount: "5000",
         deadline: "2028-12-31",
+        monthlyAmount: null,
         budgetPlanId: validPlanId,
       });
+    });
+
+    it("should create an open-ended goal with a monthly amount", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      vi.mocked(SavingsGoalRepository.createGoal).mockResolvedValueOnce({ id: validGoalId } as any);
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: { name: "Buffer", targetAmount: 3000, monthlyAmount: 250 },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await SavingsGoalHandler.createGoal(req, res as any);
+      expect(res.statusCode).toBe(201);
+      expect(SavingsGoalRepository.createGoal).toHaveBeenCalledWith({
+        name: "Buffer",
+        targetAmount: "3000",
+        deadline: null,
+        monthlyAmount: "250",
+        budgetPlanId: validPlanId,
+      });
+    });
+
+    it("should return 400 if monthlyAmount is non-positive or NaN", async () => {
+      for (const monthlyAmount of [0, -50, "abc"]) {
+        vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+        const req = createMockRequest({
+          params: { planId: validPlanId },
+          body: { name: "Buffer", targetAmount: 3000, monthlyAmount },
+          tokenUserId: userId,
+        });
+        const res = createMockResponse();
+
+        await SavingsGoalHandler.createGoal(req, res as any);
+        expect(res.statusCode).toBe(400);
+        expect(res.body.message).toContain("monthlyAmount");
+      }
+      expect(SavingsGoalRepository.createGoal).not.toHaveBeenCalled();
     });
 
     it("should return 500 when repository fails on create", async () => {
@@ -390,6 +430,7 @@ describe("SavingsGoalHandler (savingsGoals.ts)", () => {
         name: "Vacation",
         targetAmount: "2500",
         deadline: "2028-06-01",
+        monthlyAmount: null,
       });
     });
 
