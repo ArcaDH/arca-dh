@@ -1,5 +1,7 @@
 // types/transaction.ts: matches what the backend sends for transactions
 
+import type { Tag } from "./tag";
+
 export type TransactionType = "EXPENSE" | "SAVING";
 
 /** Whether money leaves ("out") or comes into ("in") the budget. See MONEY_OUT_IS_NEGATIVE in lib/money.ts. */
@@ -14,6 +16,7 @@ export type Transaction = {
   categoryId?: string;
   subcategoryId?: string;
   savingsGoalId?: string;
+  tags: Tag[];
 };
 
 /** What the page sends when it logs an expense. The backend requires a category for expenses. */
@@ -24,6 +27,7 @@ export type NewTransaction = {
   type: "EXPENSE";
   categoryId: string;
   subcategoryId?: string;
+  tagIds?: string[];
 };
 
 /** A transaction with its category names filled in, ready to show in the list. */
@@ -35,12 +39,15 @@ export type TransactionRow = {
   categoryName: string | null;
   subcategoryName: string | null;
   categoryId: string | null;
+  tags: Tag[];
 };
 
 /** What the search and filter controls hold. They narrow down the month that was loaded. */
 export type TransactionFilters = {
   q: string;
   categoryId: string;
+  tagIds: string[];
+  tagMode: "any" | "all";
   minKr: string;
   maxKr: string;
   sort: "date" | "amount";
@@ -50,6 +57,8 @@ export type TransactionFilters = {
 export const DEFAULT_FILTERS: TransactionFilters = {
   q: "",
   categoryId: "",
+  tagIds: [],
+  tagMode: "any",
   minKr: "",
   maxKr: "",
   sort: "date",

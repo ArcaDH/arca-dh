@@ -47,6 +47,13 @@ const router = Router();
  *           type: string
  *           format: uuid
  *           description: Required for SAVING
+ *         tagIds:
+ *           type: array
+ *           maxItems: 5
+ *           items:
+ *             type: string
+ *             format: uuid
+ *           description: Up to 5 of the user's own tags. On update, leave it out to keep the current tags, or send a list to replace them.
  *     Transaction:
  *       allOf:
  *         - $ref: '#/components/schemas/TransactionInput'
@@ -56,6 +63,11 @@ const router = Router();
  *               type: string
  *               format: uuid
  *               example: "123e4567-e89b-12d3-a456-426614174000"
+ *             tags:
+ *               type: array
+ *               readOnly: true
+ *               items:
+ *                 $ref: '#/components/schemas/Tag'
  *     SavingsGoalInput:
  *       type: object
  *       required:
