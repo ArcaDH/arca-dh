@@ -1,5 +1,5 @@
-import { SpendingAnalyticsPresenter } from "@/features/analytics/SpendingAnalyticsPresenter";
+import { BudgetPresenter } from "@/features/budget/BudgetPresenter";
 
 export default function Home() {
-  return <SpendingAnalyticsPresenter />;
+  return <BudgetPresenter />;
 }
