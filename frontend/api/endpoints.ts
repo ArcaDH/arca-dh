@@ -25,6 +25,11 @@ export class Endpoints {
     static readonly byId = (id: string) => `/transactions/${id}` as const;
   };
 
+  static readonly Tags = class {
+    static readonly list = () => "/tags" as const;
+    static readonly byId = (id: string) => `/tags/${id}` as const;
+  };
+
   static readonly Goals = class {
     static readonly byId = (id: string) => `/goals/${id}` as const;
   };

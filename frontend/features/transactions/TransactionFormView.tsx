@@ -3,7 +3,9 @@ import Card from "@/components/ui/card";
 import Input from "@/components/ui/input";
 import Label from "@/components/ui/label";
 import Select from "@/components/ui/select";
+import TagPicker from "@/components/transactions/TagPicker";
 import type { CategoryWithSubcategories } from "@/types/category";
+import type { NewTag, Tag } from "@/types/tag";
 import type { MoneyDirection } from "@/types/transaction";
 
 export type FormState = {
@@ -13,6 +15,7 @@ export type FormState = {
   description: string;
   categoryId: string;
   subcategoryId: string;
+  tagIds: string[];
 };
 
 const DIRECTIONS: { value: MoneyDirection; label: string }[] = [
@@ -23,14 +26,18 @@ const DIRECTIONS: { value: MoneyDirection; label: string }[] = [
 interface TransactionFormViewProps {
   form: FormState;
   categories: CategoryWithSubcategories[];
+  /** All of the user's tags, for the picker. */
+  tags: Tag[];
   error: string | null;
   isSaving: boolean;
   onChange: (changes: Partial<FormState>) => void;
+  onCreateTag: (input: NewTag) => Promise<Tag>;
+  onDeleteTag: (tag: Tag) => void;
   onSubmit: () => void;
 }
 
 export default function TransactionFormView(props: TransactionFormViewProps) {
-  const { form, categories, error, isSaving, onChange } = props;
+  const { form, categories, tags, error, isSaving, onChange } = props;
   const subcategories = categories.find((c) => c.id === form.categoryId)?.subcategories ?? [];
 
   return (
@@ -136,6 +143,14 @@ export default function TransactionFormView(props: TransactionFormViewProps) {
             ))}
           </Select>
         </div>
+
+        <TagPicker
+          allTags={tags}
+          selectedIds={form.tagIds}
+          onChange={(tagIds) => onChange({ tagIds })}
+          onCreateTag={props.onCreateTag}
+          onDeleteTag={props.onDeleteTag}
+        />
 
         {error && (
           <p role="alert" className="text-sm text-accent">
