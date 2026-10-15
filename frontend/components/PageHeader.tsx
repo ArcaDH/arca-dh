@@ -1,7 +1,7 @@
 import type { FC, ReactNode } from "react";
 
 interface PageHeaderProps {
-  children: ReactNode;
+  children?: ReactNode;
   aside?: ReactNode;
 }
 

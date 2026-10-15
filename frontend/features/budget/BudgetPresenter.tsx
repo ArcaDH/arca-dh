@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ApiError } from "@/api/ApiClient";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { categoryAssigned } from "@/lib/budget";
+import { budgetGroups } from "@/lib/budget";
 import { currentMonth } from "@/lib/format";
 import { formatWholeKr, parseKr, sumKr } from "@/lib/money";
 import {
@@ -14,11 +14,12 @@ import {
   useUpdateCategory,
   useUpdateSubcategory,
 } from "@/models/useCategories";
+import { useSetAssigned } from "@/models/useBudgetLines";
 import { useOverview } from "@/models/useOverview";
 import { useCurrentPlan } from "@/models/usePlans";
 import { BudgetItemFormView } from "./item-form/BudgetItemFormView";
 import { BudgetView } from "./BudgetView";
-import type { AmountEdit, BudgetItemForm } from "@/types/budget";
+import type { AmountEdit, BudgetItemForm, BudgetLine } from "@/types/budget";
 import { IncomeSourcesPresenter } from "./income/IncomeSourcesPresenter";
 import { ReadyToAssignView } from "./assign/ReadyToAssignView";
 
@@ -61,11 +62,14 @@ export const BudgetPresenter = () => {
   const createSubcategory = useCreateSubcategory(planId);
   const updateSubcategory = useUpdateSubcategory(planId);
   const deleteSubcategory = useDeleteSubcategory(planId);
+  const setAssigned = useSetAssigned(planId);
 
-  const categories = overview.data?.spendingByCategory ?? null;
-  const subcategories = (categories ?? []).flatMap((category) => category.subcategories);
   const income = overview.data?.totalIncome ?? 0;
-  const assigned = sumKr((categories ?? []).map(categoryAssigned));
+  const groups = overview.data
+    ? budgetGroups(overview.data.spendingByCategory, overview.data.goalProgress, month)
+    : null;
+  const lines = (groups ?? []).flatMap((group) => group.lines);
+  const assigned = sumKr((groups ?? []).map((group) => group.assigned));
   const toAssign = income - assigned;
 
   const noPlanYet = plan.error instanceof ApiError && plan.error.status === 404;
@@ -112,24 +116,18 @@ export const BudgetPresenter = () => {
     const amount = parseKr(amountEdit.value);
     if (amount === null) return setActionError("Enter an amount like 3000 or 249,50.");
 
-    const subcategory = subcategories.find((item) => item.subcategoryId === amountEdit.subcategoryId);
-    if (!subcategory || subcategory.limit === amount) return;
-    const input = { name: subcategory.name, limit: amount };
-    updateSubcategory.mutate({ subcategoryId: subcategory.subcategoryId, input }, { onError: onActionError });
+    const line = lines.find((item) => item.id === amountEdit.lineId);
+    if (!line || line.assigned === amount) return;
+    setAssigned.mutate({ line, amount }, { onError: onActionError });
   }
 
-  function assign(subcategoryId: string, close: () => void) {
-    const subcategory = subcategories.find((item) => item.subcategoryId === subcategoryId);
+  function assign(line: BudgetLine, close: () => void) {
     const amount = parseKr(assignAmount);
-    if (!subcategory) return setAssignError("Choose a subcategory.");
     if (amount === null || amount <= 0) return setAssignError("Enter an amount to assign.");
 
     setAssignError(null);
-    updateSubcategory.mutate(
-      {
-        subcategoryId: subcategory.subcategoryId,
-        input: { name: subcategory.name, limit: subcategory.limit + amount },
-      },
+    setAssigned.mutate(
+      { line, amount: line.assigned + amount },
       {
         onSuccess: () => {
           setAssignAmount("");
@@ -195,24 +193,17 @@ export const BudgetPresenter = () => {
   return (
     <BudgetView
       month={month}
-      categories={categories}
+      groups={groups}
       readyToAssign={
         overview.data && (
           <ReadyToAssignView
             toAssign={toAssign}
             income={income}
             assigned={assigned}
-            groups={(categories ?? []).map((category) => ({
-              name: category.name,
-              subcategories: category.subcategories.map((subcategory) => ({
-                id: subcategory.subcategoryId,
-                name: subcategory.name,
-                assigned: subcategory.limit,
-              })),
-            }))}
+            groups={groups ?? []}
             amount={assignAmount}
             error={assignError}
-            isSaving={updateSubcategory.isPending}
+            isSaving={setAssigned.isPending}
             onAmountChange={setAssignAmount}
             onAssign={assign}
             onEditIncome={() => setIsIncomeOpen(true)}
@@ -249,18 +240,16 @@ export const BudgetPresenter = () => {
           { name: category.name, amount: "" },
         )
       }
-      onRenameSubcategory={(subcategory) =>
+      onRenameSubcategory={(line) =>
         openForm(
-          { mode: "editSubcategory", subcategoryId: subcategory.subcategoryId, name: subcategory.name },
-          { name: subcategory.name, amount: String(subcategory.limit) },
+          { mode: "editSubcategory", subcategoryId: line.id, name: line.name },
+          { name: line.name, amount: String(line.assigned) },
         )
       }
       onDeleteCategory={(category) =>
         setPendingDelete({ kind: "category", id: category.categoryId, name: category.name })
       }
-      onDeleteSubcategory={(subcategory) =>
-        setPendingDelete({ kind: "subcategory", id: subcategory.subcategoryId, name: subcategory.name })
-      }
+      onDeleteSubcategory={(line) => setPendingDelete({ kind: "subcategory", id: line.id, name: line.name })}
     />
   );
 };

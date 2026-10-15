@@ -3,35 +3,33 @@
 import { useEffect, useState } from "react";
 import { toISODate } from "@/lib/format";
 import { MAX_AMOUNT_KR, MIN_AMOUNT_KR, parseKr, toBackendAmount } from "@/lib/money";
-import { useCreateExpense } from "@/models/useTransactions";
+import { forGroups } from "@/lib/transactions";
+import { useCreateTransaction } from "@/models/useTransactions";
 import type { CategoryWithSubcategories } from "@/types/category";
+import type { SavingsGoal } from "@/types/goal";
+import type { ForOption } from "@/types/transaction";
 import TransactionFormView, { type FormState } from "./TransactionFormView";
 
 // sessionStorage keeps a half-filled form across a refresh, and forgets it when the tab is closed
-const DRAFT_KEY = "arca.transactionDraft.v2";
+const DRAFT_KEY = "arca.transactionDraft.v3";
 
 const emptyForm = (): FormState => ({
   amount: "",
   direction: "out",
   date: toISODate(new Date()),
   description: "",
-  categoryId: "",
-  subcategoryId: "",
+  forId: "",
 });
 
-/** The saved draft, with a category or subcategory that no longer exists dropped. */
-function restoreDraft(categories: CategoryWithSubcategories[]): FormState {
+function restoreDraft(options: ForOption[]): FormState {
   const fresh = emptyForm();
   try {
     const saved = JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? "null") as Partial<FormState> | null;
     if (!saved) return fresh;
-    const category = categories.find((c) => c.id === saved.categoryId);
-    const subcategory = category?.subcategories.find((s) => s.id === saved.subcategoryId);
     return {
       ...fresh,
       ...saved,
-      categoryId: category?.id ?? "",
-      subcategoryId: subcategory?.id ?? "",
+      forId: options.some((option) => option.id === saved.forId) ? (saved.forId ?? "") : "",
     };
   } catch {
     return fresh;
@@ -41,13 +39,16 @@ function restoreDraft(categories: CategoryWithSubcategories[]): FormState {
 interface TransactionFormPresenterProps {
   planId: string;
   categories: CategoryWithSubcategories[];
+  goals: SavingsGoal[];
 }
 
-export default function TransactionFormPresenter({ planId, categories }: TransactionFormPresenterProps) {
+export default function TransactionFormPresenter({ planId, categories, goals }: TransactionFormPresenterProps) {
+  const groups = forGroups(categories, goals);
+  const options = groups.flatMap((group) => group.options);
   // Only rendered once the page has loaded the categories, so reading sessionStorage here is safe
-  const [form, setForm] = useState<FormState>(() => restoreDraft(categories));
+  const [form, setForm] = useState<FormState>(() => restoreDraft(options));
   const [error, setError] = useState<string | null>(null);
-  const createExpense = useCreateExpense(planId);
+  const createTransaction = useCreateTransaction(planId);
 
   useEffect(() => {
     try {
@@ -66,19 +67,22 @@ export default function TransactionFormPresenter({ planId, categories }: Transac
       return setError("The amount must be between 1 kr and 1 000 000 kr.");
     }
     if (!form.date) return setError("Pick a date.");
-    if (!form.categoryId) return setError("Pick a category.");
+    const target = options.find((option) => option.id === form.forId)?.target;
+    if (!target) return setError("Pick what it's for.");
+    if (target.type === "SAVING" && form.direction === "in") {
+      return setError("Taking money out of a savings goal isn't supported.");
+    }
 
     setError(null);
+    const description = form.description.trim() || undefined;
     try {
-      await createExpense.mutateAsync({
-        // The user types a plain number, the backend wants money out as a negative amount
-        amount: toBackendAmount(amount, form.direction),
-        date: form.date,
-        description: form.description.trim() || undefined,
-        type: "EXPENSE",
-        categoryId: form.categoryId,
-        subcategoryId: form.subcategoryId || undefined,
-      });
+      await createTransaction.mutateAsync(
+        target.type === "SAVING"
+          ? // A saving is stored as a positive amount
+            { ...target, amount, date: form.date, description }
+          : // The user types a plain number, the backend wants money out as a negative amount
+            { ...target, amount: toBackendAmount(amount, form.direction), date: form.date, description },
+      );
       setForm(emptyForm());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't save the transaction.");
@@ -88,9 +92,9 @@ export default function TransactionFormPresenter({ planId, categories }: Transac
   return (
     <TransactionFormView
       form={form}
-      categories={categories}
+      groups={groups}
       error={error}
-      isSaving={createExpense.isPending}
+      isSaving={createTransaction.isPending}
       onChange={update}
       onSubmit={handleSubmit}
     />

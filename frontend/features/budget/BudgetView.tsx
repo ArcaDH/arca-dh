@@ -2,14 +2,15 @@ import { Plus } from "lucide-react";
 import type { FC, ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { MonthPicker } from "@/components/ui/MonthPicker";
-import { categoryAssigned } from "@/lib/budget";
-import type { CategorySpending, SubcategorySpending } from "@/types/overview";
+import Button from "@/components/ui/button";
+import type { AmountEdit, BudgetGroup, BudgetLine } from "@/types/budget";
+import type { CategorySpending } from "@/types/overview";
 import { BudgetTableRowView } from "./table/BudgetTableRowView";
-import type { AmountEdit } from "@/types/budget";
 
 interface BudgetViewProps {
   month: string;
-  categories: CategorySpending[] | null;
+  // it can be null while loading
+  groups: BudgetGroup[] | null;
   readyToAssign: ReactNode;
   amountEdit: AmountEdit | null;
   isRefreshing: boolean;
@@ -23,14 +24,14 @@ interface BudgetViewProps {
   onSaveAmount: () => void;
   onCancelAmountEdit: () => void;
   onRenameCategory: (category: CategorySpending) => void;
-  onRenameSubcategory: (subcategory: SubcategorySpending) => void;
+  onRenameSubcategory: (line: BudgetLine) => void;
   onDeleteCategory: (category: CategorySpending) => void;
-  onDeleteSubcategory: (subcategory: SubcategorySpending) => void;
+  onDeleteSubcategory: (line: BudgetLine) => void;
 }
 
 export const BudgetView: FC<BudgetViewProps> = ({
   month,
-  categories,
+  groups,
   readyToAssign,
   amountEdit,
   isRefreshing,
@@ -60,7 +61,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
         </p>
       )}
 
-      {!categories ? (
+      {!groups ? (
         !errorMessage && <p className="py-8 text-sm text-muted">Loading…</p>
       ) : (
         <table className={`w-full text-sm transition-opacity ${isRefreshing ? "opacity-60" : ""}`}>
@@ -69,16 +70,10 @@ export const BudgetView: FC<BudgetViewProps> = ({
               <th className="px-3 py-2 text-left font-medium">
                 <span className="flex items-center gap-1.5">
                   Category
-                  <button
-                    type="button"
-                    aria-label="New category"
-                    title="New category"
-                    onClick={onAddCategory}
-                    className="flex cursor-pointer items-center gap-0.5 rounded-sm bg-primary px-1.5 py-0.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover active:bg-primary-active"
-                  >
+                  <Button size="xs" aria-label="New category" title="New category" onClick={onAddCategory}>
                     New
                     <Plus size={12} strokeWidth={2.5} aria-hidden />
-                  </button>
+                  </Button>
                 </span>
               </th>
               <th className="px-3 py-2 text-right font-medium">Assigned</th>
@@ -87,41 +82,42 @@ export const BudgetView: FC<BudgetViewProps> = ({
               <th className="w-10" aria-label="Actions" />
             </tr>
           </thead>
-          {categories.map((category) => (
-            <tbody key={category.categoryId}>
-              <BudgetTableRowView
-                name={category.name}
-                assigned={categoryAssigned(category)}
-                spent={category.spent}
-                onAddSubcategory={() => onAddSubcategory(category)}
-                onRename={() => onRenameCategory(category)}
-                onDelete={() => onDeleteCategory(category)}
-              />
-              {category.subcategories.map((subcategory) => (
+          {groups.map((group) => {
+            const { category } = group;
+            return (
+              <tbody key={category?.categoryId ?? group.name}>
                 <BudgetTableRowView
-                  key={subcategory.subcategoryId}
-                  name={subcategory.name}
-                  assigned={subcategory.limit}
-                  spent={subcategory.spent}
-                  isSubcategory
-                  amountEditing={{
-                    value: amountEdit?.subcategoryId === subcategory.subcategoryId ? amountEdit.value : null,
-                    onStart: () =>
-                      onStartAmountEdit({
-                        subcategoryId: subcategory.subcategoryId,
-                        value: String(subcategory.limit),
-                      }),
-                    onChange: onAmountEditChange,
-                    onSave: onSaveAmount,
-                    onCancel: onCancelAmountEdit,
-                  }}
-                  onRename={() => onRenameSubcategory(subcategory)}
-                  onDelete={() => onDeleteSubcategory(subcategory)}
+                  name={group.name}
+                  assigned={group.assigned}
+                  spent={group.spent}
+                  onAddSubcategory={category && (() => onAddSubcategory(category))}
+                  onRename={category && (() => onRenameCategory(category))}
+                  onDelete={category && (() => onDeleteCategory(category))}
                 />
-              ))}
-            </tbody>
-          ))}
-          {categories.length === 0 && (
+                {group.lines.map((line) => (
+                  <BudgetTableRowView
+                    key={line.id}
+                    name={line.name}
+                    assigned={line.assigned}
+                    spent={line.spent}
+                    kind={line.kind}
+                    isDone={line.isDone}
+                    amountEditing={{
+                      value: amountEdit?.lineId === line.id ? amountEdit.value : null,
+                      onStart: () => onStartAmountEdit({ lineId: line.id, value: String(line.assigned) }),
+                      onChange: onAmountEditChange,
+                      onSave: onSaveAmount,
+                      onCancel: onCancelAmountEdit,
+                    }}
+                    // Goals are renamed and deleted on their own page
+                    onRename={line.kind === "subcategory" ? () => onRenameSubcategory(line) : undefined}
+                    onDelete={line.kind === "subcategory" ? () => onDeleteSubcategory(line) : undefined}
+                  />
+                ))}
+              </tbody>
+            );
+          })}
+          {groups.length === 0 && (
             <tbody>
               <tr>
                 <td colSpan={5} className="px-3 py-6 text-muted">

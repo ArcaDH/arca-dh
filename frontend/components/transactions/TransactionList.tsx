@@ -1,10 +1,17 @@
 "use client";
 
-import { Receipt, Trash2 } from "lucide-react";
+import { Goal, Receipt, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
 import IconButton from "@/components/ui/IconButton";
 import { formatDay } from "@/lib/format";
 import { formatSignedKr } from "@/lib/money";
 import type { TransactionRow } from "@/types/transaction";
+
+// Expenses and savings look alike, apart from the icon
+const kindIcon: Record<TransactionRow["kind"], { icon: ReactNode; tint: string }> = {
+  expense: { icon: <Receipt size={16} aria-hidden />, tint: "bg-primary/10 text-primary" },
+  saving: { icon: <Goal size={16} aria-hidden />, tint: "bg-secondary/10 text-secondary" },
+};
 
 interface TransactionListProps {
   rows: TransactionRow[];
@@ -30,16 +37,18 @@ export default function TransactionList({ rows, isRefreshing, isFiltered, onDele
   return (
     <ul className={isRefreshing ? "opacity-60 transition-opacity" : "transition-opacity"}>
       {rows.map((row) => {
-        const meta = [row.categoryName, row.subcategoryName, formatDay(row.date)].filter(Boolean).join(" · ");
+        const meta = [row.detail, formatDay(row.date)].filter(Boolean).join(" · ");
 
         return (
           <li key={row.id} className="group flex items-center gap-3 border-t border-foreground/10 py-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Receipt size={16} aria-hidden />
+            <span
+              className={`flex size-9 shrink-0 items-center justify-center rounded-full ${kindIcon[row.kind].tint}`}
+            >
+              {kindIcon[row.kind].icon}
             </span>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm">{row.description ?? row.categoryName ?? "Transaction"}</p>
+              <p className="truncate text-sm">{row.title}</p>
               <p className="truncate text-xs text-foreground/60">{meta}</p>
             </div>
 
