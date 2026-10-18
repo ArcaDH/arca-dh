@@ -8,8 +8,10 @@ import {
   Wallet,
   LogOut,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { FC, ReactNode } from "react";
+import logo from "@/public/logo.svg";
 import Button from "../ui/button";
 
 type NavItem = {
@@ -54,8 +56,8 @@ export const SidebarView: FC<SidebarViewProps> = ({
         }`}
       >
         {!collapsed && (
-          <Link href="/" className="font-heading text-xl font-bold tracking-tight whitespace-nowrap">
-            Arca
+          <Link href="/" className="flex items-center">
+            <Image src={logo} alt="Arca" width={80} height={32} priority />
           </Link>
         )}
         <Button

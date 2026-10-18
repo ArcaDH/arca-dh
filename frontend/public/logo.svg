@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="40" viewBox="0 0 100 40" fill="none">
+  <title>Arca</title>
+  <!-- An arched vault door (arca: the Roman money chest) with a red coin kept safe inside -->
+  <path d="M6 34V19a11 11 0 0 1 22 0v15" stroke="#0F2B7F" stroke-width="2.8" stroke-linecap="round"/>
+  <circle cx="17" cy="26" r="4.2" fill="#D72E30"/>
+  <!-- arca: light geometric lowercase -->
+  <g transform="translate(39 0)" stroke="#0F2B7F" stroke-width="2.8">
+    <circle cx="7" cy="24" r="5.6"/>
+    <path d="M12.6 17v14"/>
+    <path d="M19.2 17v14M19.2 24.5c0-3.7 2.6-6.1 7-6.1"/>
+    <path d="M40.16 20.04A5.6 5.6 0 1 0 40.16 27.96"/>
+    <circle cx="52" cy="24" r="5.6"/>
+    <path d="M57.6 17v14"/>
+  </g>
+</svg>
