@@ -1,5 +1,7 @@
+import { CirclePlus } from "lucide-react";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
+import IconTile from "@/components/ui/IconTile";
 import Input from "@/components/ui/input";
 import Label from "@/components/ui/label";
 import Select from "@/components/ui/select";
@@ -54,9 +56,17 @@ export default function TransactionFormView(props: TransactionFormViewProps) {
       noValidate
     >
       <Card className="flex flex-col gap-3">
-        <div>
-          <p className="text-xs text-foreground/60">Log a transaction</p>
-          <h2 className="font-heading text-xl font-semibold">New transaction</h2>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="flex items-center gap-1.5 text-xs text-foreground/60">
+              <span aria-hidden className="size-2 rounded-full bg-primary" />
+              Log a transaction
+            </p>
+            <h2 className="font-heading text-xl font-semibold">New transaction</h2>
+          </div>
+          <IconTile className="bg-primary/10 text-primary">
+            <CirclePlus size={17} />
+          </IconTile>
         </div>
 
         <div>

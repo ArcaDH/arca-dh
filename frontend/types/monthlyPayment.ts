@@ -17,6 +17,8 @@ export type MonthlyPayment = {
 export type MonthlyPaymentRow = {
   id: string;
   title: string; // the description, or what it is for
+  ink: string; // the color of the letter in the tile, from its category
+  initial: string; // the letter in the tile
   detail: string; // "Home · Rent · monthly on the 25th"
   amount: number; // money flow in kronor: negative = money out
   nextCharge: string;

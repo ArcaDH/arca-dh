@@ -59,6 +59,9 @@ export type TransactionRow = {
   date: string;
   description: string | null;
   title: string; // the description, or what it was for
+  tint: string; // the colors of the tile in the list, from its category
+  stripe: string; // the color of the stripe along the row's edge, from its category
+  initial: string | null; // the letter in the tile, null for savings (they show a goal icon)
   detail: string; // "Home · Rent" or "Savings · Trip to Japan"
   categoryId: string | null;
   monthlyPaymentId: string | null;
