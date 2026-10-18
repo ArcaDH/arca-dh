@@ -91,7 +91,7 @@ export default function TransactionFiltersBar({ filters, onChange, categories, t
           inputMode="decimal"
           placeholder="Min kr"
           aria-label="Minimum amount in kronor"
-          className="w-24 font-mono"
+          className="w-24"
         />
         <Input
           value={filters.maxKr}
@@ -99,7 +99,7 @@ export default function TransactionFiltersBar({ filters, onChange, categories, t
           inputMode="decimal"
           placeholder="Max kr"
           aria-label="Maximum amount in kronor"
-          className="w-24 font-mono"
+          className="w-24"
         />
         {isFiltered && (
           <Button variant="ghost" size="sm" onClick={() => onChange(DEFAULT_FILTERS)}>

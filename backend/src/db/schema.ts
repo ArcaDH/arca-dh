@@ -10,6 +10,7 @@ import {
   unique,
   uniqueIndex,
   primaryKey,
+  check,
   AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql, InferSelectModel, InferInsertModel } from "drizzle-orm";
@@ -125,24 +126,60 @@ export const savingsGoals = pgTable("savings_goals", {
 
 export const SavingsGoal = savingsGoals;
 
+// 6b. MonthlyPayments: an expense that repeats every month. Its transactions are created automatically.
+export const monthlyPayments = pgTable(
+  "monthly_payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Money out, so negative, like the transactions it creates
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    description: varchar("description", { length: 500 }),
+    dayOfMonth: integer("day_of_month").notNull(), // 1 to 31, the 31st becomes the last day of a shorter month
+    // YYYY-MM, the last month that has been handled. Later months are created from here, so a month whose
+    // transaction was deleted ("only this month") isn't created again.
+    generatedThrough: varchar("generated_through", { length: 7 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    budgetPlanId: uuid("budget_plan_id")
+      .notNull()
+      .references(() => budgetPlans.id, { onDelete: "cascade" }),
+    // Deleting the category stops the payment (a payment without a category can't make a valid expense)
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => categories.id, { onDelete: "cascade" }),
+    subcategoryId: uuid("subcategory_id").references(() => subcategories.id, { onDelete: "set null" }),
+  },
+  (table) => [check("monthly_payments_day_of_month_range", sql`${table.dayOfMonth} BETWEEN 1 AND 31`)],
+);
+
+export const MonthlyPayment = monthlyPayments;
+
 // 7. Transactions
-export const transactions = pgTable("transactions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  date: date("date").notNull(),
-  description: varchar("description", { length: 500 }),
-  type: transactionTypeEnum("type").notNull(),
-  budgetPlanId: uuid("budget_plan_id")
-    .notNull()
-    .references(() => budgetPlans.id, { onDelete: "cascade" }),
-  categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
-  subcategoryId: uuid("subcategory_id").references(() => subcategories.id, {
-    onDelete: "set null",
-  }),
-  savingsGoalId: uuid("savings_goal_id").references(() => savingsGoals.id, {
-    onDelete: "set null",
-  }),
-});
+export const transactions = pgTable(
+  "transactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    date: date("date").notNull(),
+    description: varchar("description", { length: 500 }),
+    type: transactionTypeEnum("type").notNull(),
+    budgetPlanId: uuid("budget_plan_id")
+      .notNull()
+      .references(() => budgetPlans.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+    subcategoryId: uuid("subcategory_id").references(() => subcategories.id, {
+      onDelete: "set null",
+    }),
+    savingsGoalId: uuid("savings_goal_id").references(() => savingsGoals.id, {
+      onDelete: "set null",
+    }),
+    // The monthly payment that made this transaction, and the month (YYYY-MM) it was made for.
+    // Stopping the payment keeps the transaction and only clears the link.
+    monthlyPaymentId: uuid("monthly_payment_id").references(() => monthlyPayments.id, { onDelete: "set null" }),
+    monthlyPeriod: varchar("monthly_period", { length: 7 }),
+  },
+  // A payment makes one transaction per month, even if two requests ask at the same moment
+  (table) => [uniqueIndex("transactions_monthly_period_unique").on(table.monthlyPaymentId, table.monthlyPeriod)],
+);
 
 export const Transaction = transactions;
 
@@ -176,6 +213,20 @@ export const transactionTags = pgTable(
       .references(() => tags.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.transactionId, table.tagId] })],
+);
+
+// 10. Which tags a monthly payment copies onto the transactions it creates
+export const monthlyPaymentTags = pgTable(
+  "monthly_payment_tags",
+  {
+    monthlyPaymentId: uuid("monthly_payment_id")
+      .notNull()
+      .references(() => monthlyPayments.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.monthlyPaymentId, table.tagId] })],
 );
 
 // Relations
@@ -250,6 +301,38 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     references: [savingsGoals.id],
   }),
   tags: many(transactionTags),
+  monthlyPayment: one(monthlyPayments, {
+    fields: [transactions.monthlyPaymentId],
+    references: [monthlyPayments.id],
+  }),
+}));
+
+export const monthlyPaymentsRelations = relations(monthlyPayments, ({ one, many }) => ({
+  budgetPlan: one(budgetPlans, {
+    fields: [monthlyPayments.budgetPlanId],
+    references: [budgetPlans.id],
+  }),
+  category: one(categories, {
+    fields: [monthlyPayments.categoryId],
+    references: [categories.id],
+  }),
+  subcategory: one(subcategories, {
+    fields: [monthlyPayments.subcategoryId],
+    references: [subcategories.id],
+  }),
+  transactions: many(transactions),
+  tags: many(monthlyPaymentTags),
+}));
+
+export const monthlyPaymentTagsRelations = relations(monthlyPaymentTags, ({ one }) => ({
+  monthlyPayment: one(monthlyPayments, {
+    fields: [monthlyPaymentTags.monthlyPaymentId],
+    references: [monthlyPayments.id],
+  }),
+  tag: one(tags, {
+    fields: [monthlyPaymentTags.tagId],
+    references: [tags.id],
+  }),
 }));
 
 export const tagsRelations = relations(tags, ({ one, many }) => ({
@@ -296,3 +379,6 @@ export type NewTransactionModel = InferInsertModel<typeof transactions>;
 
 export type TagModel = InferSelectModel<typeof tags>;
 export type NewTagModel = InferInsertModel<typeof tags>;
+
+export type MonthlyPaymentModel = InferSelectModel<typeof monthlyPayments>;
+export type NewMonthlyPaymentModel = InferInsertModel<typeof monthlyPayments>;
