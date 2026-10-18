@@ -19,10 +19,16 @@ export class Endpoints {
     static readonly incomeSources = (planId: string) => `/plans/${planId}/income-sources` as const;
 
     static readonly overview = (planId: string) => `/plans/${planId}/overview` as const;
+
+    static readonly monthlyPayments = (planId: string) => `/plans/${planId}/monthly-payments` as const;
   };
 
   static readonly Transactions = class {
     static readonly byId = (id: string) => `/transactions/${id}` as const;
+  };
+
+  static readonly MonthlyPayments = class {
+    static readonly byId = (id: string) => `/monthly-payments/${id}` as const;
   };
 
   static readonly Tags = class {
