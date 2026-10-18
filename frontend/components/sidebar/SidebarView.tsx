@@ -13,6 +13,7 @@ import Link from "next/link";
 import type { FC, ReactNode } from "react";
 import logo from "@/public/logo.svg";
 import Button from "../ui/button";
+import IconButton from "../ui/IconButton";
 
 type NavItem = {
   href: string;
@@ -52,28 +53,26 @@ export const SidebarView: FC<SidebarViewProps> = ({
     >
       <div
         className={`flex h-16 items-center overflow-hidden border-b border-foreground/10 ${
-          collapsed ? "justify-center px-3" : "justify-between pr-3 pl-6"
+          collapsed ? "justify-center px-3" : "justify-between pr-3.5 pl-5"
         }`}
       >
         {!collapsed && (
           <Link href="/" className="flex items-center">
-            <Image src={logo} alt="Arca" width={80} height={32} priority />
+            <Image src={logo} alt="Arca" width={75} height={32} priority />
           </Link>
         )}
-        <Button
-          type="button"
-          variant="ghost"
+        <IconButton
           onClick={onToggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!collapsed}
-          className="rounded-md p-1.5 cursor-pointer text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground"
+          className="rounded-md"
         >
           {collapsed ? (
             <PanelLeftOpen size={18} strokeWidth={1.5} aria-hidden />
           ) : (
             <PanelLeftClose size={18} strokeWidth={1.5} aria-hidden />
           )}
-        </Button>
+        </IconButton>
       </div>
 
       <div className="border-b border-foreground/10 px-3 py-3">{planPicker}</div>
