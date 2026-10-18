@@ -2,33 +2,38 @@
 
 :root {
   /* Palette */
-  --midnight: #0d0630;
+  --ink: #001b2e;
   --cream: #f8f4e3;
   --mist: #f7f7f8;
   --cobalt: #2563eb;
   --cobalt-dark: #1d4ed8;
   --cobalt-darker: #1e40af;
-  --crimson: #b6174b;
-  --crimson-dark: #9b1240;
-  --crimson-darker: #7f0e35;
-  --plum: #8b4a80;
+  --navy: #284074;
+  --navy-dark: #1f3462;
+  --navy-darker: #182a52;
+  --red: #d72e30;
+  --red-dark: #bb2427;
+  --red-darker: #9e1d20;
+  --butter: #fceea7;
   --slate: #5b5870;
   --emerald: #047857;
-  --amber: #b45309;
 
   /* Semantic tokens */
   --background: var(--mist);
-  --foreground: var(--midnight);
+  --foreground: var(--ink);
   --muted: var(--slate);
   --primary: var(--cobalt);
   --primary-hover: var(--cobalt-dark);
   --primary-active: var(--cobalt-darker);
-  --secondary: var(--plum);
-  --accent: var(--crimson);
-  --accent-hover: var(--crimson-dark);
-  --accent-active: var(--crimson-darker);
+  --secondary: var(--navy);
+  --secondary-hover: var(--navy-dark);
+  --secondary-active: var(--navy-darker);
+  --accent: var(--red);
+  --accent-hover: var(--red-dark);
+  --accent-active: var(--red-darker);
   --success: var(--emerald);
-  --warning: var(--amber);
+  /* Butter is only ever a background, with dark text on top */
+  --warning: var(--butter);
   --link: var(--cobalt);
 
   color-scheme: light;
@@ -42,6 +47,8 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-active: var(--primary-active);
   --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-active: var(--secondary-active);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-active: var(--accent-active);
@@ -58,12 +65,11 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 .dark {
-  --background: var(--midnight);
+  --background: var(--ink);
   --foreground: var(--cream);
   --muted: #a9a3c9;
   --link: #6b8ff7;
   --success: #34d399;
-  --warning: #fbbf24;
   /* Buttons keep --primary and --accent: white text still reads on them */
 
   color-scheme: dark;

@@ -77,7 +77,7 @@ export const GoalDetailView: FC<GoalDetailViewProps> = ({
           value={monthly > 0 ? savedThisMonth / monthly : 1}
           size={92}
           thickness={8}
-          color="text-secondary"
+          color="text-success"
           label={`${formatWholeKr(savedThisMonth)} of ${formatWholeKr(monthly)} saved this month`}
         >
           <span className="font-heading font-bold tabular-nums">

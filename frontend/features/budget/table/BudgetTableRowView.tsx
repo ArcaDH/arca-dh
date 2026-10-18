@@ -1,17 +1,19 @@
-import { Check, Goal, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Goal, MoreHorizontal, Pencil, Plus, Trash2, Wallet } from "lucide-react";
 import { useRef, type FC } from "react";
-import { SubcategoryIcon } from "@/components/icons/SubcategoryIcon";
 import Button from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { StatusBadge, type BadgeTone } from "@/components/ui/StatusBadge";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { MenuItem } from "@/components/ui/MenuItem";
 import { MoneyProgress } from "@/components/ui/MoneyProgress";
-import type { ProgressTone } from "@/components/ui/MoneyProgress";
-import { budgetStatus, spentShare, type BudgetStatus } from "@/lib/budget";
+import { spentShare } from "@/lib/budget";
 import { formatWholeKr } from "@/lib/money";
-import type { BudgetLine } from "@/types/budget";
+import type { BudgetLine, BudgetStatus } from "@/types/budget";
 
-const statusTone: Record<BudgetStatus, ProgressTone> = { ok: "success", near: "secondary", over: "accent" };
+const statusStyle: Record<BudgetStatus, { tone: BadgeTone; variant: "solid" | "soft" }> = {
+  progress: { tone: "success", variant: "soft" },
+  covered: { tone: "success", variant: "solid" },
+  over: { tone: "accent", variant: "soft" },
+};
 
 // The inline Assigned input: Enter or leaving saves, Escape cancels
 function AmountInput(props: {
@@ -47,7 +49,7 @@ interface BudgetTableRowViewProps {
   spent: number;
   // A line under a heading, with an icon and a progress bar. Left out for a heading row
   kind?: BudgetLine["kind"];
-  // A reached savings goal: a full green bar and Done instead of what's left
+  status: BudgetStatus;
   isDone?: boolean;
   amountEditing?: {
     value: string | null;
@@ -66,13 +68,13 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
   assigned,
   spent,
   kind,
+  status,
   isDone = false,
   amountEditing,
   onAddSubcategory,
   onRename,
   onDelete,
 }) => {
-  const status = budgetStatus(spent, assigned);
   const left = assigned - spent;
   const isLine = kind !== undefined;
 
@@ -80,7 +82,9 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
     <tr className={`group border-t border-foreground/10 ${isLine ? "" : "bg-foreground/[0.025] font-medium"}`}>
       <td className={`py-2 pr-3 ${isLine ? "pl-6" : "pl-3"}`}>
         <div className="flex items-center gap-2.5">
-          {kind === "subcategory" && <SubcategoryIcon size={18} className="shrink-0 text-muted" aria-hidden />}
+          {kind === "subcategory" && (
+            <Wallet size={18} strokeWidth={1.75} className="shrink-0 text-muted" aria-hidden />
+          )}
           {kind === "goal" && (
             <Goal
               size={18}
@@ -102,7 +106,7 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
             {isLine && (
               <MoneyProgress
                 value={isDone ? 1 : spentShare(spent, assigned)}
-                tone={isDone ? "success" : statusTone[status]}
+                tone={isDone ? "success" : statusStyle[status].tone}
                 label={`${name}: ${formatWholeKr(spent)} of ${formatWholeKr(assigned)} spent`}
                 className="mt-1 w-36"
               />
@@ -142,8 +146,8 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
             Done
           </StatusBadge>
         ) : (
-          <StatusBadge tone={statusTone[status]} variant="soft">
-            {formatWholeKr(left)}
+          <StatusBadge tone={statusStyle[status].tone} variant={statusStyle[status].variant}>
+            {left < 0 && status !== "over" ? `+${formatWholeKr(-left)}` : formatWholeKr(left)}
           </StatusBadge>
         )}
       </td>

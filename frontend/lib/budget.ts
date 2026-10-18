@@ -1,16 +1,13 @@
 import { goalAssigned, isGoalDone } from "@/lib/goals";
 import { sumKr } from "@/lib/money";
-import type { BudgetGroup, BudgetLine } from "@/types/budget";
+import type { BudgetGroup, BudgetLine, BudgetStatus } from "@/types/budget";
 import type { CategorySpending, GoalProgress, SubcategorySpending } from "@/types/overview";
 
-export type BudgetStatus = "ok" | "near" | "over";
-
-const NEAR_LIMIT = 0.9;
-
-export function budgetStatus(spent: number, budget: number): BudgetStatus {
-  if (spent > budget) return "over";
-  if (budget > 0 && spent / budget >= NEAR_LIMIT) return "near";
-  return "ok";
+// For savings, putting in more than planned is good, so it is covered and never over
+export function budgetStatus(spent: number, budget: number, isSaving = false): BudgetStatus {
+  if (spent > budget && !isSaving) return "over";
+  if (spent > 0 && spent >= budget) return "covered";
+  return "progress";
 }
 
 export function spentShare(spent: number, budget: number): number {
@@ -27,18 +24,23 @@ export const subcategoryLine = (subcategory: SubcategorySpending): BudgetLine =>
   name: subcategory.name,
   assigned: subcategory.limit,
   spent: subcategory.spent,
+  status: budgetStatus(subcategory.spent, subcategory.limit),
   isDone: false,
 });
 
-export const goalLine = (goal: GoalProgress, month: string): BudgetLine => ({
-  kind: "goal",
-  id: goal.goalId,
-  name: goal.name,
-  assigned: goalAssigned(goal, month),
-  spent: goal.savedThisMonth,
-  isDone: isGoalDone(goal),
-  goal,
-});
+export function goalLine(goal: GoalProgress, month: string): BudgetLine {
+  const assigned = goalAssigned(goal, month);
+  return {
+    kind: "goal",
+    id: goal.goalId,
+    name: goal.name,
+    assigned,
+    spent: goal.savedThisMonth,
+    status: budgetStatus(goal.savedThisMonth, assigned, true),
+    isDone: isGoalDone(goal),
+    goal,
+  };
+}
 
 // The budget table. each category with its subcategories, also then the savings goals as one more group
 export function budgetGroups(categories: CategorySpending[], goals: GoalProgress[], month: string): BudgetGroup[] {
@@ -46,16 +48,20 @@ export function budgetGroups(categories: CategorySpending[], goals: GoalProgress
     name: category.name,
     assigned: categoryAssigned(category),
     spent: category.spent,
+    status: budgetStatus(category.spent, categoryAssigned(category)),
     lines: category.subcategories.map(subcategoryLine),
     category,
   }));
   if (goals.length === 0) return categoryGroups;
 
   const goalLines = goals.map((goal) => goalLine(goal, month));
+  const assigned = sumKr(goalLines.map((line) => line.assigned));
+  const spent = sumKr(goalLines.map((line) => line.spent));
   const savings = {
     name: "Savings goals",
-    assigned: sumKr(goalLines.map((line) => line.assigned)),
-    spent: sumKr(goalLines.map((line) => line.spent)),
+    assigned,
+    spent,
+    status: budgetStatus(spent, assigned, true),
     lines: goalLines,
   };
   return [...categoryGroups, savings];
