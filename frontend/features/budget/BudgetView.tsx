@@ -90,6 +90,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
                   name={group.name}
                   assigned={group.assigned}
                   spent={group.spent}
+                  status={group.status}
                   onAddSubcategory={category && (() => onAddSubcategory(category))}
                   onRename={category && (() => onRenameCategory(category))}
                   onDelete={category && (() => onDeleteCategory(category))}
@@ -101,6 +102,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
                     assigned={line.assigned}
                     spent={line.spent}
                     kind={line.kind}
+                    status={line.status}
                     isDone={line.isDone}
                     amountEditing={{
                       value: amountEdit?.lineId === line.id ? amountEdit.value : null,

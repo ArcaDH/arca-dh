@@ -1,10 +1,12 @@
 import type { CategorySpending, GoalProgress } from "@/types/overview";
+export type BudgetStatus = "progress" | "covered" | "over";
 
 type LineBase = {
   id: string;
   name: string;
   assigned: number;
   spent: number;
+  status: BudgetStatus;
   isDone: boolean; // a reached goal
 };
 
@@ -16,6 +18,7 @@ export type BudgetGroup = {
   name: string;
   assigned: number;
   spent: number;
+  status: BudgetStatus;
   lines: BudgetLine[];
   category?: CategorySpending;
 };

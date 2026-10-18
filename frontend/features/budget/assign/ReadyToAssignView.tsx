@@ -1,6 +1,5 @@
 import type { FC } from "react";
-import { ChevronDown, Goal, Pencil, Plus } from "lucide-react";
-import { SubcategoryIcon } from "@/components/icons/SubcategoryIcon";
+import { ChevronDown, Goal, Pencil, Plus, Wallet } from "lucide-react";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { formatWholeKr } from "@/lib/money";
 import type { BudgetGroup, BudgetLine } from "@/types/budget";
@@ -127,7 +126,7 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
                               {line.kind === "goal" ? (
                                 <Goal size={15} strokeWidth={1.75} className="shrink-0 text-muted" aria-hidden />
                               ) : (
-                                <SubcategoryIcon size={15} className="shrink-0 text-muted" aria-hidden />
+                                <Wallet size={15} strokeWidth={1.75} className="shrink-0 text-muted" aria-hidden />
                               )}
                               <span className="min-w-0 flex-1 truncate group-hover:text-primary">{line.name}</span>
                               <span
