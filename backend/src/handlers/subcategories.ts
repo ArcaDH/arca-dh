@@ -6,6 +6,44 @@ import { PlanRepository } from "../repositories/planRepository";
 import { returnJson, returnCode, authorizeRequest, userIdFromToken } from "../services/apiService";
 import { validateSubcategoryData, validateAssignmentData, isValidMonth } from "../validators/subcategories";
 
+// A stored numeric amount (DB numeric comes back as a string); null means nothing assigned yet.
+const assignedAmount = (value: string | null): number => (value === null ? 0 : Number.parseFloat(value));
+
+// Shared validation for the bulk assignment endpoints. Validates auth, the month param, the
+// subcategoryIds array, and that the plan belongs to the user. Sends the error response and returns
+// null on failure, otherwise returns the resolved request context.
+async function resolveBulkRequest(
+  request: Request,
+  response: Response,
+): Promise<{ userId: number; planId: string; month: string; subcategoryIds: string[] } | null> {
+  if (!authorizeRequest(request, response)) return null;
+  const userId = userIdFromToken(request);
+  if (!userId) {
+    returnCode(response, 401);
+    return null;
+  }
+
+  const planId = request.params.planId as string;
+  const { month, subcategoryIds } = request.body || {};
+
+  if (!isValidMonth(month)) {
+    returnJson(response, 400, { code: 400, message: "Invalid month. Expected YYYY-MM." });
+    return null;
+  }
+  if (!Array.isArray(subcategoryIds) || subcategoryIds.some((id) => typeof id !== "string")) {
+    returnJson(response, 400, { code: 400, message: "Invalid input: 'subcategoryIds' must be an array." });
+    return null;
+  }
+
+  const plan = await PlanRepository.findByIdAndUserId(planId, userId);
+  if (!plan) {
+    returnJson(response, 404, { code: 404, message: "Plan not found" });
+    return null;
+  }
+
+  return { userId, planId, month, subcategoryIds };
+}
+
 export namespace SubcategoryHandler {
   /**
    * GET /categories/:id/subcategories
@@ -158,44 +196,27 @@ export namespace SubcategoryHandler {
    */
   export async function fundTargets(request: Request, response: Response) {
     try {
-      if (!authorizeRequest(request, response)) return;
-      const userId = userIdFromToken(request);
-      if (!userId) return returnCode(response, 401);
+      const ctx = await resolveBulkRequest(request, response);
+      if (!ctx) return;
 
-      const planId = request.params.planId as string;
-      const { month, subcategoryIds } = request.body || {};
-
-      if (!isValidMonth(month)) {
-        return returnJson(response, 400, { code: 400, message: "Invalid month. Expected YYYY-MM." });
-      }
-      if (!Array.isArray(subcategoryIds) || subcategoryIds.some((id) => typeof id !== "string")) {
-        return returnJson(response, 400, { code: 400, message: "Invalid input: 'subcategoryIds' must be an array." });
-      }
-
-      const plan = await PlanRepository.findByIdAndUserId(planId, userId);
-      if (!plan) {
-        return returnJson(response, 404, { code: 404, message: "Plan not found" });
-      }
-
-      // Only act on subcategories the user owns in this plan.
       const owned = await SubcategoryAssignmentRepository.findOwnedWithAssignment(
-        subcategoryIds,
-        userId,
-        planId,
-        month,
+        ctx.subcategoryIds,
+        ctx.userId,
+        ctx.planId,
+        ctx.month,
       );
 
-      const funded = [];
-      for (const sub of owned) {
-        if (sub.target === null) continue; // no target: ignore
-        const target = parseFloat(sub.target);
-        const current = sub.assigned === null ? 0 : parseFloat(sub.assigned);
-        if (current >= target) continue; // already funded: skip
-        const saved = await SubcategoryAssignmentRepository.setAssigned(sub.subcategoryId, month, target.toString());
-        funded.push(saved);
-      }
+      // Only under-funded lines that have a target; set each to its target.
+      const entries = owned
+        .filter((sub) => sub.target !== null)
+        .filter((sub) => assignedAmount(sub.assigned) < Number.parseFloat(sub.target as string))
+        .map((sub) => ({
+          subcategoryId: sub.subcategoryId,
+          assigned: Number.parseFloat(sub.target as string).toString(),
+        }));
 
-      return returnJson(response, 200, { month, funded });
+      const funded = await SubcategoryAssignmentRepository.setAssignedEach(entries, ctx.month);
+      return returnJson(response, 200, { month: ctx.month, funded });
     } catch (error) {
       console.error("Error in fundTargets:", error);
       return returnJson(response, 500, { code: 500, message: "Internal server error" });
@@ -209,39 +230,27 @@ export namespace SubcategoryHandler {
    */
   export async function bulkAssign(request: Request, response: Response) {
     try {
-      if (!authorizeRequest(request, response)) return;
-      const userId = userIdFromToken(request);
-      if (!userId) return returnCode(response, 401);
-
-      const planId = request.params.planId as string;
-      const { month, subcategoryIds } = request.body || {};
-
-      if (!isValidMonth(month)) {
-        return returnJson(response, 400, { code: 400, message: "Invalid month. Expected YYYY-MM." });
-      }
-      if (!Array.isArray(subcategoryIds) || subcategoryIds.some((id) => typeof id !== "string")) {
-        return returnJson(response, 400, { code: 400, message: "Invalid input: 'subcategoryIds' must be an array." });
-      }
+      const ctx = await resolveBulkRequest(request, response);
+      if (!ctx) return;
 
       const validData = validateAssignmentData(request.body, response);
       if (!validData) return;
 
-      const plan = await PlanRepository.findByIdAndUserId(planId, userId);
-      if (!plan) {
-        return returnJson(response, 404, { code: 404, message: "Plan not found" });
-      }
-
       // Restrict to subcategories the user owns in this plan.
       const owned = await SubcategoryAssignmentRepository.findOwnedWithAssignment(
-        subcategoryIds,
-        userId,
-        planId,
-        month,
+        ctx.subcategoryIds,
+        ctx.userId,
+        ctx.planId,
+        ctx.month,
       );
       const ownedIds = owned.map((sub) => sub.subcategoryId);
 
-      const assignments = await SubcategoryAssignmentRepository.setAssignedMany(ownedIds, month, validData.assigned);
-      return returnJson(response, 200, { month, assignments });
+      const assignments = await SubcategoryAssignmentRepository.setAssignedMany(
+        ownedIds,
+        ctx.month,
+        validData.assigned,
+      );
+      return returnJson(response, 200, { month: ctx.month, assignments });
     } catch (error) {
       console.error("Error in bulkAssign:", error);
       return returnJson(response, 500, { code: 500, message: "Internal server error" });
@@ -256,42 +265,23 @@ export namespace SubcategoryHandler {
    */
   export async function coverOverspending(request: Request, response: Response) {
     try {
-      if (!authorizeRequest(request, response)) return;
-      const userId = userIdFromToken(request);
-      if (!userId) return returnCode(response, 401);
-
-      const planId = request.params.planId as string;
-      const { month, subcategoryIds } = request.body || {};
-
-      if (!isValidMonth(month)) {
-        return returnJson(response, 400, { code: 400, message: "Invalid month. Expected YYYY-MM." });
-      }
-      if (!Array.isArray(subcategoryIds) || subcategoryIds.some((id) => typeof id !== "string")) {
-        return returnJson(response, 400, { code: 400, message: "Invalid input: 'subcategoryIds' must be an array." });
-      }
-
-      const plan = await PlanRepository.findByIdAndUserId(planId, userId);
-      if (!plan) {
-        return returnJson(response, 404, { code: 404, message: "Plan not found" });
-      }
+      const ctx = await resolveBulkRequest(request, response);
+      if (!ctx) return;
 
       const owned = await SubcategoryAssignmentRepository.findOwnedWithAssignment(
-        subcategoryIds,
-        userId,
-        planId,
-        month,
+        ctx.subcategoryIds,
+        ctx.userId,
+        ctx.planId,
+        ctx.month,
       );
 
-      const covered = [];
-      for (const sub of owned) {
-        const spent = parseFloat(sub.spent);
-        const current = sub.assigned === null ? 0 : parseFloat(sub.assigned);
-        if (spent <= current) continue; // not overspent: nothing to cover
-        const saved = await SubcategoryAssignmentRepository.setAssigned(sub.subcategoryId, month, spent.toString());
-        covered.push(saved);
-      }
+      // Only overspent lines (spent > assigned); raise each to its spent amount.
+      const entries = owned
+        .filter((sub) => Number.parseFloat(sub.spent) > assignedAmount(sub.assigned))
+        .map((sub) => ({ subcategoryId: sub.subcategoryId, assigned: Number.parseFloat(sub.spent).toString() }));
 
-      return returnJson(response, 200, { month, covered });
+      const covered = await SubcategoryAssignmentRepository.setAssignedEach(entries, ctx.month);
+      return returnJson(response, 200, { month: ctx.month, covered });
     } catch (error) {
       console.error("Error in coverOverspending:", error);
       return returnJson(response, 500, { code: 500, message: "Internal server error" });

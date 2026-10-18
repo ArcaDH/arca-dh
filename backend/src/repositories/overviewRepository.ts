@@ -121,8 +121,8 @@ export namespace OverviewRepository {
         subcategorySpending.push({
           subcategoryId: sub.id,
           name: sub.name,
-          assigned: sub.assigned === null ? 0 : parseFloat(sub.assigned),
-          target: sub.target === null ? null : parseFloat(sub.target),
+          assigned: sub.assigned === null ? 0 : Number.parseFloat(sub.assigned),
+          target: sub.target === null ? null : Number.parseFloat(sub.target),
           spent: parseFloat(subSpentRow?.spent || "0"),
         });
       }

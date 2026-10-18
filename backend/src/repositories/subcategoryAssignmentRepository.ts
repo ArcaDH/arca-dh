@@ -24,11 +24,15 @@ export namespace SubcategoryAssignmentRepository {
    */
   export async function setAssignedMany(subcategoryIds: string[], month: string, assigned: string) {
     if (subcategoryIds.length === 0) return [];
-    const rows = [];
-    for (const subcategoryId of subcategoryIds) {
-      rows.push(await setAssigned(subcategoryId, month, assigned));
-    }
-    return rows;
+    return Promise.all(subcategoryIds.map((subcategoryId) => setAssigned(subcategoryId, month, assigned)));
+  }
+
+  /**
+   * Set a per-subcategory assigned amount for a month in one batch. Returns the stored rows.
+   */
+  export async function setAssignedEach(entries: { subcategoryId: string; assigned: string }[], month: string) {
+    if (entries.length === 0) return [];
+    return Promise.all(entries.map((entry) => setAssigned(entry.subcategoryId, month, entry.assigned)));
   }
 
   /**

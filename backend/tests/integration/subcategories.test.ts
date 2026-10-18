@@ -20,6 +20,7 @@ vi.mock("../../src/repositories/subcategoryAssignmentRepository", () => ({
   SubcategoryAssignmentRepository: {
     setAssigned: vi.fn(),
     setAssignedMany: vi.fn(),
+    setAssignedEach: vi.fn(),
     findOwnedWithAssignment: vi.fn(),
     findPlanSubcategoriesWithAssignment: vi.fn(),
   },
@@ -504,7 +505,7 @@ describe("SubcategoryHandler (subcategories.ts)", () => {
         { subcategoryId: "notarget", target: null, assigned: null },
         { subcategoryId: "empty", target: "200", assigned: null },
       ] as any);
-      vi.mocked(SubcategoryAssignmentRepository.setAssigned).mockResolvedValue({} as any);
+      vi.mocked(SubcategoryAssignmentRepository.setAssignedEach).mockResolvedValue([] as any);
 
       const req = createMockRequest({
         params: { planId: validPlanId },
@@ -516,9 +517,13 @@ describe("SubcategoryHandler (subcategories.ts)", () => {
       await SubcategoryHandler.fundTargets(req, res as any);
       expect(res.statusCode).toBe(200);
       // Only the under-funded and the empty (no assignment yet) ones get set to their target.
-      expect(SubcategoryAssignmentRepository.setAssigned).toHaveBeenCalledTimes(2);
-      expect(SubcategoryAssignmentRepository.setAssigned).toHaveBeenCalledWith("under", month, "3000");
-      expect(SubcategoryAssignmentRepository.setAssigned).toHaveBeenCalledWith("empty", month, "200");
+      expect(SubcategoryAssignmentRepository.setAssignedEach).toHaveBeenCalledWith(
+        [
+          { subcategoryId: "under", assigned: "3000" },
+          { subcategoryId: "empty", assigned: "200" },
+        ],
+        month,
+      );
     });
 
     it("should return 500 when a repository call fails", async () => {
@@ -574,6 +579,8 @@ describe("SubcategoryHandler (subcategories.ts)", () => {
     });
 
     it("should return 400 if assigned is negative", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+
       const req = createMockRequest({
         params: { planId: validPlanId },
         body: { month, subcategoryIds: [validSubcategoryId], assigned: -5 },
@@ -692,7 +699,7 @@ describe("SubcategoryHandler (subcategories.ts)", () => {
         { subcategoryId: "empty", target: null, assigned: null, spent: "250" }, // overspent (no assignment yet)
         { subcategoryId: "exact", target: null, assigned: "400", spent: "400" }, // exactly spent, not over
       ] as any);
-      vi.mocked(SubcategoryAssignmentRepository.setAssigned).mockResolvedValue({} as any);
+      vi.mocked(SubcategoryAssignmentRepository.setAssignedEach).mockResolvedValue([] as any);
 
       const req = createMockRequest({
         params: { planId: validPlanId },
@@ -703,9 +710,13 @@ describe("SubcategoryHandler (subcategories.ts)", () => {
 
       await SubcategoryHandler.coverOverspending(req, res as any);
       expect(res.statusCode).toBe(200);
-      expect(SubcategoryAssignmentRepository.setAssigned).toHaveBeenCalledTimes(2);
-      expect(SubcategoryAssignmentRepository.setAssigned).toHaveBeenCalledWith("over", month, "1000");
-      expect(SubcategoryAssignmentRepository.setAssigned).toHaveBeenCalledWith("empty", month, "250");
+      expect(SubcategoryAssignmentRepository.setAssignedEach).toHaveBeenCalledWith(
+        [
+          { subcategoryId: "over", assigned: "1000" },
+          { subcategoryId: "empty", assigned: "250" },
+        ],
+        month,
+      );
     });
 
     it("should return 500 when a repository call fails", async () => {

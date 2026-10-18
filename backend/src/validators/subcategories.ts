@@ -19,8 +19,8 @@ export function validateSubcategoryData(body: any, response: Response) {
 
   let normalizedTarget: string | null = null;
   if (target !== undefined && target !== null && target !== "") {
-    const parsedTarget = typeof target === "number" ? target : parseFloat(target);
-    if (isNaN(parsedTarget) || parsedTarget < 0) {
+    const parsedTarget = typeof target === "number" ? target : Number.parseFloat(target);
+    if (Number.isNaN(parsedTarget) || parsedTarget < 0) {
       returnJson(response, 400, {
         code: 400,
         message: "Invalid input: 'target' must be a non-negative number.",
@@ -43,8 +43,8 @@ export function validateSubcategoryData(body: any, response: Response) {
 export function validateAssignmentData(body: any, response: Response) {
   const { assigned } = body || {};
 
-  const parsedAssigned = typeof assigned === "number" ? assigned : parseFloat(assigned);
-  if (isNaN(parsedAssigned) || parsedAssigned < 0) {
+  const parsedAssigned = typeof assigned === "number" ? assigned : Number.parseFloat(assigned);
+  if (Number.isNaN(parsedAssigned) || parsedAssigned < 0) {
     returnJson(response, 400, {
       code: 400,
       message: "Invalid input: 'assigned' must be a non-negative number.",
