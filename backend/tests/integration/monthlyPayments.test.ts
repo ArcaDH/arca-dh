@@ -109,6 +109,18 @@ describe("MonthlyPaymentHandler (monthlyPayments.ts)", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    it("should return 401 if the token has no user id", async () => {
+      const req = createMockRequest({
+        params: { id: validPaymentId },
+        headers: { authorization: `Bearer ${generateTokenWithoutUserId()}` },
+      });
+      const res = createMockResponse();
+
+      await MonthlyPaymentHandler.deleteMonthlyPayment(req, res as any);
+      expect(res.statusCode).toBe(401);
+      expect(MonthlyPaymentRepository.deleteById).not.toHaveBeenCalled();
+    });
+
     it("should return 404 if the id is not a valid UUID", async () => {
       const req = createMockRequest({ params: { id: "nope" }, tokenUserId: userId });
       const res = createMockResponse();

@@ -12,13 +12,15 @@ export namespace MonthlyPaymentService {
       const today = todayOf(now);
       const payments = await MonthlyPaymentRepository.findByPlanId(planId);
 
-      for (const payment of payments) {
-        const periods = dueMonths(payment, today).map((month) => ({
-          month,
-          date: dueDate(month, payment.dayOfMonth),
-        }));
-        if (periods.length > 0) await MonthlyPaymentRepository.createDueTransactions(payment, periods);
-      }
+      await Promise.all(
+        payments.map((payment) => {
+          const periods = dueMonths(payment, today).map((month) => ({
+            month,
+            date: dueDate(month, payment.dayOfMonth),
+          }));
+          return periods.length > 0 ? MonthlyPaymentRepository.createDueTransactions(payment, periods) : undefined;
+        }),
+      );
     } catch (error) {
       console.error("Error creating monthly payments:", error);
     }

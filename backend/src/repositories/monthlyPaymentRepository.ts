@@ -88,29 +88,32 @@ export namespace MonthlyPaymentRepository {
   ) {
     if (periods.length === 0) return;
     const tagIds = payment.tags.map((tag) => tag.id);
-    const lastMonth = periods[periods.length - 1].month;
+    const lastMonth = periods.reduce((latest, { month }) => (month > latest ? month : latest), periods[0].month);
 
     await db.transaction(async (tx) => {
-      for (const { month, date } of periods) {
-        const [created] = await tx
-          .insert(transactions)
-          .values({
+      // One insert for every month. A month that already exists is skipped by the unique rule.
+      const created = await tx
+        .insert(transactions)
+        .values(
+          periods.map(({ month, date }) => ({
             amount: payment.amount.toFixed(2),
             date,
             description: payment.description ?? null,
-            type: "EXPENSE",
+            type: "EXPENSE" as const,
             budgetPlanId: payment.budgetPlanId,
             categoryId: payment.categoryId,
             subcategoryId: payment.subcategoryId ?? null,
             monthlyPaymentId: payment.id,
             monthlyPeriod: month,
-          })
-          .onConflictDoNothing()
-          .returning();
+          })),
+        )
+        .onConflictDoNothing()
+        .returning({ id: transactions.id });
 
-        if (created && tagIds.length > 0) {
-          await tx.insert(transactionTags).values(tagIds.map((tagId) => ({ transactionId: created.id, tagId })));
-        }
+      if (created.length > 0 && tagIds.length > 0) {
+        await tx
+          .insert(transactionTags)
+          .values(created.flatMap(({ id }) => tagIds.map((tagId) => ({ transactionId: id, tagId }))));
       }
 
       await tx
@@ -146,7 +149,7 @@ export namespace MonthlyPaymentRepository {
     return {
       id: payment.id,
       budgetPlanId: payment.budgetPlanId,
-      amount: parseFloat(payment.amount),
+      amount: Number.parseFloat(payment.amount),
       description: payment.description || undefined,
       dayOfMonth: payment.dayOfMonth,
       generatedThrough: payment.generatedThrough,
