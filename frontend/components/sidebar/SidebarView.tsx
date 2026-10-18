@@ -2,7 +2,7 @@ import {
   ArrowLeftRight,
   PanelLeftClose,
   PanelLeftOpen,
-  Home,
+  BarChart3,
   Goal,
   type LucideIcon,
   Wallet,
@@ -19,10 +19,10 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { href: "/", label: "Overview", icon: Home },
-  { href: "/budget", label: "Budget", icon: Wallet },
+  { href: "/", label: "Budget", icon: Wallet },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/goals", label: "Savings goals", icon: Goal },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 interface SidebarViewProps {
