@@ -7,12 +7,6 @@ import { formatSignedKr } from "@/lib/money";
 import type { TransactionRow } from "@/types/transaction";
 import TagChip from "./TagChip";
 
-// Expenses and savings look alike, apart from the icon
-const kindIcon: Record<TransactionRow["kind"], { icon: ReactNode; tint: string }> = {
-  expense: { icon: <Receipt size={16} aria-hidden />, tint: "bg-primary/10 text-primary" },
-  saving: { icon: <Goal size={16} aria-hidden />, tint: "bg-success/10 text-success" },
-};
-  
 interface TransactionListProps {
   rows: TransactionRow[];
   isRefreshing: boolean;
