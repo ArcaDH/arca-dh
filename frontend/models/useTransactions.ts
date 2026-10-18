@@ -23,11 +23,12 @@ export function useCreateTransaction(planId: string) {
 
   return useMutation({
     mutationFn: (input: NewTransaction | NewSaving) => transactionsApi.create(planId, input),
-    // The overview's spending per category depends on the transactions too
+    // The overview's spending per category depends on the transactions too, and a new expense can start a monthly payment
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: transactionKeys.all }),
         queryClient.invalidateQueries({ queryKey: ["overview"] }),
+        queryClient.invalidateQueries({ queryKey: ["monthlyPayments"] }),
       ]),
   });
 }
@@ -36,11 +37,13 @@ export function useDeleteTransaction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: transactionsApi.remove,
+    mutationFn: ({ id, stopRepeating }: { id: string; stopRepeating?: boolean }) =>
+      transactionsApi.remove(id, { stopRepeating }),
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: transactionKeys.all }),
         queryClient.invalidateQueries({ queryKey: ["overview"] }),
+        queryClient.invalidateQueries({ queryKey: ["monthlyPayments"] }),
       ]),
   });
 }

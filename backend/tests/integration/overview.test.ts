@@ -16,6 +16,13 @@ vi.mock("../../src/repositories/planRepository", () => ({
   },
 }));
 
+vi.mock("../../src/services/monthlyPaymentService", () => ({
+  MonthlyPaymentService: {
+    ensureGenerated: vi.fn(),
+    listWithNextCharge: vi.fn(),
+  },
+}));
+
 describe("OverviewHandler (overview.ts)", () => {
   const validPlanId = "123e4567-e89b-12d3-a456-426614174000";
   const userId = 1;

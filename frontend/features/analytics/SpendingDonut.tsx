@@ -29,7 +29,7 @@ const DonutTooltip: FC<{ active?: boolean; payload?: TooltipPayloadItem[] }> = (
         <span aria-hidden className="size-2.5 rounded-full" style={{ backgroundColor: segment.color }} />
         {segment.name}
       </p>
-      <p className="mt-0.5 font-mono text-foreground tabular-nums">
+      <p className="mt-0.5 text-foreground tabular-nums">
         {formatWholeKr(segment.spent)} · {percentLabel(segment.percent)}
       </p>
     </div>
@@ -76,7 +76,7 @@ export const SpendingDonut: FC<SpendingDonutProps> = ({ segments, total, activeC
 
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-xs text-muted">Total spent</span>
-        <span className="font-mono text-xl font-semibold text-foreground tabular-nums">{formatWholeKr(total)}</span>
+        <span className="text-xl font-semibold text-foreground tabular-nums">{formatWholeKr(total)}</span>
       </div>
     </div>
   );

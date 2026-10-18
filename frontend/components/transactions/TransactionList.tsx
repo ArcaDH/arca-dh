@@ -1,7 +1,6 @@
 "use client";
 
-import { Goal, Receipt, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { Goal, Repeat, Trash2 } from "lucide-react";
 import IconButton from "@/components/ui/IconButton";
 import { formatDay } from "@/lib/format";
 import { formatSignedKr } from "@/lib/money";
@@ -13,7 +12,7 @@ const kindIcon: Record<TransactionRow["kind"], { icon: ReactNode; tint: string }
   expense: { icon: <Receipt size={16} aria-hidden />, tint: "bg-primary/10 text-primary" },
   saving: { icon: <Goal size={16} aria-hidden />, tint: "bg-success/10 text-success" },
 };
-
+  
 interface TransactionListProps {
   rows: TransactionRow[];
   isRefreshing: boolean;
@@ -42,14 +41,24 @@ export default function TransactionList({ rows, isRefreshing, isFiltered, onDele
 
         return (
           <li key={row.id} className="group flex items-center gap-3 border-t border-foreground/10 py-3">
+            <span aria-hidden className={`w-[3px] self-stretch rounded-full ${row.stripe}`} />
             <span
-              className={`flex size-9 shrink-0 items-center justify-center rounded-full ${kindIcon[row.kind].tint}`}
+              aria-hidden
+              className={`flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-medium ${row.tint}`}
             >
-              {kindIcon[row.kind].icon}
+              {row.initial ?? <Goal size={16} aria-hidden />}
             </span>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm">{row.title}</p>
+              <p className="flex items-center gap-1.5 text-sm">
+                <span className="truncate">{row.title}</span>
+                {row.monthlyPaymentId && (
+                  <span title="Repeats monthly" className="shrink-0 text-foreground/50">
+                    <Repeat size={13} aria-hidden />
+                    <span className="sr-only">Repeats monthly</span>
+                  </span>
+                )}
+              </p>
               <p className="truncate text-xs text-foreground/60">{meta}</p>
               {row.tags.length > 0 && (
                 <ul aria-label="Tags" className="mt-1 flex flex-wrap gap-1">
@@ -62,7 +71,7 @@ export default function TransactionList({ rows, isRefreshing, isFiltered, onDele
               )}
             </div>
 
-            <span className={`w-28 shrink-0 text-right font-mono text-sm ${row.amount > 0 ? "text-success" : ""}`}>
+            <span className={`w-28 shrink-0 text-right text-sm ${row.amount > 0 ? "text-success" : "text-accent"}`}>
               {formatSignedKr(row.amount)}
             </span>
 

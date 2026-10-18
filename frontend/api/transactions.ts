@@ -17,5 +17,7 @@ export const transactionsApi = {
   create: (planId: string, input: NewTransaction | NewSaving) =>
     apiClient.post<Transaction>(Endpoints.Plans.transactions(planId), input),
 
-  remove: (id: string) => apiClient.delete<void>(Endpoints.Transactions.byId(id)),
+  /** With stopRepeating, a transaction made by a monthly payment also stops that payment. */
+  remove: (id: string, options?: { stopRepeating?: boolean }) =>
+    apiClient.delete<void>(`${Endpoints.Transactions.byId(id)}${options?.stopRepeating ? "?stopRepeating=true" : ""}`),
 };

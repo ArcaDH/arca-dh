@@ -1,6 +1,6 @@
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../db";
-import { transactions, NewTransactionModel, TagModel } from "../db/schema";
+import { transactions, monthlyPayments, NewTransactionModel, TagModel } from "../db/schema";
 import { TagRepository } from "./tagRepository";
 
 type TransactionTags = Pick<TagModel, "id" | "name" | "color">[];
@@ -16,6 +16,16 @@ export namespace TransactionRepository {
       .where(eq(transactions.id, id))
       .limit(1)
       .then((rows) => rows[0]);
+  }
+
+  /**
+   * Find a transaction by ID, formatted for JSON output, with its tags
+   */
+  export async function findFormattedById(id: string) {
+    const tx = await findById(id);
+    if (!tx) return null;
+    const tagsByTransaction = await TagRepository.findByTransactionIds([id]);
+    return formatTransaction(tx, tagsByTransaction.get(id) ?? []);
   }
 
   /**
@@ -72,10 +82,19 @@ export namespace TransactionRepository {
   }
 
   /**
-   * Delete a transaction by ID
+   * Delete a transaction by ID. With `alsoStopPaymentId` the monthly payment that made it is stopped too, in the same
+   * database transaction: either both happen or neither.
    */
-  export async function deleteTransaction(id: string) {
-    await db.delete(transactions).where(eq(transactions.id, id));
+  export async function deleteTransaction(id: string, alsoStopPaymentId?: string) {
+    if (!alsoStopPaymentId) {
+      await db.delete(transactions).where(eq(transactions.id, id));
+      return;
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.delete(transactions).where(eq(transactions.id, id));
+      await tx.delete(monthlyPayments).where(eq(monthlyPayments.id, alsoStopPaymentId));
+    });
   }
 
   /**
@@ -91,6 +110,7 @@ export namespace TransactionRepository {
       categoryId: tx.categoryId || undefined,
       subcategoryId: tx.subcategoryId || undefined,
       savingsGoalId: tx.savingsGoalId || undefined,
+      monthlyPaymentId: tx.monthlyPaymentId || undefined,
       tags,
     };
   }

@@ -33,9 +33,7 @@ const SegmentBody: FC<SegmentRowProps> = ({ segment, isChild = false }) => (
       >
         {segment.name}
       </span>
-      <span
-        className={`shrink-0 font-mono tabular-nums ${isChild ? "text-xs text-foreground/80" : "text-sm text-foreground"}`}
-      >
+      <span className={`shrink-0 tabular-nums ${isChild ? "text-xs text-foreground/80" : "text-sm text-foreground"}`}>
         {formatWholeKr(segment.spent)}
       </span>
       <span className="w-12 shrink-0 text-right text-xs text-muted tabular-nums">{percentLabel(segment.percent)}</span>

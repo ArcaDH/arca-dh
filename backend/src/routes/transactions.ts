@@ -41,6 +41,9 @@ const router = Router();
  *   delete:
  *     tags: [Transactions]
  *     summary: Delete a transaction
+ *     description: |
+ *       With `stopRepeating=true`, a transaction made by a monthly payment also stops that payment, so no more are
+ *       created. Without it, only this transaction is deleted and the month is not created again.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -51,9 +54,17 @@ const router = Router();
  *           type: string
  *           format: uuid
  *         description: Transaction ID
+ *       - in: query
+ *         name: stopRepeating
+ *         required: false
+ *         schema:
+ *           type: boolean
+ *         description: Also stop the monthly payment that made this transaction
  *     responses:
  *       '204':
  *         description: Deleted
+ *       '400':
+ *         description: Invalid query parameter
  *       '401':
  *         description: Unauthorized
  *       '404':
