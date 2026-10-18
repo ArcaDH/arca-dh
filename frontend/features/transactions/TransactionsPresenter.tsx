@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
-import { currentMonth, shiftMonth } from "@/lib/format";
+import { categoryLook } from "@/lib/categoryColors";
+import { currentMonth } from "@/lib/format";
 import { ordinal } from "@/lib/monthly";
 import { parseKr, sumKr, toMoneyFlow } from "@/lib/money";
 import { useCategories } from "@/models/useCategories";
@@ -30,6 +31,7 @@ function toRows(
     const subcategory = category?.subcategories.find((s) => s.id === transaction.subcategoryId);
     const goal = goals.find((g) => g.id === transaction.savingsGoalId);
     const isSaving = transaction.type === "SAVING";
+    const look = categoryLook(categories, transaction.categoryId);
     const forName = isSaving ? (goal?.name ?? "Savings goal") : (subcategory?.name ?? category?.name);
     const detail = isSaving ? ["Savings", forName] : [category?.name, subcategory?.name];
     return {
@@ -41,6 +43,10 @@ function toRows(
       description: transaction.description ?? null,
       title: transaction.description ?? forName ?? "Transaction",
       detail: detail.filter(Boolean).join(" · "),
+      // Savings have no category: a goal icon in the plum of the palette instead of a letter
+      tint: isSaving ? "bg-secondary/10 text-secondary" : look.tint,
+      stripe: isSaving ? "bg-secondary" : look.stripe,
+      initial: isSaving ? null : look.initial,
       categoryId: transaction.categoryId ?? null,
       monthlyPaymentId: transaction.monthlyPaymentId ?? null,
       tags: transaction.tags,
@@ -53,8 +59,11 @@ function toPaymentRows(payments: MonthlyPayment[], categories: CategoryWithSubca
   return payments.map((payment) => {
     const category = categories.find((c) => c.id === payment.categoryId);
     const subcategory = category?.subcategories.find((s) => s.id === payment.subcategoryId);
+    const look = categoryLook(categories, payment.categoryId);
     return {
       id: payment.id,
+      ink: look.ink,
+      initial: look.initial,
       title: payment.description ?? subcategory?.name ?? category?.name ?? "Monthly payment",
       detail: [category?.name, subcategory?.name, `monthly on the ${ordinal(payment.dayOfMonth)}`]
         .filter(Boolean)
@@ -96,12 +105,17 @@ function applyFilters(rows: TransactionRow[], filters: TransactionFilters, tags:
   );
 }
 
+// The list starts with the most recent transactions, and "Show more" adds more
+const FIRST_PAGE = 5;
+const NEXT_PAGE = 10;
+
 export default function TransactionsPresenter() {
   const [month, setMonth] = useState(currentMonth);
   const [filters, setFilters] = useState<TransactionFilters>(DEFAULT_FILTERS);
   const [pendingDelete, setPendingDelete] = useState<TransactionRow | null>(null);
   const [pendingStop, setPendingStop] = useState<MonthlyPaymentRow | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(FIRST_PAGE);
 
   const plan = useCurrentPlan();
   const planId = plan.data?.id;
@@ -121,6 +135,7 @@ export default function TransactionsPresenter() {
     () => (allRows ? applyFilters(allRows, filters, tags.data) : null),
     [allRows, filters, tags.data],
   );
+  const visibleRows = rows ? rows.slice(0, visibleCount) : null;
   const paymentRows = useMemo(
     () => (monthlyPayments.data ? toPaymentRows(monthlyPayments.data, categories.data ?? []) : []),
     [monthlyPayments.data, categories.data],
@@ -186,13 +201,21 @@ export default function TransactionsPresenter() {
       categories={categories.data ?? []}
       tags={tags.data ?? []}
       monthlyPayments={paymentRows}
-      rows={rows}
+      rows={visibleRows}
+      matchCount={rows?.length ?? 0}
+      onShowMore={() => setVisibleCount((count) => count + NEXT_PAGE)}
       isRefreshing={expenses.isPlaceholderData}
       errorMessage={actionError ?? loadError ?? null}
       pendingDelete={pendingDelete}
       pendingStop={pendingStop}
-      onMonthChange={(delta) => setMonth((current) => shiftMonth(current, delta))}
-      onFiltersChange={setFilters}
+      onMonthChange={(next) => {
+        setMonth(next);
+        setVisibleCount(FIRST_PAGE);
+      }}
+      onFiltersChange={(next) => {
+        setFilters(next);
+        setVisibleCount(FIRST_PAGE);
+      }}
       onAskDelete={setPendingDelete}
       onConfirmDelete={confirmDelete}
       onAskStop={setPendingStop}

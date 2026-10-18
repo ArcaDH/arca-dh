@@ -1,16 +1,19 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import MonthlyPayments from "@/components/transactions/MonthlyPayments";
 import TransactionFiltersBar from "@/components/transactions/TransactionFilters";
 import TransactionList from "@/components/transactions/TransactionList";
 import Card from "@/components/ui/card";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import IconButton from "@/components/ui/IconButton";
-import { formatDay, monthLabel } from "@/lib/format";
+import { MonthPicker } from "@/components/ui/MonthPicker";
+import { formatDay } from "@/lib/format";
 import { formatKr, formatSignedKr } from "@/lib/money";
 import type { MonthlyPaymentRow } from "@/types/monthlyPayment";
 import type { Tag } from "@/types/tag";
 import type { TransactionFilters, TransactionRow } from "@/types/transaction";
+
+// How many more rows "Show more" adds, so the button can say so
+const SHOW_MORE_STEP = 10;
 
 interface TransactionsViewProps {
   /** The "new transaction" form. Empty until the plan and its categories have loaded. */
@@ -22,16 +25,19 @@ interface TransactionsViewProps {
   isFiltered: boolean;
   categories: { id: string; name: string }[];
   tags: Tag[];
-  /** The active monthly payments, shown in a card under the form. */
+  /** The active monthly payments, shown in their own card. */
   monthlyPayments: MonthlyPaymentRow[];
-  /** null until the first load has finished. */
+  /** The rows that are shown. null until the first load has finished. */
   rows: TransactionRow[] | null;
+  /** How many transactions match the filters, shown or not. */
+  matchCount: number;
   isRefreshing: boolean;
   errorMessage: string | null;
   pendingDelete: TransactionRow | null;
   pendingStop: MonthlyPaymentRow | null;
-  onMonthChange: (delta: number) => void;
+  onMonthChange: (month: string) => void;
   onFiltersChange: (filters: TransactionFilters) => void;
+  onShowMore: () => void;
   onAskDelete: (row: TransactionRow) => void;
   /** stopRepeating: also stop the monthly payment that made the transaction. */
   onConfirmDelete: (stopRepeating: boolean) => void;
@@ -42,10 +48,27 @@ interface TransactionsViewProps {
 
 export default function TransactionsView(props: TransactionsViewProps) {
   const { pendingDelete, pendingStop, net } = props;
+  const hiddenCount = props.rows ? props.matchCount - props.rows.length : 0;
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <h1 className="mb-6 font-heading text-2xl font-bold">Transactions</h1>
+    <div>
+      <PageHeader
+        aside={
+          <div
+            className={`rounded-lg px-3 py-1 text-right ${net !== null && net > 0 ? "bg-success/10" : "bg-accent/10"}`}
+          >
+            <p className={`text-lg font-semibold ${net !== null && net > 0 ? "text-success" : "text-accent"}`}>
+              {net !== null ? formatKr(Math.abs(net)) : "–"}
+            </p>
+            <p className={`text-xs ${net !== null && net > 0 ? "text-success" : "text-accent"}`}>
+              {net !== null && net > 0 ? "received this month" : "spent this month"}
+            </p>
+          </div>
+        }
+      >
+        <h1 className="font-heading text-2xl font-semibold text-foreground">Transactions</h1>
+        <MonthPicker month={props.month} onChange={props.onMonthChange} />
+      </PageHeader>
 
       {props.errorMessage && (
         <p role="alert" className="mb-4 rounded-lg bg-accent/10 px-4 py-3 text-sm text-accent">
@@ -53,32 +76,12 @@ export default function TransactionsView(props: TransactionsViewProps) {
         </p>
       )}
 
-      <div className="grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="flex flex-col gap-4">
-          {props.form}
-          <MonthlyPayments payments={props.monthlyPayments} onStop={props.onAskStop} />
-        </div>
+      {/* Three columns on wide screens, two on large ones (the monthly payments go under the form), one on small */}
+      <div className="grid items-start gap-6 xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_300px]">
+        <div className="xl:col-start-1 xl:row-start-1">{props.form}</div>
 
-        <section aria-label="Transaction list">
+        <section aria-label="Transaction list" className="xl:col-start-2 xl:row-span-2 xl:row-start-1 2xl:row-span-1">
           <Card>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-1">
-                <IconButton onClick={() => props.onMonthChange(-1)} aria-label="Previous month">
-                  <ChevronLeft size={18} aria-hidden />
-                </IconButton>
-                <h2 className="min-w-44 text-center font-heading text-xl font-semibold">{monthLabel(props.month)}</h2>
-                <IconButton onClick={() => props.onMonthChange(1)} aria-label="Next month">
-                  <ChevronRight size={18} aria-hidden />
-                </IconButton>
-              </div>
-              <div className="text-right">
-                <p className="text-lg">{net !== null ? formatKr(Math.abs(net)) : "–"}</p>
-                <p className="text-xs text-foreground/60">
-                  {net !== null && net > 0 ? "received this month" : "spent this month"}
-                </p>
-              </div>
-            </div>
-
             <div className="mb-3">
               <TransactionFiltersBar
                 filters={props.filters}
@@ -98,8 +101,27 @@ export default function TransactionsView(props: TransactionsViewProps) {
             ) : (
               !props.errorMessage && <p className="py-8 text-center text-sm text-foreground/60">Loading…</p>
             )}
+
+            {hiddenCount > 0 && props.rows && (
+              <div className="mt-2 border-t border-foreground/10 pt-3 text-center">
+                <button
+                  type="button"
+                  onClick={props.onShowMore}
+                  className="cursor-pointer rounded-full border border-primary px-3.5 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+                >
+                  Show {Math.min(SHOW_MORE_STEP, hiddenCount)} more
+                </button>
+                <p className="mt-1 text-xs text-foreground/60">
+                  Showing {props.rows.length} of {props.matchCount}
+                </p>
+              </div>
+            )}
           </Card>
         </section>
+
+        <div className="xl:col-start-1 xl:row-start-2 2xl:col-start-3 2xl:row-start-1">
+          <MonthlyPayments payments={props.monthlyPayments} onStop={props.onAskStop} />
+        </div>
       </div>
 
       {pendingDelete && !pendingDelete.monthlyPaymentId && (

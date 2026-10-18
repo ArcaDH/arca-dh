@@ -1,18 +1,11 @@
 "use client";
 
-import { Goal, Receipt, Repeat, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { Goal, Repeat, Trash2 } from "lucide-react";
 import IconButton from "@/components/ui/IconButton";
 import { formatDay } from "@/lib/format";
 import { formatSignedKr } from "@/lib/money";
 import type { TransactionRow } from "@/types/transaction";
 import TagChip from "./TagChip";
-
-// Expenses and savings look alike, apart from the icon
-const kindIcon: Record<TransactionRow["kind"], { icon: ReactNode; tint: string }> = {
-  expense: { icon: <Receipt size={16} aria-hidden />, tint: "bg-primary/10 text-primary" },
-  saving: { icon: <Goal size={16} aria-hidden />, tint: "bg-secondary/10 text-secondary" },
-};
 
 interface TransactionListProps {
   rows: TransactionRow[];
@@ -42,10 +35,12 @@ export default function TransactionList({ rows, isRefreshing, isFiltered, onDele
 
         return (
           <li key={row.id} className="group flex items-center gap-3 border-t border-foreground/10 py-3">
+            <span aria-hidden className={`w-[3px] self-stretch rounded-full ${row.stripe}`} />
             <span
-              className={`flex size-9 shrink-0 items-center justify-center rounded-full ${kindIcon[row.kind].tint}`}
+              aria-hidden
+              className={`flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-medium ${row.tint}`}
             >
-              {kindIcon[row.kind].icon}
+              {row.initial ?? <Goal size={16} aria-hidden />}
             </span>
 
             <div className="min-w-0 flex-1">
@@ -70,7 +65,7 @@ export default function TransactionList({ rows, isRefreshing, isFiltered, onDele
               )}
             </div>
 
-            <span className={`w-28 shrink-0 text-right text-sm ${row.amount > 0 ? "text-success" : ""}`}>
+            <span className={`w-28 shrink-0 text-right text-sm ${row.amount > 0 ? "text-success" : "text-accent"}`}>
               {formatSignedKr(row.amount)}
             </span>
 
