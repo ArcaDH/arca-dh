@@ -19,6 +19,16 @@ export namespace TransactionRepository {
   }
 
   /**
+   * Find a transaction by ID, formatted for JSON output, with its tags
+   */
+  export async function findFormattedById(id: string) {
+    const tx = await findById(id);
+    if (!tx) return null;
+    const tagsByTransaction = await TagRepository.findByTransactionIds([id]);
+    return formatTransaction(tx, tagsByTransaction.get(id) ?? []);
+  }
+
+  /**
    * Find transactions for a specific plan with optional month, categoryId, and type filters.
    * Sorted by date descending (newest first).
    */
@@ -91,6 +101,7 @@ export namespace TransactionRepository {
       categoryId: tx.categoryId || undefined,
       subcategoryId: tx.subcategoryId || undefined,
       savingsGoalId: tx.savingsGoalId || undefined,
+      monthlyPaymentId: tx.monthlyPaymentId || undefined,
       tags,
     };
   }

@@ -41,6 +41,13 @@ vi.mock("../../src/repositories/savingsGoalRepository", () => ({
   },
 }));
 
+vi.mock("../../src/services/monthlyPaymentService", () => ({
+  MonthlyPaymentService: {
+    ensureGenerated: vi.fn(),
+    listWithNextCharge: vi.fn(),
+  },
+}));
+
 describe("TransactionHandler (transactions.ts)", () => {
   const validPlanId = "123e4567-e89b-12d3-a456-426614174000";
   const validTxId = "223e4567-e89b-12d3-a456-426614174001";
