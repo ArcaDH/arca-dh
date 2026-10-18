@@ -89,7 +89,7 @@ export default function TransactionFormView(props: TransactionFormViewProps) {
               placeholder="0,00"
               value={form.amount}
               onChange={(event) => onChange({ amount: event.target.value })}
-              className="pr-9 font-mono"
+              className="pr-9"
             />
             <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-foreground/50">
               kr
@@ -153,7 +153,6 @@ export default function TransactionFormView(props: TransactionFormViewProps) {
                     placeholder={repeatDay === null ? "1-31" : String(repeatDay)}
                     value={form.repeatDay}
                     onChange={(event) => onChange({ repeatDay: event.target.value })}
-                    className="font-mono"
                   />
                 </div>
                 <p className="mt-1 text-xs text-foreground/60">

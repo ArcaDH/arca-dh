@@ -70,7 +70,7 @@ export default function TransactionList({ rows, isRefreshing, isFiltered, onDele
               )}
             </div>
 
-            <span className={`w-28 shrink-0 text-right font-mono text-sm ${row.amount > 0 ? "text-success" : ""}`}>
+            <span className={`w-28 shrink-0 text-right text-sm ${row.amount > 0 ? "text-success" : ""}`}>
               {formatSignedKr(row.amount)}
             </span>
 
