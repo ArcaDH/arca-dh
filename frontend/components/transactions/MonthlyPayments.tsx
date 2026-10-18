@@ -40,7 +40,7 @@ export default function MonthlyPayments({ payments, onStop }: MonthlyPaymentsPro
             </div>
 
             <div className="flex shrink-0 flex-col items-end gap-1">
-              <span className="font-mono text-sm">{formatSignedKr(payment.amount)}</span>
+              <span className="text-sm">{formatSignedKr(payment.amount)}</span>
               <Button variant="ghost" size="sm" onClick={() => onStop(payment)} aria-label={`Stop ${payment.title}`}>
                 Stop
               </Button>

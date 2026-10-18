@@ -72,7 +72,7 @@ export default function TransactionsView(props: TransactionsViewProps) {
                 </IconButton>
               </div>
               <div className="text-right">
-                <p className="font-mono text-lg">{net !== null ? formatKr(Math.abs(net)) : "–"}</p>
+                <p className="text-lg">{net !== null ? formatKr(Math.abs(net)) : "–"}</p>
                 <p className="text-xs text-foreground/60">
                   {net !== null && net > 0 ? "received this month" : "spent this month"}
                 </p>
