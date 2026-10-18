@@ -3,7 +3,9 @@ import Card from "@/components/ui/card";
 import Input from "@/components/ui/input";
 import Label from "@/components/ui/label";
 import Select from "@/components/ui/select";
+import { Switch } from "@/components/ui/Switch";
 import TagPicker from "@/components/transactions/TagPicker";
+import { ordinal } from "@/lib/monthly";
 import type { NewTag, Tag } from "@/types/tag";
 import type { ForGroup, MoneyDirection } from "@/types/transaction";
 
@@ -14,6 +16,8 @@ export type FormState = {
   description: string;
   forId: string; // a subcategory, category or goal id from the "For" list
   tagIds: string[];
+  repeat: boolean; // repeat every month
+  repeatDay: string; // the day of the month it repeats on, empty = the day of the date
 };
 
 const DIRECTIONS: { value: MoneyDirection; label: string }[] = [
@@ -26,6 +30,10 @@ interface TransactionFormViewProps {
   groups: ForGroup[];
   /** All of the user's tags, for the picker. */
   tags: Tag[];
+  /** Only an expense with money out can repeat monthly. */
+  canRepeat: boolean;
+  /** The day it would repeat on: the one typed, or the date's day. Null when what was typed isn't a day. */
+  repeatDay: number | null;
   error: string | null;
   isSaving: boolean;
   onChange: (changes: Partial<FormState>) => void;
@@ -35,7 +43,7 @@ interface TransactionFormViewProps {
 }
 
 export default function TransactionFormView(props: TransactionFormViewProps) {
-  const { form, groups, tags, error, isSaving, onChange } = props;
+  const { form, groups, tags, canRepeat, repeatDay, error, isSaving, onChange } = props;
 
   return (
     <form
@@ -130,6 +138,35 @@ export default function TransactionFormView(props: TransactionFormViewProps) {
             <p className="mt-1 text-xs text-foreground/60">Add categories to your budget plan to log a transaction.</p>
           )}
         </div>
+
+        {canRepeat && (
+          <div className="flex flex-col gap-2">
+            <Switch label="Repeat monthly" checked={form.repeat} onChange={(repeat) => onChange({ repeat })} />
+            {form.repeat && (
+              <div>
+                <Label htmlFor="repeat-day">Day of the month</Label>
+                <div className="w-24">
+                  <Input
+                    id="repeat-day"
+                    inputMode="numeric"
+                    maxLength={2}
+                    placeholder={repeatDay === null ? "1-31" : String(repeatDay)}
+                    value={form.repeatDay}
+                    onChange={(event) => onChange({ repeatDay: event.target.value })}
+                    className="font-mono"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-foreground/60">
+                  {repeatDay === null
+                    ? "Enter a day from 1 to 31."
+                    : `Added automatically on the ${ordinal(repeatDay)} of every month, starting next month.${
+                        repeatDay > 28 ? " In shorter months it's the last day." : ""
+                      }`}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <TagPicker
           allTags={tags}

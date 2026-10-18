@@ -16,6 +16,7 @@ export type Transaction = {
   categoryId?: string;
   subcategoryId?: string;
   savingsGoalId?: string;
+  monthlyPaymentId?: string; // set when a monthly payment made this transaction
   tags: Tag[];
 };
 
@@ -28,6 +29,7 @@ export type NewTransaction = {
   categoryId: string;
   subcategoryId?: string;
   tagIds?: string[];
+  repeatMonthly?: { dayOfMonth: number }; // makes the expense repeat every month, money out only
 };
 
 // What the transactions page sends when money is put toward a savings goal
@@ -59,6 +61,7 @@ export type TransactionRow = {
   title: string; // the description, or what it was for
   detail: string; // "Home · Rent" or "Savings · Trip to Japan"
   categoryId: string | null;
+  monthlyPaymentId: string | null;
   tags: Tag[];
 };
 

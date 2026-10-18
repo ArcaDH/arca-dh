@@ -1,6 +1,6 @@
 "use client";
 
-import { Goal, Receipt, Trash2 } from "lucide-react";
+import { Goal, Receipt, Repeat, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import IconButton from "@/components/ui/IconButton";
 import { formatDay } from "@/lib/format";
@@ -49,7 +49,15 @@ export default function TransactionList({ rows, isRefreshing, isFiltered, onDele
             </span>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm">{row.title}</p>
+              <p className="flex items-center gap-1.5 text-sm">
+                <span className="truncate">{row.title}</span>
+                {row.monthlyPaymentId && (
+                  <span title="Repeats monthly" className="shrink-0 text-foreground/50">
+                    <Repeat size={13} aria-hidden />
+                    <span className="sr-only">Repeats monthly</span>
+                  </span>
+                )}
+              </p>
               <p className="truncate text-xs text-foreground/60">{meta}</p>
               {row.tags.length > 0 && (
                 <ul aria-label="Tags" className="mt-1 flex flex-wrap gap-1">
