@@ -10,7 +10,7 @@ export type Category = {
 export type Subcategory = {
   id: string;
   name: string;
-  limit: string;
+  target: string | null;
   categoryId: string;
 };
 
@@ -23,8 +23,8 @@ export type CategoryInput = {
   maxBudget: number;
 };
 
-//What the page sends to create or update a subcategory
+//What the page sends to create or update a subcategory. Only the name is required.
 export type SubcategoryInput = {
   name: string;
-  limit: number;
+  target?: number | null;
 };

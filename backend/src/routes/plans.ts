@@ -6,6 +6,7 @@ import { CategoryHandler } from "../handlers/categories";
 import { IncomeSourceHandler } from "../handlers/incomeSources";
 import { OverviewHandler } from "../handlers/overview";
 import { MonthlyPaymentHandler } from "../handlers/monthlyPayments";
+import { SubcategoryHandler } from "../handlers/subcategories";
 
 const router = Router();
 
@@ -605,15 +606,16 @@ router.route("/:planId/goals").get(SavingsGoalHandler.getGoals).post(SavingsGoal
  *       type: object
  *       required:
  *         - name
- *         - limit
  *       properties:
  *         name:
  *           type: string
  *           example: "Restaurants"
- *         limit:
+ *         target:
  *           type: number
  *           format: decimal
- *           example: 200.00
+ *           nullable: true
+ *           description: Optional monthly funding target. Omit or null for no target.
+ *           example: 300.00
  *     Subcategory:
  *       allOf:
  *         - $ref: '#/components/schemas/SubcategoryInput'
@@ -779,9 +781,14 @@ router
  *                 format: uuid
  *               name:
  *                 type: string
- *               limit:
+ *               assigned:
  *                 type: number
  *                 format: decimal
+ *                 description: Money assigned to this subcategory in the requested month
+ *               target:
+ *                 type: number
+ *                 format: decimal
+ *                 nullable: true
  *               spent:
  *                 type: number
  *                 format: decimal
@@ -882,5 +889,144 @@ router
  *         description: Plan not found
  */
 router.route("/:planId/overview").get(OverviewHandler.getOverview);
+
+/**
+ * @swagger
+ * /plans/{planId}/assignments/fund-targets:
+ *   post:
+ *     tags: [Subcategories]
+ *     summary: Fund selected subcategory targets for a month
+ *     description: |
+ *       For each listed subcategory that has a target, set its assigned money for the month to the target,
+ *       unless it already meets the target. Subcategories without a target are ignored.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [month, subcategoryIds]
+ *             properties:
+ *               month:
+ *                 type: string
+ *                 example: "2026-10"
+ *               subcategoryIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *     responses:
+ *       '200':
+ *         description: Targets funded
+ *       '400':
+ *         description: Invalid input or month
+ *       '404':
+ *         description: Plan not found
+ *       '401':
+ *         description: Unauthorized
+ */
+router.route("/:planId/assignments/fund-targets").post(SubcategoryHandler.fundTargets);
+
+/**
+ * @swagger
+ * /plans/{planId}/assignments/bulk:
+ *   post:
+ *     tags: [Subcategories]
+ *     summary: Assign the same amount to several subcategories for a month
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [month, subcategoryIds, assigned]
+ *             properties:
+ *               month:
+ *                 type: string
+ *                 example: "2026-10"
+ *               subcategoryIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *               assigned:
+ *                 type: number
+ *                 format: decimal
+ *                 example: 500.00
+ *     responses:
+ *       '200':
+ *         description: Assigned
+ *       '400':
+ *         description: Invalid input or month
+ *       '404':
+ *         description: Plan not found
+ *       '401':
+ *         description: Unauthorized
+ */
+router.route("/:planId/assignments/bulk").post(SubcategoryHandler.bulkAssign);
+
+/**
+ * @swagger
+ * /plans/{planId}/assignments/cover-overspending:
+ *   post:
+ *     tags: [Subcategories]
+ *     summary: Cover overspending in selected subcategories for a month
+ *     description: |
+ *       For each listed subcategory whose spending exceeds its assigned money, raise the assigned amount
+ *       to the amount spent, so its available balance becomes zero. Lines that are not overspent are left as is.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [month, subcategoryIds]
+ *             properties:
+ *               month:
+ *                 type: string
+ *                 example: "2026-10"
+ *               subcategoryIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *     responses:
+ *       '200':
+ *         description: Overspending covered
+ *       '400':
+ *         description: Invalid input or month
+ *       '404':
+ *         description: Plan not found
+ *       '401':
+ *         description: Unauthorized
+ */
+router.route("/:planId/assignments/cover-overspending").post(SubcategoryHandler.coverOverspending);
 
 export default router;

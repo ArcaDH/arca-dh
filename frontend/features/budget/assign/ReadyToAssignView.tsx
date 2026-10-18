@@ -1,5 +1,5 @@
 import type { FC } from "react";
-import { ChevronDown, Goal, Pencil, Plus, Wallet } from "lucide-react";
+import { ChevronDown, Goal, Pencil, Plus, Target, Wallet } from "lucide-react";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { formatWholeKr } from "@/lib/money";
 import type { BudgetGroup, BudgetLine } from "@/types/budget";
@@ -12,8 +12,12 @@ interface ReadyToAssignViewProps {
   amount: string;
   error: string | null;
   isSaving: boolean;
+  isFunding: boolean;
+  // Whether any subcategory in the plan has a target to fund.
+  hasTargets: boolean;
   onAmountChange: (amount: string) => void;
   onAssign: (line: BudgetLine, close: () => void) => void;
+  onFundAllTargets: (close: () => void) => void;
   onEditIncome: () => void;
 }
 
@@ -25,8 +29,11 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
   amount,
   error,
   isSaving,
+  isFunding,
+  hasTargets,
   onAmountChange,
   onAssign,
+  onFundAllTargets,
   onEditIncome,
 }) => {
   const tone =
@@ -35,7 +42,7 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
       : toAssign === 0
         ? "bg-success/10 text-success hover:bg-success/15"
         : "bg-primary/10 text-primary hover:bg-primary/15";
-  // Reached goals doesnt need anything more, and empty headings have nothing to pick
+  // Reached goals dont need anything more, and empty headings have nothing to pick
   const filledGroups = groups
     .map((group) => ({ ...group, lines: group.lines.filter((line) => !line.isDone) }))
     .filter((group) => group.lines.length > 0);
@@ -85,6 +92,19 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
           >
             {(close) => (
               <div className="w-80 p-2 text-left text-sm font-normal text-foreground">
+                {/* Fund every target for the month in one click. */}
+                {hasTargets && (
+                  <button
+                    type="button"
+                    disabled={isFunding || isSaving}
+                    onClick={() => onFundAllTargets(close)}
+                    className="mb-2 flex w-full cursor-pointer items-center gap-2 rounded-sm bg-primary/10 px-2.5 py-2 text-left font-medium text-primary transition-colors hover:bg-primary/15 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    <Target size={15} strokeWidth={2} aria-hidden />
+                    <span className="flex-1">{isFunding ? "Funding targets…" : "Fund all targets"}</span>
+                  </button>
+                )}
+
                 {filledGroups.length === 0 && (
                   <p className="p-2 text-muted">
                     Add a subcategory or savings goal first, then assign money to it here.

@@ -1,6 +1,13 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../db";
-import { incomeSources, categories, subcategories, transactions, savingsGoals } from "../db/schema";
+import {
+  incomeSources,
+  categories,
+  subcategories,
+  subcategoryAssignments,
+  transactions,
+  savingsGoals,
+} from "../db/schema";
 
 export namespace OverviewRepository {
   /**
@@ -12,7 +19,7 @@ export namespace OverviewRepository {
     // Expenses are stored as negative amounts (money out), so their sums are negated here to give a positive
     // "spent". Money in (a positive EXPENSE row) then lowers the total. Savings are stored positive and unchanged.
 
-    // 1. Total income — sum of all income sources for this plan
+    // Total income; sum of all income sources for this plan
     const [incomeRow] = await db
       .select({
         total: sql<string>`COALESCE(SUM(${incomeSources.monthlyAmount}), 0)`,
@@ -38,7 +45,7 @@ export namespace OverviewRepository {
 
     const totalExpenses = parseFloat(expenseRow?.total || "0");
 
-    // 3. Total savings — sum of SAVING transactions in the given month
+    // Total savings; sum of SAVING transactions in the given month
     const [savingRow] = await db
       .select({
         total: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
@@ -54,7 +61,7 @@ export namespace OverviewRepository {
 
     const savings = parseFloat(savingRow?.total || "0");
 
-    // 4. Spending by category (with subcategories)
+    // Spending by category (with subcategories)
     const planCategories = await db
       .select()
       .from(categories)
@@ -79,10 +86,19 @@ export namespace OverviewRepository {
           ),
         );
 
-      // Subcategories with their spending
+      // Subcategories with their spending and the money assigned to them this month
       const catSubcategories = await db
-        .select()
+        .select({
+          id: subcategories.id,
+          name: subcategories.name,
+          target: subcategories.target,
+          assigned: subcategoryAssignments.assigned,
+        })
         .from(subcategories)
+        .leftJoin(
+          subcategoryAssignments,
+          and(eq(subcategoryAssignments.subcategoryId, subcategories.id), eq(subcategoryAssignments.month, month)),
+        )
         .where(eq(subcategories.categoryId, cat.id))
         .orderBy(subcategories.createdAt);
 
@@ -105,7 +121,8 @@ export namespace OverviewRepository {
         subcategorySpending.push({
           subcategoryId: sub.id,
           name: sub.name,
-          limit: parseFloat(sub.limit),
+          assigned: sub.assigned === null ? 0 : parseFloat(sub.assigned),
+          target: sub.target === null ? null : parseFloat(sub.target),
           spent: parseFloat(subSpentRow?.spent || "0"),
         });
       }
@@ -119,7 +136,7 @@ export namespace OverviewRepository {
       });
     }
 
-    // 5. Goal progress — all-time saved amounts, plus what was saved in the given month
+    // Goal progress; all-time saved amounts, plus what was saved in the given month
     const goals = await db
       .select()
       .from(savingsGoals)
@@ -154,7 +171,7 @@ export namespace OverviewRepository {
       });
     }
 
-    // 6. Assemble response
+    // Assemble response
     return {
       month,
       totalIncome,

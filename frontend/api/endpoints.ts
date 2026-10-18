@@ -20,6 +20,12 @@ export class Endpoints {
 
     static readonly overview = (planId: string) => `/plans/${planId}/overview` as const;
 
+    static readonly fundTargets = (planId: string) => `/plans/${planId}/assignments/fund-targets` as const;
+
+    static readonly bulkAssign = (planId: string) => `/plans/${planId}/assignments/bulk` as const;
+
+    static readonly coverOverspending = (planId: string) => `/plans/${planId}/assignments/cover-overspending` as const;
+
     static readonly monthlyPayments = (planId: string) => `/plans/${planId}/monthly-payments` as const;
   };
 
@@ -47,6 +53,7 @@ export class Endpoints {
 
   static readonly Subcategories = class {
     static readonly byId = (id: string) => `/subcategories/${id}` as const;
+    static readonly assignment = (id: string, month: string) => `/subcategories/${id}/assignments/${month}` as const;
   };
 
   static readonly IncomeSources = class {

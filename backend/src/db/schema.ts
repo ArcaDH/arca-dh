@@ -35,7 +35,7 @@ export const tagColorEnum = pgEnum("tag_color", TAG_COLORS);
 
 // Tables
 
-// 1. User (Preserved original columns with added currentPlanId reference)
+// User
 export const User = pgTable("User", {
   userId: integer("userId").primaryKey().generatedAlwaysAsIdentity(),
   username: varchar("username", { length: 60 }).notNull().unique(),
@@ -50,7 +50,7 @@ export const User = pgTable("User", {
 
 export const users = User;
 
-// 2. BudgetPlans
+// BudgetPlans
 export const budgetPlans = pgTable("budget_plans", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -62,7 +62,7 @@ export const budgetPlans = pgTable("budget_plans", {
 
 export const BudgetPlan = budgetPlans;
 
-// 3. IncomeSources
+// IncomeSources
 export const incomeSources = pgTable("income_sources", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -74,7 +74,7 @@ export const incomeSources = pgTable("income_sources", {
 
 export const IncomeSource = incomeSources;
 
-// 4. Categories
+// Categories
 export const categories = pgTable(
   "categories",
   {
@@ -92,13 +92,16 @@ export const categories = pgTable(
 
 export const Category = categories;
 
-// 5. Subcategories
+// Subcategories
+// A subcategory is a line money is assigned to. It can exist with no target and nothing assigned.
+// `target` is the optional monthly funding goal. The money actually put in each month
+// lives per-month in subcategoryAssignments below, not here.
 export const subcategories = pgTable(
   "subcategories",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     name: varchar("name", { length: 255 }).notNull(),
-    limit: numeric("limit", { precision: 12, scale: 2 }).notNull(),
+    target: numeric("target", { precision: 12, scale: 2 }), // null = no monthly target
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     categoryId: uuid("category_id")
       .notNull()
@@ -110,7 +113,25 @@ export const subcategories = pgTable(
 
 export const Subcategory = subcategories;
 
-// 6. SavingsGoals
+// SubcategoryAssignments: money assigned to a subcategory in one month (YYYY-MM).
+// One row per subcategory per month. Absence means nothing assigned that month (treated as 0).
+export const subcategoryAssignments = pgTable(
+  "subcategory_assignments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    month: varchar("month", { length: 7 }).notNull(), // "YYYY-MM"
+    assigned: numeric("assigned", { precision: 12, scale: 2 }).notNull(),
+    subcategoryId: uuid("subcategory_id")
+      .notNull()
+      .references(() => subcategories.id, { onDelete: "cascade" }),
+  },
+  // At most one assignment per subcategory per month
+  (table) => [uniqueIndex("subcategory_assignments_sub_month_unique").on(table.subcategoryId, table.month)],
+);
+
+export const SubcategoryAssignment = subcategoryAssignments;
+
+// SavingsGoals
 export const savingsGoals = pgTable("savings_goals", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -126,7 +147,7 @@ export const savingsGoals = pgTable("savings_goals", {
 
 export const SavingsGoal = savingsGoals;
 
-// 6b. MonthlyPayments: an expense that repeats every month. Its transactions are created automatically.
+// MonthlyPayments: an expense that repeats every month. Its transactions are created automatically.
 export const monthlyPayments = pgTable(
   "monthly_payments",
   {
@@ -153,7 +174,7 @@ export const monthlyPayments = pgTable(
 
 export const MonthlyPayment = monthlyPayments;
 
-// 7. Transactions
+// Transactions
 export const transactions = pgTable(
   "transactions",
   {
@@ -183,7 +204,7 @@ export const transactions = pgTable(
 
 export const Transaction = transactions;
 
-// 8. Tags (belong to a user, so they can be reused across plans)
+// Tags (belong to a user, so they can be reused across plans)
 export const tags = pgTable(
   "tags",
   {
@@ -201,7 +222,7 @@ export const tags = pgTable(
 
 export const Tag = tags;
 
-// 9. Which tags a transaction has (many to many)
+// Which tags a transaction has (many to many)
 export const transactionTags = pgTable(
   "transaction_tags",
   {
@@ -215,7 +236,7 @@ export const transactionTags = pgTable(
   (table) => [primaryKey({ columns: [table.transactionId, table.tagId] })],
 );
 
-// 10. Which tags a monthly payment copies onto the transactions it creates
+// Which tags a monthly payment copies onto the transactions it creates
 export const monthlyPaymentTags = pgTable(
   "monthly_payment_tags",
   {
@@ -273,6 +294,14 @@ export const subcategoriesRelations = relations(subcategories, ({ one, many }) =
     references: [categories.id],
   }),
   transactions: many(transactions),
+  assignments: many(subcategoryAssignments),
+}));
+
+export const subcategoryAssignmentsRelations = relations(subcategoryAssignments, ({ one }) => ({
+  subcategory: one(subcategories, {
+    fields: [subcategoryAssignments.subcategoryId],
+    references: [subcategories.id],
+  }),
 }));
 
 export const savingsGoalsRelations = relations(savingsGoals, ({ one, many }) => ({
@@ -370,6 +399,9 @@ export type NewCategoryModel = InferInsertModel<typeof categories>;
 
 export type SubcategoryModel = InferSelectModel<typeof subcategories>;
 export type NewSubcategoryModel = InferInsertModel<typeof subcategories>;
+
+export type SubcategoryAssignmentModel = InferSelectModel<typeof subcategoryAssignments>;
+export type NewSubcategoryAssignmentModel = InferInsertModel<typeof subcategoryAssignments>;
 
 export type SavingsGoalModel = InferSelectModel<typeof savingsGoals>;
 export type NewSavingsGoalModel = InferInsertModel<typeof savingsGoals>;
