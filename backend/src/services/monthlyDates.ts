@@ -35,19 +35,27 @@ export function monthsBetween(from: string, to: string): string[] {
   return months;
 }
 
-/** Today's date as "YYYY-MM-DD". The server clock is UTC. */
-export const todayOf = (now: Date): string => now.toISOString().slice(0, 10);
+// The app is for Swedish users, so "today" follows Swedish time (summer and winter time included) and not the
+// server's UTC clock. Otherwise a payment due on the 1st would be created an hour or two after midnight.
+const APP_TIME_ZONE = "Europe/Stockholm";
+const todayFormat = new Intl.DateTimeFormat("sv-SE", { timeZone: APP_TIME_ZONE });
+
+/** Today's date as "YYYY-MM-DD", in Swedish time. */
+export const todayOf = (now: Date): string => todayFormat.format(now);
 
 type Schedule = { generatedThrough: string; dayOfMonth: number };
 
 /**
  * The last month that counts as handled when a payment is created. The transaction the user logs is its own month's
- * payment, and old dates are not backfilled, so everything up to the later of that month and this one is handled.
+ * payment, and old months are not backfilled. This month counts as handled only once its day has passed: if it is
+ * still ahead, this month's payment is created when the day comes, even if the logged transaction is from an earlier
+ * month (September's rent logged on 10 October, repeating on the 25th, still gets October's on the 25th).
  */
-export function handledThroughFor(firstTransactionDate: string, today: string): string {
+export function handledThroughFor(firstTransactionDate: string, today: string, dayOfMonth: number): string {
   const first = monthOf(firstTransactionDate);
   const current = monthOf(today);
-  return first > current ? first : current;
+  const cutoff = dueDate(current, dayOfMonth) <= today ? current : addMonths(current, -1);
+  return first > cutoff ? first : cutoff;
 }
 
 /** The months still to create by today: after the handled ones, once the due date has been reached. */

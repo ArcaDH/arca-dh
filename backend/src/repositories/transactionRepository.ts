@@ -1,6 +1,6 @@
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../db";
-import { transactions, NewTransactionModel, TagModel } from "../db/schema";
+import { transactions, monthlyPayments, NewTransactionModel, TagModel } from "../db/schema";
 import { TagRepository } from "./tagRepository";
 
 type TransactionTags = Pick<TagModel, "id" | "name" | "color">[];
@@ -82,10 +82,19 @@ export namespace TransactionRepository {
   }
 
   /**
-   * Delete a transaction by ID
+   * Delete a transaction by ID. With `alsoStopPaymentId` the monthly payment that made it is stopped too, in the same
+   * database transaction: either both happen or neither.
    */
-  export async function deleteTransaction(id: string) {
-    await db.delete(transactions).where(eq(transactions.id, id));
+  export async function deleteTransaction(id: string, alsoStopPaymentId?: string) {
+    if (!alsoStopPaymentId) {
+      await db.delete(transactions).where(eq(transactions.id, id));
+      return;
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.delete(transactions).where(eq(transactions.id, id));
+      await tx.delete(monthlyPayments).where(eq(monthlyPayments.id, alsoStopPaymentId));
+    });
   }
 
   /**

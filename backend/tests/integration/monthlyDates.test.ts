@@ -50,9 +50,30 @@ describe("monthlyDates", () => {
       expect(monthOf("2026-10-14")).toBe("2026-10");
     });
 
-    it("should give today's date in UTC as YYYY-MM-DD", () => {
-      expect(todayOf(new Date("2026-10-14T23:59:59Z"))).toBe("2026-10-14");
+    it("should give today's date as YYYY-MM-DD", () => {
+      expect(todayOf(new Date("2026-10-14T12:00:00Z"))).toBe("2026-10-14");
+    });
+
+    it("should follow Swedish summer time (UTC+2), not the UTC clock", () => {
+      expect(todayOf(new Date("2026-10-14T21:59:59Z"))).toBe("2026-10-14");
+      expect(todayOf(new Date("2026-10-14T22:00:00Z"))).toBe("2026-10-15");
+      expect(todayOf(new Date("2026-10-14T23:59:59Z"))).toBe("2026-10-15");
+    });
+
+    it("should follow Swedish winter time (UTC+1), including the new year", () => {
       expect(todayOf(new Date("2026-01-01T00:00:00Z"))).toBe("2026-01-01");
+      expect(todayOf(new Date("2026-12-31T22:59:59Z"))).toBe("2026-12-31");
+      expect(todayOf(new Date("2026-12-31T23:00:00Z"))).toBe("2027-01-01");
+    });
+
+    it("should handle the switch to summer time", () => {
+      expect(todayOf(new Date("2026-03-28T22:59:59Z"))).toBe("2026-03-28");
+      expect(todayOf(new Date("2026-03-28T23:00:00Z"))).toBe("2026-03-29");
+    });
+
+    it("should handle the switch back to winter time", () => {
+      expect(todayOf(new Date("2026-10-24T21:59:59Z"))).toBe("2026-10-24");
+      expect(todayOf(new Date("2026-10-24T22:00:00Z"))).toBe("2026-10-25");
     });
   });
 
@@ -124,16 +145,42 @@ describe("monthlyDates", () => {
   });
 
   describe("handledThroughFor", () => {
-    it("should handle up to this month for a transaction logged this month", () => {
-      expect(handledThroughFor("2026-10-05", "2026-10-14")).toBe("2026-10");
+    it("should handle up to this month when the logged transaction is from this month", () => {
+      expect(handledThroughFor("2026-10-05", "2026-10-14", 25)).toBe("2026-10");
+      expect(handledThroughFor("2026-10-14", "2026-10-14", 5)).toBe("2026-10");
     });
 
-    it("should not backfill: a transaction from an older month still handles up to this month", () => {
-      expect(handledThroughFor("2026-06-20", "2026-10-14")).toBe("2026-10");
+    it("should leave this month to come when an older transaction is logged before its day", () => {
+      // September's rent logged on 10 October, repeating on the 25th: October's is still to come
+      expect(handledThroughFor("2026-09-25", "2026-10-10", 25)).toBe("2026-09");
+    });
+
+    it("should not backfill: an old transaction handles this month only once its day has passed", () => {
+      expect(handledThroughFor("2026-06-20", "2026-10-14", 5)).toBe("2026-10");
+      expect(handledThroughFor("2026-06-20", "2026-10-14", 14)).toBe("2026-10");
+      expect(handledThroughFor("2026-06-20", "2026-10-14", 25)).toBe("2026-09");
     });
 
     it("should handle up to a future month for a transaction dated then", () => {
-      expect(handledThroughFor("2026-12-01", "2026-10-14")).toBe("2026-12");
+      expect(handledThroughFor("2026-12-01", "2026-10-14", 25)).toBe("2026-12");
+      expect(handledThroughFor("2026-12-01", "2026-10-14", 5)).toBe("2026-12");
+    });
+
+    it("should go back to the previous month across a new year", () => {
+      expect(handledThroughFor("2025-11-20", "2026-01-10", 25)).toBe("2025-12");
+    });
+
+    it("should clamp day 31 to the last day of a short month", () => {
+      // 28 February is the due date of day 31, and it has passed on the 28th but not on the 27th
+      expect(handledThroughFor("2026-01-15", "2026-02-28", 31)).toBe("2026-02");
+      expect(handledThroughFor("2026-01-15", "2026-02-27", 31)).toBe("2026-01");
+    });
+
+    it("should still create this month's payment on its day after logging a backdated one", () => {
+      const generatedThrough = handledThroughFor("2026-09-25", "2026-10-10", 25);
+      expect(dueMonths({ generatedThrough, dayOfMonth: 25 }, "2026-10-10")).toEqual([]);
+      expect(dueMonths({ generatedThrough, dayOfMonth: 25 }, "2026-10-25")).toEqual(["2026-10"]);
+      expect(nextChargeDate({ generatedThrough, dayOfMonth: 25 }, "2026-10-10")).toBe("2026-10-25");
     });
   });
 

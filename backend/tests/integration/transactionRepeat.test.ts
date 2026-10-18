@@ -128,7 +128,7 @@ describe("Monthly payments in the transaction and overview handlers", () => {
       );
     });
 
-    it("should treat everything up to this month as handled, so old dates are not backfilled", async () => {
+    it("should not backfill old months, and leave this month's payment to come when its day is ahead", async () => {
       const req = createMockRequest({
         params: { planId: validPlanId },
         body: rentBody({ date: "2026-06-20" }),
@@ -139,8 +139,36 @@ describe("Monthly payments in the transaction and overview handlers", () => {
       await TransactionHandler.createTransaction(req, res as any);
       expect(res.statusCode).toBe(201);
       const [payment, , , period] = vi.mocked(MonthlyPaymentRepository.createWithTransaction).mock.calls[0];
-      expect(payment.generatedThrough).toBe("2026-10");
+      // The 25th of October has not come yet on 14 October, so October is still to be created
+      expect(payment.generatedThrough).toBe("2026-09");
       expect(period).toBe("2026-06");
+    });
+
+    it("should treat this month as handled when an old transaction is logged after its day", async () => {
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: rentBody({ date: "2026-06-20", repeatMonthly: { dayOfMonth: 5 } }),
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await TransactionHandler.createTransaction(req, res as any);
+      const [payment] = vi.mocked(MonthlyPaymentRepository.createWithTransaction).mock.calls[0];
+      expect(payment.generatedThrough).toBe("2026-10");
+    });
+
+    it("should still create this month's payment when September's is logged before its day in October", async () => {
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: rentBody({ date: "2026-09-25" }),
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await TransactionHandler.createTransaction(req, res as any);
+      const [payment, , , period] = vi.mocked(MonthlyPaymentRepository.createWithTransaction).mock.calls[0];
+      expect(payment.generatedThrough).toBe("2026-09");
+      expect(period).toBe("2026-09");
     });
 
     it("should handle up to a future month when the logged transaction is dated then", async () => {
@@ -349,8 +377,9 @@ describe("Monthly payments in the transaction and overview handlers", () => {
 
       await TransactionHandler.deleteTransaction(req, res as any);
       expect(res.statusCode).toBe(204);
-      expect(TransactionRepository.deleteTransaction).toHaveBeenCalledWith(validTxId);
-      expect(MonthlyPaymentRepository.deleteById).toHaveBeenCalledWith(paymentId);
+      // Both are deleted together, in one database transaction
+      expect(TransactionRepository.deleteTransaction).toHaveBeenCalledWith(validTxId, paymentId);
+      expect(MonthlyPaymentRepository.deleteById).not.toHaveBeenCalled();
     });
 
     it("should only delete the transaction when it was not made by a payment", async () => {
