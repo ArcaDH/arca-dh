@@ -3,14 +3,17 @@
 import { useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
 import { currentMonth, shiftMonth } from "@/lib/format";
+import { ordinal } from "@/lib/monthly";
 import { parseKr, sumKr, toMoneyFlow } from "@/lib/money";
 import { useCategories } from "@/models/useCategories";
 import { useTags } from "@/models/useTags";
 import { useCurrentPlan } from "@/models/usePlans";
 import { useGoals } from "@/models/useGoals";
+import { useMonthlyPayments, useStopMonthlyPayment } from "@/models/useMonthlyPayments";
 import { useDeleteTransaction, useMonthTransactions } from "@/models/useTransactions";
 import type { CategoryWithSubcategories } from "@/types/category";
 import type { SavingsGoal } from "@/types/goal";
+import type { MonthlyPayment, MonthlyPaymentRow } from "@/types/monthlyPayment";
 import type { Tag } from "@/types/tag";
 import { DEFAULT_FILTERS, type Transaction, type TransactionFilters, type TransactionRow } from "@/types/transaction";
 import TransactionFormPresenter from "./TransactionFormPresenter";
@@ -39,7 +42,26 @@ function toRows(
       title: transaction.description ?? forName ?? "Transaction",
       detail: detail.filter(Boolean).join(" · "),
       categoryId: transaction.categoryId ?? null,
+      monthlyPaymentId: transaction.monthlyPaymentId ?? null,
       tags: transaction.tags,
+    };
+  });
+}
+
+/** The backend sends category ids only, so the names are looked up here too. */
+function toPaymentRows(payments: MonthlyPayment[], categories: CategoryWithSubcategories[]): MonthlyPaymentRow[] {
+  return payments.map((payment) => {
+    const category = categories.find((c) => c.id === payment.categoryId);
+    const subcategory = category?.subcategories.find((s) => s.id === payment.subcategoryId);
+    return {
+      id: payment.id,
+      title: payment.description ?? subcategory?.name ?? category?.name ?? "Monthly payment",
+      detail: [category?.name, subcategory?.name, `monthly on the ${ordinal(payment.dayOfMonth)}`]
+        .filter(Boolean)
+        .join(" · "),
+      amount: toMoneyFlow(payment.amount),
+      nextCharge: payment.nextCharge,
+      tags: payment.tags,
     };
   });
 }
@@ -78,6 +100,7 @@ export default function TransactionsPresenter() {
   const [month, setMonth] = useState(currentMonth);
   const [filters, setFilters] = useState<TransactionFilters>(DEFAULT_FILTERS);
   const [pendingDelete, setPendingDelete] = useState<TransactionRow | null>(null);
+  const [pendingStop, setPendingStop] = useState<MonthlyPaymentRow | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const plan = useCurrentPlan();
@@ -87,6 +110,8 @@ export default function TransactionsPresenter() {
   const expenses = useMonthTransactions(planId, month);
   const goals = useGoals(planId);
   const deleteTransaction = useDeleteTransaction();
+  const monthlyPayments = useMonthlyPayments(planId);
+  const stopPayment = useStopMonthlyPayment();
 
   const allRows = useMemo(
     () => (expenses.data ? toRows(expenses.data, categories.data ?? [], goals.data ?? []) : null),
@@ -95,6 +120,10 @@ export default function TransactionsPresenter() {
   const rows = useMemo(
     () => (allRows ? applyFilters(allRows, filters, tags.data) : null),
     [allRows, filters, tags.data],
+  );
+  const paymentRows = useMemo(
+    () => (monthlyPayments.data ? toPaymentRows(monthlyPayments.data, categories.data ?? []) : []),
+    [monthlyPayments.data, categories.data],
   );
   // Money in minus money out for the whole month, whatever the filters are set to. Savings aren't spending
   const net = expenses.data
@@ -111,16 +140,34 @@ export default function TransactionsPresenter() {
     ? "Create a budget plan first."
     : (plan.error ?? categories.error ?? expenses.error)?.message;
 
-  function confirmDelete() {
+  /** stopRepeating: also stop the monthly payment that made the transaction, so no more are created. */
+  function confirmDelete(stopRepeating: boolean) {
     if (!pendingDelete) return;
-    deleteTransaction.mutate(pendingDelete.id, {
+    deleteTransaction.mutate(
+      { id: pendingDelete.id, stopRepeating },
+      {
+        onSuccess: () => {
+          setActionError(null);
+          setPendingDelete(null);
+        },
+        onError: (error) => {
+          setActionError(error.message);
+          setPendingDelete(null);
+        },
+      },
+    );
+  }
+
+  function confirmStop() {
+    if (!pendingStop) return;
+    stopPayment.mutate(pendingStop.id, {
       onSuccess: () => {
         setActionError(null);
-        setPendingDelete(null);
+        setPendingStop(null);
       },
       onError: (error) => {
         setActionError(error.message);
-        setPendingDelete(null);
+        setPendingStop(null);
       },
     });
   }
@@ -138,15 +185,22 @@ export default function TransactionsPresenter() {
       isFiltered={isFiltered}
       categories={categories.data ?? []}
       tags={tags.data ?? []}
+      monthlyPayments={paymentRows}
       rows={rows}
       isRefreshing={expenses.isPlaceholderData}
       errorMessage={actionError ?? loadError ?? null}
       pendingDelete={pendingDelete}
+      pendingStop={pendingStop}
       onMonthChange={(delta) => setMonth((current) => shiftMonth(current, delta))}
       onFiltersChange={setFilters}
       onAskDelete={setPendingDelete}
       onConfirmDelete={confirmDelete}
-      onCancelDialog={() => setPendingDelete(null)}
+      onAskStop={setPendingStop}
+      onConfirmStop={confirmStop}
+      onCancelDialog={() => {
+        setPendingDelete(null);
+        setPendingStop(null);
+      }}
     />
   );
 }

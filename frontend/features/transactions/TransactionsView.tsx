@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
+import MonthlyPayments from "@/components/transactions/MonthlyPayments";
 import TransactionFiltersBar from "@/components/transactions/TransactionFilters";
 import TransactionList from "@/components/transactions/TransactionList";
 import Card from "@/components/ui/card";
@@ -7,6 +8,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import IconButton from "@/components/ui/IconButton";
 import { formatDay, monthLabel } from "@/lib/format";
 import { formatKr, formatSignedKr } from "@/lib/money";
+import type { MonthlyPaymentRow } from "@/types/monthlyPayment";
 import type { Tag } from "@/types/tag";
 import type { TransactionFilters, TransactionRow } from "@/types/transaction";
 
@@ -20,20 +22,26 @@ interface TransactionsViewProps {
   isFiltered: boolean;
   categories: { id: string; name: string }[];
   tags: Tag[];
+  /** The active monthly payments, shown in a card under the form. */
+  monthlyPayments: MonthlyPaymentRow[];
   /** null until the first load has finished. */
   rows: TransactionRow[] | null;
   isRefreshing: boolean;
   errorMessage: string | null;
   pendingDelete: TransactionRow | null;
+  pendingStop: MonthlyPaymentRow | null;
   onMonthChange: (delta: number) => void;
   onFiltersChange: (filters: TransactionFilters) => void;
   onAskDelete: (row: TransactionRow) => void;
-  onConfirmDelete: () => void;
+  /** stopRepeating: also stop the monthly payment that made the transaction. */
+  onConfirmDelete: (stopRepeating: boolean) => void;
+  onAskStop: (payment: MonthlyPaymentRow) => void;
+  onConfirmStop: () => void;
   onCancelDialog: () => void;
 }
 
 export default function TransactionsView(props: TransactionsViewProps) {
-  const { pendingDelete, net } = props;
+  const { pendingDelete, pendingStop, net } = props;
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -46,7 +54,10 @@ export default function TransactionsView(props: TransactionsViewProps) {
       )}
 
       <div className="grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="flex flex-col gap-4">{props.form}</div>
+        <div className="flex flex-col gap-4">
+          {props.form}
+          <MonthlyPayments payments={props.monthlyPayments} onStop={props.onAskStop} />
+        </div>
 
         <section aria-label="Transaction list">
           <Card>
@@ -91,15 +102,41 @@ export default function TransactionsView(props: TransactionsViewProps) {
         </section>
       </div>
 
-      {pendingDelete && (
+      {pendingDelete && !pendingDelete.monthlyPaymentId && (
         <ConfirmDialog
           title="Delete this transaction?"
           onCancel={props.onCancelDialog}
-          actions={[{ label: "Delete", danger: true, onClick: props.onConfirmDelete }]}
+          actions={[{ label: "Delete", danger: true, onClick: () => props.onConfirmDelete(false) }]}
         >
           &quot;{pendingDelete.title}
           &quot;, {formatSignedKr(pendingDelete.amount)} on {formatDay(pendingDelete.date)}, will be removed. This
           can&apos;t be undone.
+        </ConfirmDialog>
+      )}
+
+      {pendingDelete && pendingDelete.monthlyPaymentId && (
+        <ConfirmDialog
+          title="Delete a monthly payment?"
+          onCancel={props.onCancelDialog}
+          actions={[
+            { label: "Only this month", onClick: () => props.onConfirmDelete(false) },
+            { label: "Delete and stop repeating", danger: true, onClick: () => props.onConfirmDelete(true) },
+          ]}
+        >
+          &quot;{pendingDelete.title}
+          &quot;, {formatSignedKr(pendingDelete.amount)} on {formatDay(pendingDelete.date)}, repeats every month. Delete
+          only this month&apos;s, or delete it and stop it repeating? Next month&apos;s is still created if you only
+          delete this one. Past transactions are kept either way.
+        </ConfirmDialog>
+      )}
+
+      {pendingStop && (
+        <ConfirmDialog
+          title={`Stop ${pendingStop.title}?`}
+          onCancel={props.onCancelDialog}
+          actions={[{ label: "Stop repeating", danger: true, onClick: props.onConfirmStop }]}
+        >
+          No more transactions are created for it. The ones already made are kept.
         </ConfirmDialog>
       )}
     </div>
