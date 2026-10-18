@@ -5,6 +5,7 @@ import { SavingsGoalHandler } from "../handlers/savingsGoals";
 import { CategoryHandler } from "../handlers/categories";
 import { IncomeSourceHandler } from "../handlers/incomeSources";
 import { OverviewHandler } from "../handlers/overview";
+import { MonthlyPaymentHandler } from "../handlers/monthlyPayments";
 
 const router = Router();
 
@@ -54,6 +55,20 @@ const router = Router();
  *             type: string
  *             format: uuid
  *           description: Up to 5 of the user's own tags. On update, leave it out to keep the current tags, or send a list to replace them.
+ *         repeatMonthly:
+ *           type: object
+ *           description: |
+ *             Only when creating. Makes this expense repeat every month: the transaction is created automatically on the
+ *             given day, with the same amount, category and tags. Needs an EXPENSE with money out (a negative amount).
+ *             The transaction you log counts as that month's payment.
+ *           required:
+ *             - dayOfMonth
+ *           properties:
+ *             dayOfMonth:
+ *               type: integer
+ *               minimum: 1
+ *               maximum: 31
+ *               description: Day 31 becomes the last day of a shorter month
  *     Transaction:
  *       allOf:
  *         - $ref: '#/components/schemas/TransactionInput'
@@ -68,6 +83,43 @@ const router = Router();
  *               readOnly: true
  *               items:
  *                 $ref: '#/components/schemas/Tag'
+ *             monthlyPaymentId:
+ *               type: string
+ *               format: uuid
+ *               readOnly: true
+ *               description: Set when a monthly payment made this transaction
+ *     MonthlyPayment:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         amount:
+ *           type: number
+ *           format: decimal
+ *           description: Money out, so negative
+ *           example: -8500.00
+ *         description:
+ *           type: string
+ *           example: "Rent"
+ *         dayOfMonth:
+ *           type: integer
+ *           example: 25
+ *         categoryId:
+ *           type: string
+ *           format: uuid
+ *         subcategoryId:
+ *           type: string
+ *           format: uuid
+ *         tags:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Tag'
+ *         nextCharge:
+ *           type: string
+ *           format: date
+ *           description: The next day it is due
+ *           example: "2026-11-25"
  *     SavingsGoalInput:
  *       type: object
  *       required:
@@ -427,6 +479,40 @@ router
   .route("/:planId/transactions")
   .get(TransactionHandler.getTransactions)
   .post(TransactionHandler.createTransaction);
+
+/**
+ * @swagger
+ * /plans/{planId}/monthly-payments:
+ *   get:
+ *     tags: [Monthly payments]
+ *     summary: List the active monthly payments of a plan
+ *     description: |
+ *       A monthly payment is made by creating an expense with `repeatMonthly`. Its transactions are created
+ *       automatically when the plan's transactions or overview are loaded. Oldest first.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: planId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       '200':
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MonthlyPayment'
+ *       '401':
+ *         description: Unauthorized
+ *       '404':
+ *         description: Plan not found
+ */
+router.route("/:planId/monthly-payments").get(MonthlyPaymentHandler.getMonthlyPayments);
 
 /**
  * @swagger

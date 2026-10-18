@@ -56,6 +56,39 @@ async function validateTagIds(
 }
 
 /**
+ * Validates the optional `repeatMonthly` of a new transaction: the day of the month it repeats on.
+ * Only an expense with money out (a negative amount) can repeat.
+ * Returns undefined when it was left out, the cleaned value otherwise, or null if the response was already sent.
+ */
+function validateRepeatMonthly(
+  repeatMonthly: unknown,
+  type: string,
+  amount: number,
+  response: Response,
+): { dayOfMonth: number } | undefined | null {
+  if (repeatMonthly === undefined || repeatMonthly === null) return undefined;
+
+  const dayOfMonth = (repeatMonthly as { dayOfMonth?: unknown }).dayOfMonth;
+  if (typeof dayOfMonth !== "number" || !Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+    returnJson(response, 400, {
+      code: 400,
+      message: "Invalid input: 'repeatMonthly.dayOfMonth' must be a whole number from 1 to 31.",
+    });
+    return null;
+  }
+
+  if (type !== "EXPENSE" || amount >= 0) {
+    returnJson(response, 400, {
+      code: 400,
+      message: "Invalid input: only an expense with money out (a negative amount) can repeat monthly.",
+    });
+    return null;
+  }
+
+  return { dayOfMonth };
+}
+
+/**
  * Validates request data for transaction creation and updates
  */
 export async function validateTransactionData(body: any, response: Response, userId: number) {
@@ -196,6 +229,10 @@ export async function validateTransactionData(body: any, response: Response, use
   const normTagIds = await validateTagIds(body?.tagIds, userId, response);
   if (normTagIds === null) return null;
 
+  // 7. Repeat monthly (optional, only when creating)
+  const normRepeat = validateRepeatMonthly(body?.repeatMonthly, type, parsedAmount, response);
+  if (normRepeat === null) return null;
+
   return {
     amount: parsedAmount.toFixed(2),
     date: date.trim(),
@@ -205,6 +242,7 @@ export async function validateTransactionData(body: any, response: Response, use
     subcategoryId: normSubcategory,
     savingsGoalId: normSavingsGoal,
     tagIds: normTagIds,
+    repeatMonthly: normRepeat,
   };
 }
 export async function validateRequest(request: any, response: any) {

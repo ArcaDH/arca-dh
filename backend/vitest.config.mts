@@ -13,6 +13,8 @@ export default defineConfig({
         "src/validators/**/*.ts",
         "src/services/passwordService.ts",
         "src/services/tokenService.ts",
+        "src/services/monthlyDates.ts",
+        "src/services/monthlyPaymentService.ts",
       ],
     },
   },
