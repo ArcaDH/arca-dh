@@ -1,26 +1,26 @@
 import type { LucideIcon } from "lucide-react";
 import type { CSSProperties, FC, ReactNode } from "react";
 
-export type BadgeTone = "success" | "primary" | "secondary" | "accent";
+export type BadgeTone = "primary" | "secondary" | "success" | "accent";
 
 const solid: Record<BadgeTone, string> = {
-  success: "bg-success text-white",
   primary: "bg-primary text-white",
   secondary: "bg-secondary text-white",
+  success: "bg-success text-white",
   accent: "bg-accent text-white",
 };
 
 const soft: Record<BadgeTone, string> = {
-  success: "bg-success/10 text-success",
   primary: "bg-primary/10 text-primary",
   secondary: "bg-secondary/10 text-secondary",
+  success: "bg-success/10 text-success",
   accent: "bg-accent/10 text-accent",
 };
 
 const sparkColor: Record<BadgeTone, string> = {
-  success: "bg-success",
   primary: "bg-primary",
   secondary: "bg-secondary",
+  success: "bg-success",
   accent: "bg-accent",
 };
 
