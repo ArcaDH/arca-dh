@@ -84,7 +84,8 @@ export namespace TransactionHandler {
             amount: fields.amount,
             description: fields.description,
             dayOfMonth: repeatMonthly.dayOfMonth,
-            generatedThrough: handledThroughFor(fields.date, todayOf(new Date())),
+            generatedThrough: handledThroughFor(fields.date, todayOf(new Date()), repeatMonthly.dayOfMonth),
+            // An expense always has a category, the validator makes sure of it
             categoryId: fields.categoryId as string,
             subcategoryId: fields.subcategoryId,
           },
@@ -151,8 +152,9 @@ export namespace TransactionHandler {
 
       const existing = stopRepeating === "true" ? await TransactionRepository.findById(id) : undefined;
 
-      await TransactionRepository.deleteTransaction(id);
-      if (existing?.monthlyPaymentId) await MonthlyPaymentRepository.deleteById(existing.monthlyPaymentId);
+      // Stopping the payment is done in the same database transaction as the delete, so it can't half happen
+      if (existing?.monthlyPaymentId) await TransactionRepository.deleteTransaction(id, existing.monthlyPaymentId);
+      else await TransactionRepository.deleteTransaction(id);
       return response.status(204).send();
     } catch (error) {
       console.error("Error in deleteTransaction:", error);

@@ -99,7 +99,18 @@ describe("MonthlyPaymentService (monthlyPaymentService.ts)", () => {
       ]);
     });
 
-    it("should use the date of the clock it is given (UTC)", async () => {
+    it("should create a payment due on the 1st at midnight Swedish time, not an hour or two later", async () => {
+      const due = payment({ generatedThrough: "2026-10", dayOfMonth: 1 });
+      vi.mocked(MonthlyPaymentRepository.findByPlanId).mockResolvedValueOnce([due] as any);
+
+      // 00:30 on 1 November in Sweden, but still 31 October in UTC
+      await MonthlyPaymentService.ensureGenerated(planId, new Date("2026-10-31T23:30:00Z"));
+      expect(MonthlyPaymentRepository.createDueTransactions).toHaveBeenCalledWith(due, [
+        { month: "2026-11", date: "2026-11-01" },
+      ]);
+    });
+
+    it("should use the date of the clock it is given in Swedish time", async () => {
       const due = payment({ generatedThrough: "2026-10", dayOfMonth: 31 });
       vi.mocked(MonthlyPaymentRepository.findByPlanId).mockResolvedValueOnce([due] as any);
 

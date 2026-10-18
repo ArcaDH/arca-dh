@@ -79,9 +79,10 @@ export default function TransactionFormPresenter({ planId, categories, goals }: 
 
   const update = (changes: Partial<FormState>) => setForm((previous) => ({ ...previous, ...changes }));
 
-  // Only an expense with money out can repeat monthly, a savings goal or money in can't
+  // Only an expense with money out can repeat monthly, a savings goal or money in can't. Until something is chosen
+  // under "For" the switch is shown, so it is easy to find.
   const target = options.find((option) => option.id === form.forId)?.target;
-  const canRepeat = form.direction === "out" && target?.type === "EXPENSE";
+  const canRepeat = form.direction === "out" && target?.type !== "SAVING";
   // The day typed, or the day of the date when nothing is typed
   const repeatDay = form.repeatDay.trim() ? parseDayOfMonth(form.repeatDay) : form.date ? dayOfDate(form.date) : null;
 
