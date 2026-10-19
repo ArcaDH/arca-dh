@@ -1,6 +1,6 @@
 import { goalAssigned, isGoalDone } from "@/lib/goals";
 import { formatWholeKr, sumKr } from "@/lib/money";
-import type { BudgetGroup, BudgetLine, BudgetStatus } from "@/types/budget";
+import type { BudgetGroup, BudgetLine, BudgetStatus, SelectionState } from "@/types/budget";
 import type { CategorySpending, GoalProgress, SubcategorySpending } from "@/types/overview";
 
 // For savings, putting in more than planned is good, so it is covered and never over
@@ -125,4 +125,14 @@ export function budgetGroups(categories: CategorySpending[], goals: GoalProgress
     lines: goalLines,
   };
   return [...categoryGroups, savings];
+}
+
+// The subcategories under a category heading
+export const groupSubcategoryIds = (group: BudgetGroup): string[] =>
+  group.category ? group.lines.map((line) => line.id) : [];
+
+export function selectionState(ids: string[], selected: Set<string>): SelectionState {
+  const selectedCount = ids.filter((id) => selected.has(id)).length;
+  const all = ids.length > 0 && selectedCount === ids.length;
+  return { checked: all, indeterminate: selectedCount > 0 && !all };
 }

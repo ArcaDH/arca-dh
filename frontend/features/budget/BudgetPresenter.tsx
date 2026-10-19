@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ApiError } from "@/api/ApiClient";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { budgetGroups } from "@/lib/budget";
+import { budgetGroups, groupSubcategoryIds, selectionState } from "@/lib/budget";
 import { currentMonth } from "@/lib/format";
 import { parseKr, sumKr } from "@/lib/money";
 import {
@@ -96,6 +96,15 @@ export const BudgetPresenter = () => {
     [...selectedIds].filter((id) => lines.some((line) => line.kind === "subcategory" && line.id === id)),
   );
 
+  // The header checkbox covers every subcategory; each category heading covers its own
+  const allSubcategoryIds = (groups ?? []).flatMap(groupSubcategoryIds);
+  const selectAll = allSubcategoryIds.length > 0 ? selectionState(allSubcategoryIds, validSelected) : null;
+  const categorySelections = Object.fromEntries(
+    (groups ?? []).flatMap((group) =>
+      group.category ? [[group.category.categoryId, selectionState(groupSubcategoryIds(group), validSelected)]] : [],
+    ),
+  );
+
   // Selected subcategory lines that are overspent (spent > assigned), for "Cover overspending".
   const overspentSelectedIds = lines
     .filter((line) => line.kind === "subcategory" && validSelected.has(line.id) && line.spent > line.assigned)
@@ -117,15 +126,20 @@ export const BudgetPresenter = () => {
     );
   }
 
-  function toggleCategory(subcategoryIds: string[]) {
+  // Selecting a heading selects all its subcategories; toggling off clears them
+  function toggleMany(subcategoryIds: string[]) {
     setSelectionError(null);
     setSelectedIds((current) => {
       const allSelected = subcategoryIds.length > 0 && subcategoryIds.every((id) => current.has(id));
-      // Selecting a heading selects all its subcategories; toggling off clears them.
       return allSelected
         ? new Set([...current].filter((id) => !subcategoryIds.includes(id)))
         : new Set([...current, ...subcategoryIds]);
     });
+  }
+
+  function toggleCategory(categoryId: string) {
+    const group = (groups ?? []).find((item) => item.category?.categoryId === categoryId);
+    if (group) toggleMany(groupSubcategoryIds(group));
   }
 
   function clearSelection() {
@@ -340,6 +354,8 @@ export const BudgetPresenter = () => {
         )
       }
       selectedIds={validSelected}
+      selectAll={selectAll}
+      categorySelections={categorySelections}
       isRefreshing={overview.isPlaceholderData}
       errorMessage={actionError ?? loadError ?? null}
       dialog={formDialog || deleteDialog || incomeDialog}
@@ -353,6 +369,7 @@ export const BudgetPresenter = () => {
       }
       onToggleLine={toggleLine}
       onToggleCategory={toggleCategory}
+      onToggleAll={() => toggleMany(allSubcategoryIds)}
       onStartAmountEdit={(edit) => {
         setActionError(null);
         setAmountEdit(edit);
