@@ -12,13 +12,19 @@ interface BudgetViewProps {
   // it can be null while loading
   groups: BudgetGroup[] | null;
   readyToAssign: ReactNode;
+  // The bulk-action toolbar, shown above the table when lines are selected.
+  selectionToolbar: ReactNode;
   amountEdit: AmountEdit | null;
+  // Selection of subcategory lines for bulk assign. The set holds subcategory ids.
+  selectedIds: Set<string>;
   isRefreshing: boolean;
   errorMessage: string | null;
   dialog: ReactNode;
   onMonthChange: (month: string) => void;
   onAddCategory: () => void;
   onAddSubcategory: (category: CategorySpending) => void;
+  onToggleLine: (subcategoryId: string) => void;
+  onToggleCategory: (subcategoryIds: string[]) => void;
   onStartAmountEdit: (edit: AmountEdit) => void;
   onAmountEditChange: (value: string) => void;
   onSaveAmount: () => void;
@@ -33,13 +39,17 @@ export const BudgetView: FC<BudgetViewProps> = ({
   month,
   groups,
   readyToAssign,
+  selectionToolbar,
   amountEdit,
+  selectedIds,
   isRefreshing,
   errorMessage,
   dialog,
   onMonthChange,
   onAddCategory,
   onAddSubcategory,
+  onToggleLine,
+  onToggleCategory,
   onStartAmountEdit,
   onAmountEditChange,
   onSaveAmount,
@@ -61,12 +71,15 @@ export const BudgetView: FC<BudgetViewProps> = ({
         </p>
       )}
 
+      {selectionToolbar}
+
       {!groups ? (
         !errorMessage && <p className="py-8 text-sm text-muted">Loading…</p>
       ) : (
         <table className={`w-full text-sm transition-opacity ${isRefreshing ? "opacity-60" : ""}`}>
           <thead>
             <tr className="border-b border-foreground/10 text-xs text-muted">
+              <th className="w-8" aria-label="Select" />
               <th className="px-3 py-2 text-left font-medium">
                 <span className="flex items-center gap-1.5">
                   Category
@@ -84,6 +97,12 @@ export const BudgetView: FC<BudgetViewProps> = ({
           </thead>
           {groups.map((group) => {
             const { category } = group;
+            // Subcategory ids under this category heading (goals groups have no category).
+            const subIds = category ? group.lines.map((line) => line.id) : [];
+            const selectedCount = subIds.filter((id) => selectedIds.has(id)).length;
+            const allSelected = subIds.length > 0 && selectedCount === subIds.length;
+            const someSelected = selectedCount > 0 && !allSelected;
+
             return (
               <tbody key={category?.categoryId ?? group.name}>
                 <BudgetTableRowView
@@ -91,6 +110,11 @@ export const BudgetView: FC<BudgetViewProps> = ({
                   assigned={group.assigned}
                   spent={group.spent}
                   status={group.status}
+                  selection={
+                    category
+                      ? { checked: allSelected, indeterminate: someSelected, onToggle: () => onToggleCategory(subIds) }
+                      : undefined
+                  }
                   onAddSubcategory={category && (() => onAddSubcategory(category))}
                   onRename={category && (() => onRenameCategory(category))}
                   onDelete={category && (() => onDeleteCategory(category))}
@@ -101,9 +125,15 @@ export const BudgetView: FC<BudgetViewProps> = ({
                     name={line.name}
                     assigned={line.assigned}
                     spent={line.spent}
+                    target={line.kind === "subcategory" ? line.target : undefined}
                     kind={line.kind}
                     status={line.status}
                     isDone={line.isDone}
+                    selection={
+                      line.kind === "subcategory"
+                        ? { checked: selectedIds.has(line.id), onToggle: () => onToggleLine(line.id) }
+                        : undefined
+                    }
                     amountEditing={{
                       value: amountEdit?.lineId === line.id ? amountEdit.value : null,
                       onStart: () => onStartAmountEdit({ lineId: line.id, value: String(line.assigned) }),
@@ -122,7 +152,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
           {groups.length === 0 && (
             <tbody>
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-muted">
+                <td colSpan={6} className="px-3 py-6 text-muted">
                   You haven&apos;t added any categories yet.
                 </td>
               </tr>

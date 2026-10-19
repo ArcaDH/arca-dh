@@ -22,4 +22,20 @@ export const categoriesApi = {
     apiClient.put<Subcategory>(Endpoints.Subcategories.byId(subcategoryId), input),
 
   removeSubcategory: (subcategoryId: string) => apiClient.delete<void>(Endpoints.Subcategories.byId(subcategoryId)),
+
+  // Set the money assigned to a subcategory in a given month (YYYY-MM).
+  setAssignment: (subcategoryId: string, month: string, assigned: number) =>
+    apiClient.put<unknown>(Endpoints.Subcategories.assignment(subcategoryId, month), { assigned }),
+
+  // Fund the targets of the given subcategories for a month (tops up under-funded, skips funded).
+  fundTargets: (planId: string, month: string, subcategoryIds: string[]) =>
+    apiClient.post<unknown>(Endpoints.Plans.fundTargets(planId), { month, subcategoryIds }),
+
+  // Assign the same amount to several subcategories for a month.
+  bulkAssign: (planId: string, month: string, subcategoryIds: string[], assigned: number) =>
+    apiClient.post<unknown>(Endpoints.Plans.bulkAssign(planId), { month, subcategoryIds, assigned }),
+
+  // Cover overspending: raise each selected overspent subcategory's assigned to its spent amount.
+  coverOverspending: (planId: string, month: string, subcategoryIds: string[]) =>
+    apiClient.post<unknown>(Endpoints.Plans.coverOverspending(planId), { month, subcategoryIds }),
 };

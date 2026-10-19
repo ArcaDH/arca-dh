@@ -5,7 +5,7 @@ import { ApiError } from "@/api/ApiClient";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { budgetGroups } from "@/lib/budget";
 import { currentMonth } from "@/lib/format";
-import { formatWholeKr, parseKr, sumKr } from "@/lib/money";
+import { parseKr, sumKr } from "@/lib/money";
 import {
   useCreateCategory,
   useCreateSubcategory,
@@ -14,7 +14,7 @@ import {
   useUpdateCategory,
   useUpdateSubcategory,
 } from "@/models/useCategories";
-import { useSetAssigned } from "@/models/useBudgetLines";
+import { useFundTargets, useBulkAssign, useCoverOverspending, useSetAssigned } from "@/models/useBudgetLines";
 import { useOverview } from "@/models/useOverview";
 import { useCurrentPlan } from "@/models/usePlans";
 import { BudgetItemFormView } from "./item-form/BudgetItemFormView";
@@ -22,6 +22,7 @@ import { BudgetView } from "./BudgetView";
 import type { AmountEdit, BudgetItemForm, BudgetLine } from "@/types/budget";
 import { IncomeSourcesPresenter } from "./income/IncomeSourcesPresenter";
 import { ReadyToAssignView } from "./assign/ReadyToAssignView";
+import { SelectionToolbarView } from "./assign/SelectionToolbarView";
 
 type FormTarget =
   | { mode: "createCategory" }
@@ -40,14 +41,24 @@ const formTitle = (target: FormTarget): string => {
 const isSubcategoryForm = (target: FormTarget) =>
   target.mode === "createSubcategory" || target.mode === "editSubcategory";
 
+// Parse the optional target field: blank means "no target" (null); a bad value is "invalid".
+const parseTargetField = (value: string): number | null | "invalid" => {
+  if (value.trim() === "") return null;
+  const parsed = parseKr(value);
+  return parsed === null ? "invalid" : parsed;
+};
+
 export const BudgetPresenter = () => {
   const [month, setMonth] = useState(currentMonth);
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
-  const [form, setForm] = useState<BudgetItemForm>({ name: "", amount: "" });
+  const [form, setForm] = useState<BudgetItemForm>({ name: "", target: "" });
   const [formError, setFormError] = useState<string | null>(null);
   const [amountEdit, setAmountEdit] = useState<AmountEdit | null>(null);
   const [assignAmount, setAssignAmount] = useState("");
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAmount, setBulkAmount] = useState("");
+  const [selectionError, setSelectionError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isIncomeOpen, setIsIncomeOpen] = useState(false);
@@ -62,7 +73,10 @@ export const BudgetPresenter = () => {
   const createSubcategory = useCreateSubcategory(planId);
   const updateSubcategory = useUpdateSubcategory(planId);
   const deleteSubcategory = useDeleteSubcategory(planId);
-  const setAssigned = useSetAssigned(planId);
+  const setAssigned = useSetAssigned(planId, month);
+  const fundTargets = useFundTargets(planId, month);
+  const bulkAssign = useBulkAssign(planId, month);
+  const coverOverspending = useCoverOverspending(planId, month);
 
   const income = overview.data?.totalIncome ?? 0;
   const groups = overview.data
@@ -72,12 +86,59 @@ export const BudgetPresenter = () => {
   const assigned = sumKr((groups ?? []).map((group) => group.assigned));
   const toAssign = income - assigned;
 
+  // Subcategories that have a target, so "Fund all targets" knows what to act on.
+  const targetedSubcategoryIds = lines
+    .filter((line) => line.kind === "subcategory" && line.target !== null && line.target > 0)
+    .map((line) => line.id);
+
+  // Keep only selected ids that still exist as subcategory lines.
+  const validSelected = new Set(
+    [...selectedIds].filter((id) => lines.some((line) => line.kind === "subcategory" && line.id === id)),
+  );
+
+  // Selected subcategory lines that are overspent (spent > assigned), for "Cover overspending".
+  const overspentSelectedIds = lines
+    .filter((line) => line.kind === "subcategory" && validSelected.has(line.id) && line.spent > line.assigned)
+    .map((line) => line.id);
+
   const noPlanYet = plan.error instanceof ApiError && plan.error.status === 404;
   const loadError = noPlanYet
     ? "Create a budget plan first, with the plan picker in the sidebar."
     : (plan.error ?? overview.error)?.message;
 
   const onActionError = (error: Error) => setActionError(error.message);
+
+  function toggleLine(subcategoryId: string) {
+    setSelectionError(null);
+    setSelectedIds((current) =>
+      current.has(subcategoryId)
+        ? new Set([...current].filter((id) => id !== subcategoryId))
+        : new Set([...current, subcategoryId]),
+    );
+  }
+
+  function toggleCategory(subcategoryIds: string[]) {
+    setSelectionError(null);
+    setSelectedIds((current) => {
+      const allSelected = subcategoryIds.length > 0 && subcategoryIds.every((id) => current.has(id));
+      // Selecting a heading selects all its subcategories; toggling off clears them.
+      return allSelected
+        ? new Set([...current].filter((id) => !subcategoryIds.includes(id)))
+        : new Set([...current, ...subcategoryIds]);
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+    setBulkAmount("");
+    setSelectionError(null);
+  }
+
+  // Changing month clears the selection so nothing stays checked across a different month's lines.
+  function changeMonth(next: string) {
+    clearSelection();
+    setMonth(next);
+  }
 
   function openForm(target: FormTarget, initial: BudgetItemForm) {
     setForm(initial);
@@ -100,13 +161,15 @@ export const BudgetPresenter = () => {
       return updateCategory.mutate({ categoryId: formTarget.categoryId, input }, options);
     }
 
-    const amount = parseKr(form.amount);
-    if (amount === null) return setFormError("Enter an amount like 3000 or 249,50.");
+    // Subcategory: name required, target optional (blank = no target).
+    const target = parseTargetField(form.target);
+    if (target === "invalid") return setFormError("Enter a target like 3000 or 249,50, or leave it blank.");
+
     if (formTarget.mode === "createSubcategory") {
-      createSubcategory.mutate({ categoryId: formTarget.categoryId, input: { name, limit: amount } }, options);
+      createSubcategory.mutate({ categoryId: formTarget.categoryId, input: { name, target } }, options);
     }
     if (formTarget.mode === "editSubcategory") {
-      updateSubcategory.mutate({ subcategoryId: formTarget.subcategoryId, input: { name, limit: amount } }, options);
+      updateSubcategory.mutate({ subcategoryId: formTarget.subcategoryId, input: { name, target } }, options);
     }
   }
 
@@ -114,13 +177,14 @@ export const BudgetPresenter = () => {
     if (!amountEdit) return;
     setAmountEdit(null);
     const amount = parseKr(amountEdit.value);
-    if (amount === null) return setActionError("Enter an amount like 3000 or 249,50.");
+    if (amount === null || amount < 0) return setActionError("Enter an amount like 3000 or 249,50.");
 
     const line = lines.find((item) => item.id === amountEdit.lineId);
     if (!line || line.assigned === amount) return;
     setAssigned.mutate({ line, amount }, { onError: onActionError });
   }
 
+  // Add the entered amount to a line's current assigned money, from the "Ready to assign" popup.
   function assign(line: BudgetLine, close: () => void) {
     const amount = parseKr(assignAmount);
     if (amount === null || amount <= 0) return setAssignError("Enter an amount to assign.");
@@ -138,6 +202,56 @@ export const BudgetPresenter = () => {
     );
   }
 
+  // Top up every subcategory that has a target to meet it, for the current month.
+  function fundAllTargets(close: () => void) {
+    if (targetedSubcategoryIds.length === 0) return close();
+    setAssignError(null);
+    fundTargets.mutate(targetedSubcategoryIds, {
+      onSuccess: () => {
+        clearSelection();
+        close();
+      },
+      onError: (error) => setAssignError(error.message),
+    });
+  }
+
+  // Selection toolbar: fund the targets of the checked lines.
+  function fundSelectedTargets() {
+    const ids = [...validSelected];
+    if (ids.length === 0) return;
+    setSelectionError(null);
+    fundTargets.mutate(ids, {
+      onSuccess: () => clearSelection(),
+      onError: (error) => setSelectionError(error.message),
+    });
+  }
+
+  // Selection toolbar: assign the typed amount to each checked line.
+  function assignToSelected() {
+    const ids = [...validSelected];
+    if (ids.length === 0) return;
+    const amount = parseKr(bulkAmount);
+    if (amount === null || amount < 0) return setSelectionError("Enter an amount like 3000 or 249,50.");
+    setSelectionError(null);
+    bulkAssign.mutate(
+      { subcategoryIds: ids, amount },
+      {
+        onSuccess: () => clearSelection(),
+        onError: (error) => setSelectionError(error.message),
+      },
+    );
+  }
+
+  // Selection toolbar: raise each overspent selected line's assigned to its spent, so Available = 0.
+  function coverSelectedOverspending() {
+    if (overspentSelectedIds.length === 0) return;
+    setSelectionError(null);
+    coverOverspending.mutate(overspentSelectedIds, {
+      onSuccess: () => clearSelection(),
+      onError: (error) => setSelectionError(error.message),
+    });
+  }
+
   function confirmDelete() {
     if (!pendingDelete) return;
     const options = {
@@ -152,14 +266,7 @@ export const BudgetPresenter = () => {
   const formDialog = formTarget && (
     <BudgetItemFormView
       title={formTitle(formTarget)}
-      amountLabel={isSubcategoryForm(formTarget) ? "Assigned per month" : undefined}
-      hint={
-        !isSubcategoryForm(formTarget)
-          ? null
-          : toAssign >= 0
-            ? `${formatWholeKr(toAssign)} ready to assign`
-            : `Over-assigned by ${formatWholeKr(-toAssign)}`
-      }
+      showTarget={isSubcategoryForm(formTarget)}
       form={form}
       error={formError}
       isSaving={
@@ -204,24 +311,48 @@ export const BudgetPresenter = () => {
             amount={assignAmount}
             error={assignError}
             isSaving={setAssigned.isPending}
+            isFunding={fundTargets.isPending}
+            hasTargets={targetedSubcategoryIds.length > 0}
             onAmountChange={setAssignAmount}
             onAssign={assign}
+            onFundAllTargets={fundAllTargets}
             onEditIncome={() => setIsIncomeOpen(true)}
           />
         )
       }
       amountEdit={amountEdit}
+      selectionToolbar={
+        validSelected.size > 0 && (
+          <SelectionToolbarView
+            count={validSelected.size}
+            overspentCount={overspentSelectedIds.length}
+            amount={bulkAmount}
+            error={selectionError}
+            isAssigning={bulkAssign.isPending}
+            isFunding={fundTargets.isPending}
+            isCovering={coverOverspending.isPending}
+            onAmountChange={setBulkAmount}
+            onAssign={assignToSelected}
+            onFundTargets={fundSelectedTargets}
+            onCoverOverspending={coverSelectedOverspending}
+            onClear={clearSelection}
+          />
+        )
+      }
+      selectedIds={validSelected}
       isRefreshing={overview.isPlaceholderData}
       errorMessage={actionError ?? loadError ?? null}
       dialog={formDialog || deleteDialog || incomeDialog}
-      onMonthChange={setMonth}
-      onAddCategory={() => openForm({ mode: "createCategory" }, { name: "", amount: "" })}
+      onMonthChange={changeMonth}
+      onAddCategory={() => openForm({ mode: "createCategory" }, { name: "", target: "" })}
       onAddSubcategory={(category) =>
         openForm(
           { mode: "createSubcategory", categoryId: category.categoryId, categoryName: category.name },
-          { name: "", amount: "" },
+          { name: "", target: "" },
         )
       }
+      onToggleLine={toggleLine}
+      onToggleCategory={toggleCategory}
       onStartAmountEdit={(edit) => {
         setActionError(null);
         setAmountEdit(edit);
@@ -237,13 +368,16 @@ export const BudgetPresenter = () => {
             name: category.name,
             maxBudget: category.maxBudget,
           },
-          { name: category.name, amount: "" },
+          { name: category.name, target: "" },
         )
       }
       onRenameSubcategory={(line) =>
         openForm(
           { mode: "editSubcategory", subcategoryId: line.id, name: line.name },
-          { name: line.name, amount: String(line.assigned) },
+          {
+            name: line.name,
+            target: line.kind === "subcategory" && line.target !== null ? String(line.target) : "",
+          },
         )
       }
       onDeleteCategory={(category) =>

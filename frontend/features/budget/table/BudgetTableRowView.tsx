@@ -1,11 +1,11 @@
 import { Check, Goal, MoreHorizontal, Pencil, Plus, Trash2, Wallet } from "lucide-react";
-import { useRef, type FC } from "react";
+import { useEffect, useRef, type FC } from "react";
 import Button from "@/components/ui/button";
 import { StatusBadge, type BadgeTone } from "@/components/ui/StatusBadge";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { MenuItem } from "@/components/ui/MenuItem";
-import { MoneyProgress } from "@/components/ui/MoneyProgress";
-import { spentShare } from "@/lib/budget";
+import { MoneyProgress, type ProgressTone } from "@/components/ui/MoneyProgress";
+import { availableBadge, spentShare, subcategoryFunding, type FundingState } from "@/lib/budget";
 import { formatWholeKr } from "@/lib/money";
 import type { BudgetLine, BudgetStatus } from "@/types/budget";
 
@@ -13,6 +13,14 @@ const statusStyle: Record<BudgetStatus, { tone: BadgeTone; variant: "solid" | "s
   progress: { tone: "success", variant: "soft" },
   covered: { tone: "success", variant: "solid" },
   over: { tone: "accent", variant: "soft" },
+};
+
+// Funding-bar tone per state (computed in lib/budget; the view only maps it to a colour).
+const fundingTone: Record<FundingState, ProgressTone> = {
+  overspent: "accent",
+  funded: "success",
+  funding: "primary",
+  none: "primary",
 };
 
 // The inline Assigned input: Enter or leaving saves, Escape cancels
@@ -43,14 +51,41 @@ function AmountInput(props: {
   );
 }
 
+// A tri-state checkbox: checked, unchecked, or indeterminate (some children selected).
+function SelectBox(props: { checked: boolean; indeterminate?: boolean; label: string; onChange: () => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = !!props.indeterminate && !props.checked;
+  }, [props.indeterminate, props.checked]);
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={props.checked}
+      aria-label={props.label}
+      onChange={props.onChange}
+      className="size-4 cursor-pointer rounded-sm border-foreground/30 text-primary focus:ring-primary/30"
+    />
+  );
+}
+
 interface BudgetTableRowViewProps {
   name: string;
   assigned: number;
   spent: number;
+  // Subcategory monthly target (null = none). Undefined for headings/goals.
+  target?: number | null;
   // A line under a heading, with an icon and a progress bar. Left out for a heading row
   kind?: BudgetLine["kind"];
   status: BudgetStatus;
   isDone?: boolean;
+  // Selection: present only on selectable rows (subcategory lines and category headings).
+  selection?: {
+    checked: boolean;
+    indeterminate?: boolean;
+    onToggle: () => void;
+  };
   amountEditing?: {
     value: string | null;
     onStart: () => void;
@@ -67,20 +102,35 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
   name,
   assigned,
   spent,
+  target = undefined,
   kind,
   status,
   isDone = false,
+  selection,
   amountEditing,
   onAddSubcategory,
   onRename,
   onDelete,
 }) => {
-  const left = assigned - spent;
   const isLine = kind !== undefined;
+  const funding = kind === "subcategory" ? subcategoryFunding(assigned, spent, target ?? null) : null;
 
   return (
     <tr className={`group border-t border-foreground/10 ${isLine ? "" : "bg-foreground/[0.025] font-medium"}`}>
-      <td className={`py-2 pr-3 ${isLine ? "pl-6" : "pl-3"}`}>
+      <td className="w-8 py-2 pr-1 pl-3 align-top">
+        {selection && (
+          <span className="mt-1 flex">
+            <SelectBox
+              checked={selection.checked}
+              indeterminate={selection.indeterminate}
+              label={`Select ${name}`}
+              onChange={selection.onToggle}
+            />
+          </span>
+        )}
+      </td>
+
+      <td className={`py-2 pr-3 ${isLine ? "pl-2" : "pl-0"}`}>
         <div className="flex items-center gap-2.5">
           {kind === "subcategory" && (
             <Wallet size={18} strokeWidth={1.75} className="shrink-0 text-muted" aria-hidden />
@@ -103,13 +153,30 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
                 </Button>
               )}
             </div>
-            {isLine && (
+            {/* Goals keep their spending bar. Subcategories show a single funding bar (assigned vs target),
+                or an empty bar when there is no target yet, with the funded text on the same line. */}
+            {kind === "goal" && (
               <MoneyProgress
                 value={isDone ? 1 : spentShare(spent, assigned)}
                 tone={isDone ? "success" : statusStyle[status].tone}
-                label={`${name}: ${formatWholeKr(spent)} of ${formatWholeKr(assigned)} spent`}
+                label={`${name}: ${formatWholeKr(spent)} of ${formatWholeKr(assigned)} saved`}
                 className="mt-1 w-36"
               />
+            )}
+            {kind === "subcategory" && funding && (
+              <div className="mt-1 flex items-center gap-2">
+                <MoneyProgress
+                  value={funding.share}
+                  tone={fundingTone[funding.state]}
+                  label={`${name}: ${funding.label}`}
+                  className="w-36"
+                />
+                <p
+                  className={`text-xs whitespace-nowrap tabular-nums ${funding.state === "overspent" ? "text-accent" : "text-muted"}`}
+                >
+                  {funding.caption}
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -147,7 +214,7 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
           </StatusBadge>
         ) : (
           <StatusBadge tone={statusStyle[status].tone} variant={statusStyle[status].variant}>
-            {left < 0 && status !== "over" ? `+${formatWholeKr(-left)}` : formatWholeKr(left)}
+            {availableBadge(assigned, spent, status)}
           </StatusBadge>
         )}
       </td>
@@ -169,7 +236,7 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
                   }}
                 >
                   <Pencil size={16} aria-hidden />
-                  Rename
+                  Edit
                 </MenuItem>
                 <MenuItem
                   danger

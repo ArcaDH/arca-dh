@@ -7,8 +7,8 @@ import type { BudgetItemForm } from "@/types/budget";
 
 interface BudgetItemFormViewProps {
   title: string;
-  amountLabel?: string;
-  hint?: string | null;
+  // Show the optional monthly target field (subcategory forms only).
+  showTarget?: boolean;
   form: BudgetItemForm;
   error: string | null;
   isSaving: boolean;
@@ -17,11 +17,10 @@ interface BudgetItemFormViewProps {
   onClose: () => void;
 }
 
-// Create or rename popup: categories get a name, subcategories also an amount
+// Create or rename popup: categories get a name, subcategories also an optional monthly target
 export const BudgetItemFormView: FC<BudgetItemFormViewProps> = ({
   title,
-  amountLabel,
-  hint,
+  showTarget,
   form,
   error,
   isSaving,
@@ -51,23 +50,25 @@ export const BudgetItemFormView: FC<BudgetItemFormViewProps> = ({
           />
         </div>
 
-        {amountLabel && (
+        {showTarget && (
           <div>
-            <Label htmlFor="budget-item-amount">{amountLabel}</Label>
+            <Label htmlFor="budget-item-target">Monthly target (optional)</Label>
             <div className="relative">
               <Input
-                id="budget-item-amount"
+                id="budget-item-target"
                 inputMode="decimal"
-                placeholder="0"
-                value={form.amount}
-                onChange={(event) => onChange({ amount: event.target.value })}
+                placeholder="No target"
+                value={form.target}
+                onChange={(event) => onChange({ target: event.target.value })}
                 className="pr-9 tabular-nums"
               />
               <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-foreground/50">
                 kr
               </span>
             </div>
-            {hint && <p className="mt-1.5 text-xs text-muted">{hint}</p>}
+            <p className="mt-1.5 text-xs text-muted">
+              What you aim to fund each month. You can assign money to it later. Leave blank for no target.
+            </p>
           </div>
         )}
 

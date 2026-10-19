@@ -73,3 +73,10 @@ export function nextChargeDate(schedule: Schedule, today: string): string {
   while (dueDate(month, schedule.dayOfMonth) <= today) month = addMonths(month, 1);
   return dueDate(month, schedule.dayOfMonth);
 }
+
+// A month is "YYYY-MM" with a real month number (01-12). Shared by every place that takes a month.
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** Whether a value is a valid "YYYY-MM" month string. */
+export const isValidMonth = (month: unknown): month is string =>
+  typeof month === "string" && MONTH_PATTERN.test(month.trim());

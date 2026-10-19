@@ -59,4 +59,50 @@ const router = Router();
  */
 router.route("/:id").put(SubcategoryHandler.updateSubcategory).delete(SubcategoryHandler.deleteSubcategory);
 
+/**
+ * @swagger
+ * /subcategories/{id}/assignments/{month}:
+ *   put:
+ *     tags: [Subcategories]
+ *     summary: Set money assigned to a subcategory in a month
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: month
+ *         required: true
+ *         description: Month (YYYY-MM)
+ *         schema:
+ *           type: string
+ *           example: "2026-10"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [assigned]
+ *             properties:
+ *               assigned:
+ *                 type: number
+ *                 format: decimal
+ *                 example: 2500.00
+ *     responses:
+ *       '200':
+ *         description: Assignment saved
+ *       '400':
+ *         description: Invalid input or month
+ *       '404':
+ *         description: Subcategory not found
+ *       '401':
+ *         description: Unauthorized
+ */
+router.route("/:id/assignments/:month").put(SubcategoryHandler.setAssignment);
+
 export default router;

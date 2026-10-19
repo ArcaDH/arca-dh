@@ -1,0 +1,111 @@
+import { eq, and, inArray, sql } from "drizzle-orm";
+import { db } from "../db";
+import { budgetPlans, categories, subcategories, subcategoryAssignments, transactions } from "../db/schema";
+
+// Any Drizzle executor: the shared db, or a transaction handle inside db.transaction(...).
+type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export namespace SubcategoryAssignmentRepository {
+  // Insert or update one subcategory's assigned money for a month, on the given executor.
+  async function upsertAssigned(executor: Executor, subcategoryId: string, month: string, assigned: string) {
+    const [row] = await executor
+      .insert(subcategoryAssignments)
+      .values({ subcategoryId, month, assigned })
+      .onConflictDoUpdate({
+        target: [subcategoryAssignments.subcategoryId, subcategoryAssignments.month],
+        set: { assigned },
+      })
+      .returning();
+    return row;
+  }
+
+  /**
+   * Set (insert or update) the money assigned to a subcategory in a given month.
+   * Returns the stored row.
+   */
+  export async function setAssigned(subcategoryId: string, month: string, assigned: string) {
+    return upsertAssigned(db, subcategoryId, month, assigned);
+  }
+
+  /**
+   * Set the same assigned amount on several subcategories for a month, in one transaction
+   * so a failure rolls them all back. Returns the stored rows.
+   */
+  export async function setAssignedMany(subcategoryIds: string[], month: string, assigned: string) {
+    if (subcategoryIds.length === 0) return [];
+    return db.transaction((tx) =>
+      Promise.all(subcategoryIds.map((subcategoryId) => upsertAssigned(tx, subcategoryId, month, assigned))),
+    );
+  }
+
+  /**
+   * Set a per-subcategory assigned amount for a month in one transaction, so a failure
+   * rolls them all back. Returns the stored rows.
+   */
+  export async function setAssignedEach(entries: { subcategoryId: string; assigned: string }[], month: string) {
+    if (entries.length === 0) return [];
+    return db.transaction((tx) =>
+      Promise.all(entries.map((entry) => upsertAssigned(tx, entry.subcategoryId, month, entry.assigned))),
+    );
+  }
+
+  /**
+   * List the subcategories of a plan together with the amount assigned to each in a month.
+   * assigned is null when the subcategory has no assignment that month.
+   */
+  export async function findPlanSubcategoriesWithAssignment(planId: string, month: string) {
+    return db
+      .select({
+        subcategoryId: subcategories.id,
+        target: subcategories.target,
+        categoryId: subcategories.categoryId,
+        assigned: subcategoryAssignments.assigned,
+      })
+      .from(subcategories)
+      .innerJoin(categories, eq(subcategories.categoryId, categories.id))
+      .leftJoin(
+        subcategoryAssignments,
+        and(eq(subcategoryAssignments.subcategoryId, subcategories.id), eq(subcategoryAssignments.month, month)),
+      )
+      .where(eq(categories.budgetPlanId, planId));
+  }
+
+  /**
+   * Among the given subcategory ids, keep only those that belong to the user and plan.
+   * Returns their id, target, the current assignment for the month, and the money spent
+   * (sum of EXPENSE transactions) in that month.
+   */
+  export async function findOwnedWithAssignment(
+    subcategoryIds: string[],
+    userId: number,
+    planId: string,
+    month: string,
+  ) {
+    if (subcategoryIds.length === 0) return [];
+    const monthPrefix = `${month}%`;
+    return db
+      .select({
+        subcategoryId: subcategories.id,
+        target: subcategories.target,
+        assigned: subcategoryAssignments.assigned,
+        // Spent this month on this subcategory. Expenses are stored negative, so negate to a positive spent.
+        spent: sql<string>`(
+          SELECT -COALESCE(SUM(${transactions.amount}), 0)
+          FROM ${transactions}
+          WHERE ${transactions.subcategoryId} = ${subcategories.id}
+            AND ${transactions.type} = 'EXPENSE'
+            AND ${transactions.date}::text LIKE ${monthPrefix}
+        )`,
+      })
+      .from(subcategories)
+      .innerJoin(categories, eq(subcategories.categoryId, categories.id))
+      .innerJoin(budgetPlans, eq(categories.budgetPlanId, budgetPlans.id))
+      .leftJoin(
+        subcategoryAssignments,
+        and(eq(subcategoryAssignments.subcategoryId, subcategories.id), eq(subcategoryAssignments.month, month)),
+      )
+      .where(
+        and(inArray(subcategories.id, subcategoryIds), eq(budgetPlans.userId, userId), eq(budgetPlans.id, planId)),
+      );
+  }
+}

@@ -2,9 +2,9 @@ import { Request, Response } from "express";
 import { UserRepository } from "../repositories/userRepository";
 import { PlanRepository } from "../repositories/planRepository";
 import { authorizeRequest, userIdFromToken, returnCode, returnJson } from "../services/apiService";
+import { isValidMonth } from "../services/monthlyDates";
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export namespace PlanHandler {
   /**
@@ -23,7 +23,7 @@ export namespace PlanHandler {
 
       const queryMonth = request.query.month;
       if (queryMonth !== undefined && queryMonth !== null && queryMonth !== "") {
-        if (typeof queryMonth !== "string" || !MONTH_REGEX.test(queryMonth.trim())) {
+        if (!isValidMonth(queryMonth)) {
           return returnJson(response, 400, {
             code: 400,
             message: "Invalid query parameter: 'month' must be in YYYY-MM format.",
@@ -89,7 +89,7 @@ export namespace PlanHandler {
       ) {
         planMonth = currentMonth;
       } else {
-        if (typeof monthInput !== "string" || !MONTH_REGEX.test(monthInput.trim())) {
+        if (!isValidMonth(monthInput)) {
           return returnJson(response, 400, {
             code: 400,
             message: "Invalid input: 'month' must be in YYYY-MM format (e.g. 2026-10).",
@@ -328,7 +328,7 @@ export namespace PlanHandler {
 
       let updatedMonth = plan.month;
       if (monthInput !== undefined && monthInput !== null && monthInput !== "") {
-        if (typeof monthInput !== "string" || !MONTH_REGEX.test(monthInput.trim())) {
+        if (!isValidMonth(monthInput)) {
           return returnJson(response, 400, {
             code: 400,
             message: "Invalid input: 'month' must be in YYYY-MM format.",

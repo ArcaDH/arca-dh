@@ -1,7 +1,8 @@
 export type SubcategorySpending = {
   subcategoryId: string;
   name: string;
-  limit: number;
+  assigned: number; // money assigned to this subcategory in the overview's month
+  target: number | null; // optional monthly funding goal
   spent: number;
 };
 

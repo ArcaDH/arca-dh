@@ -51,7 +51,7 @@ export namespace SubcategoryRepository {
   /**
    * Update a subcategory
    */
-  export async function updateSubcategory(subcategoryId: string, data: Pick<SubcategoryModel, "name" | "limit">) {
+  export async function updateSubcategory(subcategoryId: string, data: Pick<SubcategoryModel, "name" | "target">) {
     const [updated] = await db.update(subcategories).set(data).where(eq(subcategories.id, subcategoryId)).returning();
     return updated ?? null;
   }
