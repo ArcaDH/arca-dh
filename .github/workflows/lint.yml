@@ -39,3 +39,69 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
+
+  e2e:
+    name: Frontend E2E
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: postgres
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
+      TOKEN_SECRET: ci-e2e-secret
+      # The frontend + seed helper talk to the backend started below.
+      E2E_API_URL: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+
+      # Backend: install, create the schema, and start the API on :3001.
+      - name: Install backend
+        working-directory: backend
+        run: npm ci
+      - name: Create database schema
+        working-directory: backend
+        run: npm run db:push
+      - name: Start backend
+        working-directory: backend
+        run: |
+          PORT=3001 npm run dev &
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/plans/current || true)
+            if [ "$code" != "000" ] && [ -n "$code" ]; then echo "backend up ($code)"; break; fi
+            sleep 2
+          done
+
+      # Frontend: install, install browsers, run the full e2e suite.
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run e2e tests
+        working-directory: frontend
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
