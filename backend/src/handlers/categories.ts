@@ -1,7 +1,11 @@
 import { Request, Response } from "express";
 import { CategoryRepository } from "../repositories/categoryRepository";
 import { returnJson, returnCode, authorizeRequest, userIdFromToken } from "../services/apiService";
+import { isUniqueViolation } from "../services/dbErrors";
 import { validateRequest, validateCategoryData } from "../validators/categories";
+
+const duplicateName = (response: Response) =>
+  returnJson(response, 409, { code: 409, message: "You already have a category with that name in this budget." });
 
 export namespace CategoryHandler {
   /**
@@ -41,6 +45,7 @@ export namespace CategoryHandler {
 
       return returnJson(response, 201, created);
     } catch (error) {
+      if (isUniqueViolation(error)) return duplicateName(response);
       console.error("Error in createCategory:", error);
       return returnJson(response, 500, { code: 500, message: "Internal server error" });
     }
@@ -72,6 +77,7 @@ export namespace CategoryHandler {
 
       return returnJson(response, 200, updated);
     } catch (error) {
+      if (isUniqueViolation(error)) return duplicateName(response);
       console.error("Error in updateCategory:", error);
       return returnJson(response, 500, { code: 500, message: "Internal server error" });
     }

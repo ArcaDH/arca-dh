@@ -36,6 +36,8 @@ const router = Router();
  *         description: Invalid input data
  *       '404':
  *         description: Category not found
+ *       '409':
+ *         description: A category with that name already exists in this budget
  *       '401':
  *         description: Unauthorized
  *   delete:
@@ -117,6 +119,8 @@ router.route("/:id").put(CategoryHandler.updateCategory).delete(CategoryHandler.
  *         description: Invalid input data
  *       '404':
  *         description: Category not found
+ *       '409':
+ *         description: A subcategory with that name already exists in this category
  *       '401':
  *         description: Unauthorized
  */

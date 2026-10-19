@@ -35,6 +35,8 @@ const router = Router();
  *         description: Invalid input data
  *       '404':
  *         description: Subcategory not found
+ *       '409':
+ *         description: A subcategory with that name already exists in this category
  *       '401':
  *         description: Unauthorized
  *   delete:
