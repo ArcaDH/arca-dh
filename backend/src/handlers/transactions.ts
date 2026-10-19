@@ -5,8 +5,7 @@ import { returnJson, userIdFromToken } from "../services/apiService";
 import { MonthlyPaymentRepository } from "../repositories/monthlyPaymentRepository";
 import { MonthlyPaymentService } from "../services/monthlyPaymentService";
 import { handledThroughFor, isValidMonth, monthOf, todayOf } from "../services/monthlyDates";
-
-const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+import { isUuid } from "../validators/uuid";
 
 export namespace TransactionHandler {
   /**
@@ -30,7 +29,7 @@ export namespace TransactionHandler {
         });
       }
 
-      if (queryCategory && !UUID_REGEX.test(queryCategory.trim())) {
+      if (queryCategory && !isUuid(queryCategory.trim())) {
         return returnJson(response, 400, {
           code: 400,
           message: "Invalid query parameter: 'categoryId' must be a valid UUID.",

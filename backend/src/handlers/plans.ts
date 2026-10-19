@@ -3,8 +3,7 @@ import { UserRepository } from "../repositories/userRepository";
 import { PlanRepository } from "../repositories/planRepository";
 import { authorizeRequest, userIdFromToken, returnCode, returnJson } from "../services/apiService";
 import { isValidMonth } from "../services/monthlyDates";
-
-const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+import { isUuid } from "../validators/uuid";
 
 export namespace PlanHandler {
   /**
@@ -198,7 +197,7 @@ export namespace PlanHandler {
       }
 
       const planId = request.body?.planId;
-      if (typeof planId !== "string" || !UUID_REGEX.test(planId)) {
+      if (!isUuid(planId)) {
         return returnJson(response, 404, {
           code: 404,
           message: "Plan not found",
@@ -243,7 +242,7 @@ export namespace PlanHandler {
       }
 
       const planId = request.params.planId;
-      if (typeof planId !== "string" || !UUID_REGEX.test(planId)) {
+      if (!isUuid(planId)) {
         return returnJson(response, 404, {
           code: 404,
           message: "Plan not found",
@@ -293,7 +292,7 @@ export namespace PlanHandler {
       }
 
       const planId = request.params.planId;
-      if (typeof planId !== "string" || !UUID_REGEX.test(planId)) {
+      if (!isUuid(planId)) {
         return returnJson(response, 404, {
           code: 404,
           message: "Plan not found",
@@ -375,7 +374,7 @@ export namespace PlanHandler {
       }
 
       const planId = request.params.planId;
-      if (typeof planId !== "string" || !UUID_REGEX.test(planId)) {
+      if (!isUuid(planId)) {
         return returnJson(response, 404, {
           code: 404,
           message: "Plan not found",

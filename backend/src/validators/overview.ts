@@ -2,8 +2,7 @@ import { Response } from "express";
 import { authorizeRequest, returnCode, returnJson, userIdFromToken } from "../services/apiService";
 import { PlanRepository } from "../repositories/planRepository";
 import { isValidMonth } from "../services/monthlyDates";
-
-const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+import { isUuid } from "./uuid";
 
 export async function validateRequest(request: any, response: any): Promise<string | null> {
   if (!authorizeRequest(request, response)) return null;
@@ -15,7 +14,7 @@ export async function validateRequest(request: any, response: any): Promise<stri
   }
 
   const planId = request.params.planId;
-  if (typeof planId !== "string" || !UUID_REGEX.test(planId)) {
+  if (!isUuid(planId)) {
     returnJson(response, 404, { code: 404, message: "Plan not found" });
     return null;
   }
