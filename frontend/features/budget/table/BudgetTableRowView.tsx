@@ -1,6 +1,7 @@
 import { Check, Goal, MoreHorizontal, Pencil, Plus, Trash2, Wallet } from "lucide-react";
-import { useEffect, useRef, type FC } from "react";
+import { useRef, type FC } from "react";
 import Button from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { StatusBadge, type BadgeTone } from "@/components/ui/StatusBadge";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { MenuItem } from "@/components/ui/MenuItem";
@@ -47,25 +48,6 @@ function AmountInput(props: {
       }}
       onBlur={() => (cancelled.current ? props.onCancel() : props.onSave())}
       className="w-28 rounded-sm border border-primary bg-white px-2 py-0.5 text-right font-normal tabular-nums ring-2 ring-primary/20 outline-none"
-    />
-  );
-}
-
-// A tri-state checkbox: checked, unchecked, or indeterminate (some children selected).
-function SelectBox(props: { checked: boolean; indeterminate?: boolean; label: string; onChange: () => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = !!props.indeterminate && !props.checked;
-  }, [props.indeterminate, props.checked]);
-
-  return (
-    <input
-      ref={ref}
-      type="checkbox"
-      checked={props.checked}
-      aria-label={props.label}
-      onChange={props.onChange}
-      className="size-4 cursor-pointer rounded-sm border-foreground/30 text-primary focus:ring-primary/30"
     />
   );
 }
@@ -117,20 +99,20 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
 
   return (
     <tr className={`group border-t border-foreground/10 ${isLine ? "" : "bg-foreground/[0.025] font-medium"}`}>
-      <td className="w-8 py-2 pr-1 pl-3 align-top">
+      <td className="w-8 py-2 pr-1 pl-3">
         {selection && (
-          <span className="mt-1 flex">
-            <SelectBox
+          <div className="flex">
+            <Checkbox
               checked={selection.checked}
               indeterminate={selection.indeterminate}
               label={`Select ${name}`}
               onChange={selection.onToggle}
             />
-          </span>
+          </div>
         )}
       </td>
 
-      <td className={`py-2 pr-3 ${isLine ? "pl-2" : "pl-0"}`}>
+      <td className="py-2 pr-3 pl-2">
         <div className="flex items-center gap-2.5">
           {kind === "subcategory" && (
             <Wallet size={18} strokeWidth={1.75} className="shrink-0 text-muted" aria-hidden />

@@ -3,7 +3,8 @@ import type { FC, ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import Button from "@/components/ui/button";
-import type { AmountEdit, BudgetGroup, BudgetLine } from "@/types/budget";
+import { Checkbox } from "@/components/ui/Checkbox";
+import type { AmountEdit, BudgetGroup, BudgetLine, SelectionState } from "@/types/budget";
 import type { CategorySpending } from "@/types/overview";
 import { BudgetTableRowView } from "./table/BudgetTableRowView";
 
@@ -17,6 +18,9 @@ interface BudgetViewProps {
   amountEdit: AmountEdit | null;
   // Selection of subcategory lines for bulk assign. The set holds subcategory ids.
   selectedIds: Set<string>;
+  // Null when there are no subcategories to select
+  selectAll: SelectionState | null;
+  categorySelections: Record<string, SelectionState>;
   isRefreshing: boolean;
   errorMessage: string | null;
   dialog: ReactNode;
@@ -24,7 +28,8 @@ interface BudgetViewProps {
   onAddCategory: () => void;
   onAddSubcategory: (category: CategorySpending) => void;
   onToggleLine: (subcategoryId: string) => void;
-  onToggleCategory: (subcategoryIds: string[]) => void;
+  onToggleCategory: (categoryId: string) => void;
+  onToggleAll: () => void;
   onStartAmountEdit: (edit: AmountEdit) => void;
   onAmountEditChange: (value: string) => void;
   onSaveAmount: () => void;
@@ -42,6 +47,8 @@ export const BudgetView: FC<BudgetViewProps> = ({
   selectionToolbar,
   amountEdit,
   selectedIds,
+  selectAll,
+  categorySelections,
   isRefreshing,
   errorMessage,
   dialog,
@@ -50,6 +57,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
   onAddSubcategory,
   onToggleLine,
   onToggleCategory,
+  onToggleAll,
   onStartAmountEdit,
   onAmountEditChange,
   onSaveAmount,
@@ -79,8 +87,19 @@ export const BudgetView: FC<BudgetViewProps> = ({
         <table className={`w-full text-sm transition-opacity ${isRefreshing ? "opacity-60" : ""}`}>
           <thead>
             <tr className="border-b border-foreground/10 text-xs text-muted">
-              <th className="w-8" aria-label="Select" />
-              <th className="px-3 py-2 text-left font-medium">
+              <th className="w-8 py-2 pr-1 pl-3">
+                {selectAll && (
+                  <div className="flex">
+                    <Checkbox
+                      checked={selectAll.checked}
+                      indeterminate={selectAll.indeterminate}
+                      label="Select all subcategories"
+                      onChange={onToggleAll}
+                    />
+                  </div>
+                )}
+              </th>
+              <th className="py-2 pr-3 pl-2 text-left font-medium">
                 <span className="flex items-center gap-1.5">
                   Category
                   <Button size="xs" aria-label="New category" title="New category" onClick={onAddCategory}>
@@ -97,11 +116,6 @@ export const BudgetView: FC<BudgetViewProps> = ({
           </thead>
           {groups.map((group) => {
             const { category } = group;
-            // Subcategory ids under this category heading (goals groups have no category).
-            const subIds = category ? group.lines.map((line) => line.id) : [];
-            const selectedCount = subIds.filter((id) => selectedIds.has(id)).length;
-            const allSelected = subIds.length > 0 && selectedCount === subIds.length;
-            const someSelected = selectedCount > 0 && !allSelected;
 
             return (
               <tbody key={category?.categoryId ?? group.name}>
@@ -112,7 +126,10 @@ export const BudgetView: FC<BudgetViewProps> = ({
                   status={group.status}
                   selection={
                     category
-                      ? { checked: allSelected, indeterminate: someSelected, onToggle: () => onToggleCategory(subIds) }
+                      ? {
+                          ...categorySelections[category.categoryId],
+                          onToggle: () => onToggleCategory(category.categoryId),
+                        }
                       : undefined
                   }
                   onAddSubcategory={category && (() => onAddSubcategory(category))}
