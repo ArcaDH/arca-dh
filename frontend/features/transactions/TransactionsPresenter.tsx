@@ -154,6 +154,12 @@ export default function TransactionsPresenter() {
   const loadError = noPlanYet
     ? "Create a budget plan first."
     : (plan.error ?? categories.error ?? expenses.error)?.message;
+  // "Try again" is only for a failed load. Action errors, and "create a plan first", need something else.
+  const retryLoad = () => {
+    if (plan.error) plan.refetch();
+    if (categories.error) categories.refetch();
+    if (expenses.error) expenses.refetch();
+  };
 
   /** stopRepeating: also stop the monthly payment that made the transaction, so no more are created. */
   function confirmDelete(stopRepeating: boolean) {
@@ -206,6 +212,7 @@ export default function TransactionsPresenter() {
       onShowMore={() => setVisibleCount((count) => count + NEXT_PAGE)}
       isRefreshing={expenses.isPlaceholderData}
       errorMessage={actionError ?? loadError ?? null}
+      onRetry={actionError || noPlanYet || !loadError ? undefined : retryLoad}
       pendingDelete={pendingDelete}
       pendingStop={pendingStop}
       onMonthChange={(next) => {
