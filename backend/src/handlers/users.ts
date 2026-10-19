@@ -112,4 +112,31 @@ export namespace UserHandler {
       return returnJson(response, 500, { code: 500, message: "Internal server error" });
     }
   }
+
+  export async function deleteUser(request: Request, response: Response) {
+    try {
+      const userId = Number(request.params.id);
+      if (!userId || isNaN(userId)) {
+        returnCode(response, 400, MessageCodes.USER_NO_ID);
+        return;
+      }
+
+      // Users may only delete their own account.
+      if (!authorizeRequest(request, response, "", userId)) return;
+
+      const user = await UserRepository.findById(userId);
+      if (!user) {
+        returnCode(response, 404, MessageCodes.USER_NOT_FOUND);
+        return;
+      }
+
+      // Plans and tags cascade, so this removes all of the user's data.
+      await UserRepository.deleteUser(userId);
+
+      response.status(204).send();
+    } catch (error) {
+      console.error("Error in deleteUser:", error);
+      return returnJson(response, 500, { code: 500, message: "Internal server error" });
+    }
+  }
 }
