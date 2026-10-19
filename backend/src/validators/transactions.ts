@@ -1,13 +1,14 @@
 import { Response } from "express";
-import { authorizeRequest, returnCode, returnJson, userIdFromToken } from "../services/apiService";
 import { CategoryRepository } from "../repositories/categoryRepository";
 import { SubcategoryRepository } from "../repositories/subcategoryRepository";
 import { SavingsGoalRepository } from "../repositories/savingsGoalRepository";
-import { PlanRepository } from "../repositories/planRepository";
 import { TransactionRepository } from "../repositories/transactionRepository";
 import { TagRepository } from "../repositories/tagRepository";
 import { MAX_TAGS_PER_TRANSACTION } from "./tags";
+import { authorizeRequest, returnCode, returnJson, userIdFromToken } from "../services/apiService";
+import { PlanRepository } from "../repositories/planRepository";
 import { isUuid } from "./uuid";
+import { validatePlanScopedRequest } from "./planScope";
 
 const DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
@@ -245,28 +246,7 @@ export async function validateTransactionData(body: any, response: Response, use
     repeatMonthly: normRepeat,
   };
 }
-export async function validateRequest(request: any, response: any) {
-  if (!authorizeRequest(request, response)) return null;
-
-  const userId = userIdFromToken(request);
-  if (!userId) {
-    returnCode(response, 401);
-    return null;
-  }
-
-  const planId = request.params.planId;
-  if (!isUuid(planId)) {
-    returnJson(response, 404, { code: 404, message: "Plan not found" });
-    return null;
-  }
-
-  const plan = await PlanRepository.findByIdAndUserId(planId, userId);
-  if (!plan) {
-    returnJson(response, 404, { code: 404, message: "Plan not found" });
-    return null;
-  }
-  return planId;
-}
+export const validateRequest = validatePlanScopedRequest;
 
 export async function validateExistingRequest(request: any, response: any) {
   if (!authorizeRequest(request, response)) return null;
