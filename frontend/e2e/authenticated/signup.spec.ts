@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { API_URL, backendReachable, freshCredentials } from "../support/backend";
+import { API_URL, backendReachable, deleteUserByCredentials, freshCredentials } from "../support/backend";
 
 // The signup → login journey, driven entirely through the registration form.
 //
@@ -33,9 +33,8 @@ test.describe("signup flow", () => {
     // The signed-up user has no plan yet, so the plan picker shows the empty state.
     await expect(page.getByText(/No plan yet/i)).toBeVisible();
 
-    // Cleanup: the fresh user owns no plan, so there is nothing to tear down
-    // beyond the (uniquely-named) user row, which the backend has no route to
-    // delete. The unique suffix keeps runs from colliding.
+    // Cleanup: delete the user we just created (cascades any of their data).
     await context.clearCookies();
+    await deleteUserByCredentials(creds.email, creds.password);
   });
 });

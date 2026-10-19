@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 // These tests exercise the proxy (middleware) auth guard in proxy.ts.
 // Unauthenticated users are redirected to /login; the only public pages
-// are /login and /register. No backend is required — the guard runs purely
+// are /login and /register. No backend is required - the guard runs purely
 // off the presence of the `auth_token` cookie.
 
 const PROTECTED_ROUTES = ["/", "/transactions", "/goals", "/analytics", "/budget"];

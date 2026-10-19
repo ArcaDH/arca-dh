@@ -7,7 +7,7 @@
 //
 // The backend base URL is taken from E2E_API_URL (falling back to the local
 // docker-compose backend on :3001). Authenticated specs are skipped entirely
-// when no backend is configured — see e2e/support/fixtures.ts.
+// when no backend is configured - see e2e/support/fixtures.ts.
 
 export const API_URL = process.env.E2E_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -150,19 +150,16 @@ export async function seedUserWithPlan(): Promise<SeededUser> {
 }
 
 /**
- * Remove the data a test created. Deleting the plan cascades to its categories,
- * subcategories, transactions and goals (ON DELETE CASCADE in the schema), so a
- * single DELETE tears down everything the seed created under the plan.
- *
- * Note: the backend exposes no DELETE /users route, so the (uniquely-named)
- * user row itself can't be removed via the API; deleting the plan removes all
- * of its data, which is the part that would otherwise accumulate between runs.
+ * Remove the data a test created. Deleting the user cascades to their plans,
+ * tags and everything under those (categories, subcategories, transactions,
+ * goals, ON DELETE CASCADE in the schema), so a single DELETE tears down the
+ * whole dataset the seed created, including the user row itself.
  */
 export async function cleanupSeededUser(user: SeededUser): Promise<void> {
   try {
-    await api<void>(`/plans/${user.planId}`, { method: "DELETE", token: user.token });
+    await api<void>(`/users/${user.id}`, { method: "DELETE", token: user.token });
   } catch {
-    // Best-effort cleanup — never fail a test because teardown couldn't reach
+    // Best-effort cleanup - never fail a test because teardown couldn't reach
     // the backend (e.g. it was already torn down).
   }
 }
@@ -194,4 +191,20 @@ export function freshCredentials(): {
     email: `e2e_${suffix}@example.com`,
     password: `Pw_${suffix}`.slice(0, 18),
   };
+}
+
+/**
+ * Delete a user created through the signup form. Logs in to obtain the id and
+ * token, then deletes the account (cascading all of their data). Best-effort.
+ */
+export async function deleteUserByCredentials(email: string, password: string): Promise<void> {
+  try {
+    const { id, token } = await api<{ id: number; token: string }>("/users/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    await api<void>(`/users/${id}`, { method: "DELETE", token });
+  } catch {
+    // Best-effort cleanup.
+  }
 }

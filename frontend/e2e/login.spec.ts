@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-// UI-level tests for the login page. These do not hit the backend — they
+// UI-level tests for the login page. These do not hit the backend - they
 // verify rendering, client-side validation, and navigation between the
 // auth pages.
 

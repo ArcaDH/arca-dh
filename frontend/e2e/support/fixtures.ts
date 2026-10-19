@@ -2,7 +2,7 @@
 //
 // `authedTest` gives each test its own freshly-seeded user (via the backend
 // API) and a browser context whose `auth_token` cookie is already set to that
-// user's login token — so the app lets us through and the ApiClient sends the
+// user's login token, so the app lets us through and the ApiClient sends the
 // token on every request.
 //
 // When no backend is configured/reachable, these tests are skipped rather than

@@ -27,7 +27,7 @@ test.describe("register page", () => {
     await page.getByLabel("Last name").fill("Lovelace");
     await page.getByLabel("Username").fill("ada");
     await page.getByLabel("Email").fill("ada@example.com");
-    // 7 chars — below the minLength of 8.
+    // 7 chars, below the minLength of 8.
     await page.getByLabel("Password").fill("short12");
 
     await page.getByRole("button", { name: "Create account" }).click();
