@@ -18,19 +18,19 @@ test.describe("auth guard (unauthenticated)", () => {
   test("renders the login page content after redirect", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   });
 
   test("allows access to /login without a session", async ({ page }) => {
     await page.goto("/login");
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   });
 
   test("allows access to /register without a session", async ({ page }) => {
     await page.goto("/register");
     await expect(page).toHaveURL(/\/register$/);
-    await expect(page.getByRole("heading", { name: "Create an account" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
   });
 });
 

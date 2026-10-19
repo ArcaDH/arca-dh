@@ -25,7 +25,7 @@ test.describe("login / logout flow", () => {
 
     // Logging out clears the auth cookie and sends us back to /login.
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   });
 
   test("rejects wrong credentials with an error and stays on /login", async ({ page, context, seeded }) => {

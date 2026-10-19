@@ -8,7 +8,7 @@ test.describe("register page", () => {
   });
 
   test("renders all registration fields and the submit button", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Create an account" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
     await expect(page.getByLabel("First name")).toBeVisible();
     await expect(page.getByLabel("Last name")).toBeVisible();
     await expect(page.getByLabel("Username")).toBeVisible();
@@ -41,6 +41,6 @@ test.describe("register page", () => {
   test("navigates back to the login page via the 'Log in' link", async ({ page }) => {
     await page.getByRole("link", { name: "Log in" }).click();
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   });
 });
