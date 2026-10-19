@@ -27,8 +27,9 @@ test.describe("transactions page", () => {
     await page.getByLabel("Amount", { exact: true }).fill("25,00");
     await page.getByLabel("Date").fill(date);
     await page.getByLabel("Description", { exact: true }).fill(description);
-    // "For" is a grouped <select>; pick the seeded category.
-    await page.getByLabel("For").selectOption({ label: seeded.categoryName });
+    // "For" is a grouped <select>; pick the seeded subcategory (categories with
+    // subcategories list their subcategories as the assignable options).
+    await page.getByLabel("For").selectOption({ label: seeded.subcategoryName });
 
     await page.getByRole("button", { name: "Add transaction" }).click();
 

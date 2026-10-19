@@ -21,6 +21,8 @@ export type SeededUser = {
   planName: string;
   categoryId: string;
   categoryName: string;
+  subcategoryId: string;
+  subcategoryName: string;
 };
 
 type RegisterBody = {
@@ -109,6 +111,15 @@ export async function seedUserWithPlan(): Promise<SeededUser> {
     body: JSON.stringify({ name: categoryName, maxBudget: "600.00" }),
   });
 
+  // A subcategory with a monthly target, so the budget page has a fundable line
+  // and something to select for the bulk-assign toolbar.
+  const subcategoryName = "Groceries";
+  const subcategory = await api<{ id: string; name: string }>(`/categories/${category.id}/subcategories`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({ name: subcategoryName, target: "500.00" }),
+  });
+
   // One expense so the transactions/overview pages aren't empty.
   await api<void>(`/plans/${plan.id}/transactions`, {
     method: "POST",
@@ -119,6 +130,7 @@ export async function seedUserWithPlan(): Promise<SeededUser> {
       type: "EXPENSE",
       description: "Seed groceries",
       categoryId: category.id,
+      subcategoryId: subcategory.id,
     }),
   });
 
@@ -132,6 +144,8 @@ export async function seedUserWithPlan(): Promise<SeededUser> {
     planName,
     categoryId: category.id,
     categoryName,
+    subcategoryId: subcategory.id,
+    subcategoryName,
   };
 }
 
