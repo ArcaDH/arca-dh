@@ -72,3 +72,7 @@ npm test              # backend only (Vitest)
 
 pre-commit run --all-files   # run all hooks manually
 ```
+
+## License
+
+Released under the [MIT License](LICENSE).
