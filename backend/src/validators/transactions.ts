@@ -1,14 +1,15 @@
 import { Response } from "express";
-import { authorizeRequest, returnCode, returnJson, userIdFromToken } from "../services/apiService";
 import { CategoryRepository } from "../repositories/categoryRepository";
 import { SubcategoryRepository } from "../repositories/subcategoryRepository";
 import { SavingsGoalRepository } from "../repositories/savingsGoalRepository";
-import { PlanRepository } from "../repositories/planRepository";
 import { TransactionRepository } from "../repositories/transactionRepository";
 import { TagRepository } from "../repositories/tagRepository";
 import { MAX_TAGS_PER_TRANSACTION } from "./tags";
+import { authorizeRequest, returnCode, returnJson, userIdFromToken } from "../services/apiService";
+import { PlanRepository } from "../repositories/planRepository";
+import { isUuid } from "./uuid";
+import { validatePlanScopedRequest } from "./planScope";
 
-const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 // Limits for the size of an amount in kronor. The sign is not part of the size: a minus means money out.
@@ -27,7 +28,7 @@ async function validateTagIds(
 ): Promise<string[] | undefined | null> {
   if (tagIds === undefined || tagIds === null) return undefined;
 
-  if (!Array.isArray(tagIds) || tagIds.some((id) => typeof id !== "string" || !UUID_REGEX.test(id))) {
+  if (!Array.isArray(tagIds) || tagIds.some((id) => !isUuid(id))) {
     returnJson(response, 400, {
       code: 400,
       message: "Invalid input: 'tagIds' must be a list of tag ids.",
@@ -160,7 +161,7 @@ export async function validateTransactionData(body: any, response: Response, use
       return null;
     }
 
-    if (normCategory === null || !UUID_REGEX.test(normCategory)) {
+    if (normCategory === null || !isUuid(normCategory)) {
       returnJson(response, 400, {
         code: 400,
         message: "Invalid transaction: An EXPENSE transaction requires a valid 'categoryId'.",
@@ -180,7 +181,7 @@ export async function validateTransactionData(body: any, response: Response, use
 
     // If subcategory is provided, verify it belongs to category
     if (normSubcategory !== null) {
-      if (!UUID_REGEX.test(normSubcategory)) {
+      if (!isUuid(normSubcategory)) {
         returnJson(response, 400, {
           code: 400,
           message: "Invalid transaction: 'subcategoryId' must be a valid UUID.",
@@ -206,7 +207,7 @@ export async function validateTransactionData(body: any, response: Response, use
       return null;
     }
 
-    if (normSavingsGoal === null || !UUID_REGEX.test(normSavingsGoal)) {
+    if (normSavingsGoal === null || !isUuid(normSavingsGoal)) {
       returnJson(response, 400, {
         code: 400,
         message: "Invalid transaction: A SAVING transaction requires a valid 'savingsGoalId'.",
@@ -245,28 +246,7 @@ export async function validateTransactionData(body: any, response: Response, use
     repeatMonthly: normRepeat,
   };
 }
-export async function validateRequest(request: any, response: any) {
-  if (!authorizeRequest(request, response)) return null;
-
-  const userId = userIdFromToken(request);
-  if (!userId) {
-    returnCode(response, 401);
-    return null;
-  }
-
-  const planId = request.params.planId;
-  if (typeof planId !== "string" || !UUID_REGEX.test(planId)) {
-    returnJson(response, 404, { code: 404, message: "Plan not found" });
-    return null;
-  }
-
-  const plan = await PlanRepository.findByIdAndUserId(planId, userId);
-  if (!plan) {
-    returnJson(response, 404, { code: 404, message: "Plan not found" });
-    return null;
-  }
-  return planId;
-}
+export const validateRequest = validatePlanScopedRequest;
 
 export async function validateExistingRequest(request: any, response: any) {
   if (!authorizeRequest(request, response)) return null;
@@ -278,7 +258,7 @@ export async function validateExistingRequest(request: any, response: any) {
   }
 
   const id = request.params.id;
-  if (typeof id !== "string" || !UUID_REGEX.test(id)) {
+  if (!isUuid(id)) {
     returnJson(response, 404, { code: 404, message: "Transaction not found" });
     return null;
   }

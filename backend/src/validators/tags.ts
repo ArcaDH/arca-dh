@@ -1,8 +1,7 @@
 import { Response } from "express";
 import { authorizeRequest, returnCode, returnJson, userIdFromToken } from "../services/apiService";
 import { TAG_COLORS } from "../db/schema";
-
-const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+import { isUuid } from "./uuid";
 
 export const MAX_TAG_NAME_LENGTH = 30;
 export const MAX_TAGS_PER_TRANSACTION = 5;
@@ -27,7 +26,7 @@ export function validateRequest(request: any, response: any): number | null {
  */
 export function validateTagId(request: any, response: any): string | null {
   const id = request.params.id;
-  if (typeof id !== "string" || !UUID_REGEX.test(id)) {
+  if (!isUuid(id)) {
     returnJson(response, 404, { code: 404, message: "Tag not found" });
     return null;
   }
