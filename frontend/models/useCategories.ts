@@ -27,7 +27,15 @@ export function useCategories(planId: string | undefined) {
         }))
       : undefined;
 
-  return { data, isLoading, error };
+  // Tries again only the queries that failed
+  const refetch = () => {
+    if (categories.error) categories.refetch();
+    subcategoryLists.forEach((list) => {
+      if (list.error) list.refetch();
+    });
+  };
+
+  return { data, isLoading, error, refetch };
 }
 
 // Ensures that UI updates after mutations.

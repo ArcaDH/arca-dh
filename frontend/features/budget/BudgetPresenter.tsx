@@ -105,6 +105,11 @@ export const BudgetPresenter = () => {
   const loadError = noPlanYet
     ? "Create a budget plan first, with the plan picker in the sidebar."
     : (plan.error ?? overview.error)?.message;
+  // "Try again" is only for a failed load. Action errors, and "create a plan first", need something else.
+  const retryLoad = () => {
+    if (plan.error) plan.refetch();
+    if (overview.error) overview.refetch();
+  };
 
   const onActionError = (error: Error) => setActionError(error.message);
 
@@ -342,6 +347,7 @@ export const BudgetPresenter = () => {
       selectedIds={validSelected}
       isRefreshing={overview.isPlaceholderData}
       errorMessage={actionError ?? loadError ?? null}
+      onRetry={actionError || noPlanYet || !loadError ? undefined : retryLoad}
       dialog={formDialog || deleteDialog || incomeDialog}
       onMonthChange={changeMonth}
       onAddCategory={() => openForm({ mode: "createCategory" }, { name: "", target: "" })}

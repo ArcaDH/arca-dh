@@ -54,6 +54,11 @@ export const SpendingAnalyticsPresenter = () => {
   const errorMessage = noPlanYet
     ? "Create a budget plan first, with the plan picker in the sidebar."
     : ((plan.error ?? overview.error)?.message ?? null);
+  // "Try again" is only for a failed load. Action errors, and "create a plan first", need something else.
+  const retryLoad = () => {
+    if (plan.error) plan.refetch();
+    if (overview.error) overview.refetch();
+  };
 
   // Clicking the same row again clears the highlight.
   const onSelect = (categoryId: string) =>
@@ -90,6 +95,7 @@ export const SpendingAnalyticsPresenter = () => {
       canDrill={isCategoryGrouping}
       isRefreshing={overview.isPlaceholderData}
       errorMessage={errorMessage}
+      onRetry={noPlanYet || !errorMessage ? undefined : retryLoad}
       onMonthChange={(next) => {
         setActiveCategoryId(null);
         setDrilldownCategoryId(null);
