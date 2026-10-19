@@ -54,6 +54,11 @@ export const GoalsPresenter = () => {
   const loadError = noPlanYet
     ? "Create a budget plan first, with the plan picker in the sidebar."
     : (plan.error ?? overview.error)?.message;
+  // "Try again" is only for a failed load. Action errors, and "create a plan first", need something else.
+  const retryLoad = () => {
+    if (plan.error) plan.refetch();
+    if (overview.error) overview.refetch();
+  };
 
   const alreadySaved = formTarget?.mode === "edit" ? formTarget.goal.savedAmount : 0;
 
@@ -200,6 +205,7 @@ export const GoalsPresenter = () => {
       totalTarget={sumKr((goals ?? []).map((goal) => goal.targetAmount))}
       neededThisMonth={sumKr((cards ?? []).filter((card) => !card.isDone).map((card) => card.monthly))}
       errorMessage={actionError ?? loadError ?? null}
+      onRetry={actionError || noPlanYet || !loadError ? undefined : retryLoad}
       dialog={formDialog || deleteDialog || detailDialog}
       onAddGoal={() => openForm({ mode: "create" }, EMPTY_FORM)}
       onOpenGoal={setOpenGoalId}

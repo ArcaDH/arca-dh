@@ -1,4 +1,5 @@
 import { Check, Pencil, Trash2 } from "lucide-react";
+import Skeleton, { SkeletonRegion } from "@/components/ui/Skeleton";
 import type { FC } from "react";
 import Button from "@/components/ui/button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -101,7 +102,10 @@ export const GoalDetailView: FC<GoalDetailViewProps> = ({
       <section aria-label="History" className="mt-5">
         <h3 className="mb-1 text-xs font-semibold text-muted">History</h3>
         {savings === null ? (
-          <p className="py-2 text-sm text-muted">Loading…</p>
+          <SkeletonRegion className="space-y-2 py-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </SkeletonRegion>
         ) : savings.length === 0 ? (
           <p className="py-2 text-sm text-muted">Nothing saved yet. Log a saving under Transactions.</p>
         ) : (

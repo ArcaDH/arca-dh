@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import MonthlyPayments from "@/components/transactions/MonthlyPayments";
-import TransactionFiltersBar from "@/components/transactions/TransactionFilters";
-import TransactionList from "@/components/transactions/TransactionList";
+import MonthlyPayments from "@/features/transactions/components/MonthlyPayments";
+import TransactionFiltersBar from "@/features/transactions/components/TransactionFilters";
+import TransactionList from "@/features/transactions/components/TransactionList";
+import TransactionListSkeleton from "@/features/transactions/components/TransactionListSkeleton";
 import Card from "@/components/ui/card";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import ErrorState from "@/components/ui/ErrorState";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { formatDay } from "@/lib/format";
 import { formatKr, formatSignedKr } from "@/lib/money";
@@ -33,6 +35,8 @@ interface TransactionsViewProps {
   matchCount: number;
   isRefreshing: boolean;
   errorMessage: string | null;
+  /** Set when the failure is a load that can be tried again. */
+  onRetry?: () => void;
   pendingDelete: TransactionRow | null;
   pendingStop: MonthlyPaymentRow | null;
   onMonthChange: (month: string) => void;
@@ -70,11 +74,7 @@ export default function TransactionsView(props: TransactionsViewProps) {
         <MonthPicker month={props.month} onChange={props.onMonthChange} />
       </PageHeader>
 
-      {props.errorMessage && (
-        <p role="alert" className="mb-4 rounded-lg bg-accent/10 px-4 py-3 text-sm text-accent">
-          {props.errorMessage}
-        </p>
-      )}
+      {props.errorMessage && <ErrorState message={props.errorMessage} onRetry={props.onRetry} />}
 
       {/* Three columns on wide screens, two on large ones (the monthly payments go under the form), one on small */}
       <div className="grid items-start gap-6 xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_300px]">
@@ -99,7 +99,7 @@ export default function TransactionsView(props: TransactionsViewProps) {
                 onDelete={props.onAskDelete}
               />
             ) : (
-              !props.errorMessage && <p className="py-8 text-center text-sm text-foreground/60">Loading…</p>
+              !props.errorMessage && <TransactionListSkeleton />
             )}
 
             {hiddenCount > 0 && props.rows && (

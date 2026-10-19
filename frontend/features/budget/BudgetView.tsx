@@ -1,11 +1,13 @@
 import { Plus } from "lucide-react";
 import type { FC, ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import ErrorState from "@/components/ui/ErrorState";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import Button from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import type { AmountEdit, BudgetGroup, BudgetLine, SelectionState } from "@/types/budget";
 import type { CategorySpending } from "@/types/overview";
+import { BudgetSkeleton } from "./BudgetSkeleton";
 import { BudgetTableRowView } from "./table/BudgetTableRowView";
 
 interface BudgetViewProps {
@@ -23,6 +25,8 @@ interface BudgetViewProps {
   categorySelections: Record<string, SelectionState>;
   isRefreshing: boolean;
   errorMessage: string | null;
+  // Set when the failure is a load that can be tried again
+  onRetry?: () => void;
   dialog: ReactNode;
   onMonthChange: (month: string) => void;
   onAddCategory: () => void;
@@ -51,6 +55,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
   categorySelections,
   isRefreshing,
   errorMessage,
+  onRetry,
   dialog,
   onMonthChange,
   onAddCategory,
@@ -73,16 +78,12 @@ export const BudgetView: FC<BudgetViewProps> = ({
         <MonthPicker month={month} onChange={onMonthChange} />
       </PageHeader>
 
-      {errorMessage && (
-        <p role="alert" className="mb-4 bg-accent/10 px-4 py-3 text-sm text-accent">
-          {errorMessage}
-        </p>
-      )}
+      {errorMessage && <ErrorState message={errorMessage} onRetry={onRetry} />}
 
       {selectionToolbar}
 
       {!groups ? (
-        !errorMessage && <p className="py-8 text-sm text-muted">Loading…</p>
+        !errorMessage && <BudgetSkeleton />
       ) : (
         <table className={`w-full text-sm transition-opacity ${isRefreshing ? "opacity-60" : ""}`}>
           <thead>

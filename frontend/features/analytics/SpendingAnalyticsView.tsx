@@ -2,8 +2,10 @@ import { ChevronRight } from "lucide-react";
 import type { FC } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import Card from "@/components/ui/card";
+import ErrorState from "@/components/ui/ErrorState";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import type { CategorySegment } from "@/lib/analytics";
+import { AnalyticsSkeleton } from "./AnalyticsSkeleton";
 import { CategoryBreakdownList } from "./CategoryBreakdownList";
 import { SpendingDonut } from "./SpendingDonut";
 
@@ -19,6 +21,8 @@ interface SpendingAnalyticsViewProps {
   canDrill: boolean;
   isRefreshing: boolean;
   errorMessage: string | null;
+  // Set when the failure is a load that can be tried again
+  onRetry?: () => void;
   onMonthChange: (month: string) => void;
   onGroupingChange: (grouping: Grouping) => void;
   onSelect: (categoryId: string) => void;
@@ -66,6 +70,7 @@ export const SpendingAnalyticsView: FC<SpendingAnalyticsViewProps> = ({
   canDrill,
   isRefreshing,
   errorMessage,
+  onRetry,
   onMonthChange,
   onGroupingChange,
   onSelect,
@@ -83,14 +88,10 @@ export const SpendingAnalyticsView: FC<SpendingAnalyticsViewProps> = ({
         <MonthPicker month={month} onChange={onMonthChange} />
       </PageHeader>
 
-      {errorMessage && (
-        <p role="alert" className="mb-4 rounded-lg bg-accent/10 px-4 py-3 text-sm text-accent">
-          {errorMessage}
-        </p>
-      )}
+      {errorMessage && <ErrorState message={errorMessage} onRetry={onRetry} />}
 
       {!segments ? (
-        !errorMessage && <p className="py-8 text-sm text-muted">Loading…</p>
+        !errorMessage && <AnalyticsSkeleton />
       ) : segments.length === 0 ? (
         !errorMessage && (
           <Card>

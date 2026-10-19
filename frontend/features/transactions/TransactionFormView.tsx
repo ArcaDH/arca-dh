@@ -6,7 +6,7 @@ import Input from "@/components/ui/input";
 import Label from "@/components/ui/label";
 import Select from "@/components/ui/select";
 import { Switch } from "@/components/ui/Switch";
-import TagPicker from "@/components/transactions/TagPicker";
+import TagPicker from "@/features/transactions/components/TagPicker";
 import { ordinal } from "@/lib/monthly";
 import type { NewTag, Tag } from "@/types/tag";
 import type { ForGroup, MoneyDirection } from "@/types/transaction";

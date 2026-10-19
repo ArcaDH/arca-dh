@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import type { FC, ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import Button from "@/components/ui/button";
+import ErrorState from "@/components/ui/ErrorState";
 import { formatWholeKr } from "@/lib/money";
 import type { GoalCard, GoalFilter } from "@/types/goal";
 
@@ -11,6 +12,7 @@ const FILTERS: { value: GoalFilter; label: string }[] = [
   { value: "done", label: "Done" },
 ];
 import { GoalCardView } from "./card/GoalCardView";
+import { GoalsSkeleton } from "./GoalsSkeleton";
 
 interface GoalsViewProps {
   cards: GoalCard[] | null;
@@ -20,6 +22,8 @@ interface GoalsViewProps {
   totalTarget: number;
   neededThisMonth: number;
   errorMessage: string | null;
+  // Set when the failure is a load that can be tried again
+  onRetry?: () => void;
   dialog: ReactNode;
   onFilterChange: (filter: GoalFilter) => void;
   onAddGoal: () => void;
@@ -34,6 +38,7 @@ export const GoalsView: FC<GoalsViewProps> = ({
   totalTarget,
   neededThisMonth,
   errorMessage,
+  onRetry,
   dialog,
   onFilterChange,
   onAddGoal,
@@ -91,14 +96,10 @@ export const GoalsView: FC<GoalsViewProps> = ({
         </Button>
       </div>
 
-      {errorMessage && (
-        <p role="alert" className="mb-4 bg-accent/10 px-4 py-3 text-sm text-accent">
-          {errorMessage}
-        </p>
-      )}
+      {errorMessage && <ErrorState message={errorMessage} onRetry={onRetry} />}
 
       {!cards ? (
-        !errorMessage && <p className="py-8 text-sm text-muted">Loading…</p>
+        !errorMessage && <GoalsSkeleton />
       ) : cards.length === 0 ? (
         <p className="py-8 text-sm text-muted">
           {counts.all === 0 ? "No savings goals yet. Add one with New." : "No goals here."}
