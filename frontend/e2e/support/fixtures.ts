@@ -9,7 +9,7 @@
 // failing, so the suite still runs in environments without the full stack.
 
 import { test as base, expect, type BrowserContext } from "@playwright/test";
-import { API_URL, backendReachable, seedUserWithPlan, type SeededUser } from "./backend";
+import { API_URL, backendReachable, cleanupSeededUser, seedUserWithPlan, type SeededUser } from "./backend";
 
 type AuthedFixtures = {
   seeded: SeededUser;
@@ -37,6 +37,10 @@ export const authedTest = base.extend<AuthedFixtures>({
     await seedCookie(context, user.token);
 
     await use(user);
+
+    // Teardown: remove the data this test created so the test DB doesn't grow
+    // between runs (the rubric asks e2e tests to use test data AND clean up).
+    await cleanupSeededUser(user);
   },
 
   gotoAuthed: async ({ page, context, seeded }, use) => {

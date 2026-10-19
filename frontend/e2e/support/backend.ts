@@ -149,6 +149,24 @@ export async function seedUserWithPlan(): Promise<SeededUser> {
   };
 }
 
+/**
+ * Remove the data a test created. Deleting the plan cascades to its categories,
+ * subcategories, transactions and goals (ON DELETE CASCADE in the schema), so a
+ * single DELETE tears down everything the seed created under the plan.
+ *
+ * Note: the backend exposes no DELETE /users route, so the (uniquely-named)
+ * user row itself can't be removed via the API; deleting the plan removes all
+ * of its data, which is the part that would otherwise accumulate between runs.
+ */
+export async function cleanupSeededUser(user: SeededUser): Promise<void> {
+  try {
+    await api<void>(`/plans/${user.planId}`, { method: "DELETE", token: user.token });
+  } catch {
+    // Best-effort cleanup — never fail a test because teardown couldn't reach
+    // the backend (e.g. it was already torn down).
+  }
+}
+
 /** True when a backend looks reachable; used to skip authed specs gracefully. */
 export async function backendReachable(): Promise<boolean> {
   try {
@@ -158,4 +176,22 @@ export async function backendReachable(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Generate unique, backend-valid registration credentials for a signup test. */
+export function freshCredentials(): {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  password: string;
+} {
+  const suffix = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`.slice(-10);
+  return {
+    firstName: "E2E",
+    lastName: "Signup",
+    username: `e2e_${suffix}`.slice(0, 20),
+    email: `e2e_${suffix}@example.com`,
+    password: `Pw_${suffix}`.slice(0, 18),
+  };
 }
