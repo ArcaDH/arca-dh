@@ -1,46 +1,30 @@
-This repository is an API serving the backend service.
+# Backend
 
-# Project Setup
+Express + TypeScript API using Drizzle ORM and PostgreSQL.
 
-1. Clone the repository
-2. Copy and paste the _.env.template_ file and rename it to _.env_
-3. Fill out the _.env_ file with the correct configuration values
-4. Run the command: `npm install`
-5. Run the command: `npm update`
+See the [root README](../README.md) for the full setup, Docker, and script reference.
 
-### The project is now installed. To start the API locally, simply run:
+## Quick start
 
-`npm run start`
-
-You may need to install an additional package. You can then access the local API on port 3000:
-
-`http://localhost:3000/`
-
-To access the Swagger API documentation: `http://localhost:3000/api-docs`
-
-## Drizzle ORM
-
-To apply database schema updates:
-
-```ts
-npx drizzle-kit push
+```bash
+npm install
+cp .env.template .env   # then fill in values
+npm run dev             # starts on http://localhost:3001
 ```
 
-Make sure that your database user has sufficient privileges. Otherwise, you might encounter an error such as:
+Swagger docs: http://localhost:3001/api-docs
 
-```
-No config path provided, using default 'drizzle.config.ts'
-Reading config file 'D:\dev\Amis-JoterBack\drizzle.config.ts'
-Using 'pg' driver for database querying
-[✓] Pulling schema from database...
-error: permission denied for schema public
+## Database (Drizzle ORM)
+
+```bash
+npm run db:generate   # generate migrations from schema
+npm run db:migrate    # apply migrations
+npm run db:push       # push schema directly (dev)
 ```
 
-### How to fix it? Grant usage and permissions to your database user:
+If `db:push` fails with `permission denied for schema public`, grant your DB user the needed privileges:
 
 ```sql
-GRANT USAGE ON SCHEMA public TO admin;
-
-GRANT CREATE, CONNECT, TEMPORARY ON DATABASE amisjoter TO username;
-GRANT ALL PRIVILEGES ON SCHEMA public TO username;
+GRANT USAGE, CREATE ON SCHEMA public TO <user>;
+GRANT ALL PRIVILEGES ON SCHEMA public TO <user>;
 ```
