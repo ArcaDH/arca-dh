@@ -16,6 +16,9 @@ export type BudgetLine =
   (LineBase & { kind: "subcategory"; target: number | null }) | (LineBase & { kind: "goal"; goal: GoalProgress });
 
 // A heading with its lines: a category, or the savings goals (no category)
+// A checkbox standing for several subcategories: all selected, some (shown as a dash), or none
+export type SelectionState = { checked: boolean; indeterminate: boolean };
+
 export type BudgetGroup = {
   name: string;
   assigned: number;
