@@ -12,6 +12,7 @@ vi.mock("../../src/repositories/userRepository", () => ({
     findByUsername: vi.fn(),
     findById: vi.fn(),
     updateUser: vi.fn(),
+    deleteUser: vi.fn(),
   },
 }));
 
@@ -497,6 +498,68 @@ describe("UserHandler (users.ts)", () => {
       const res = createMockResponse();
 
       await UserHandler.getUser(req, res as any);
+      expect(res.statusCode).toBe(500);
+      expect(res.body).toEqual({ code: 500, message: "Internal server error" });
+    });
+  });
+
+  describe("deleteUser", () => {
+    it("should return 400 if the id is missing or invalid", async () => {
+      const req = createMockRequest({ params: { id: "abc" }, tokenUserId: 1 });
+      const res = createMockResponse();
+
+      await UserHandler.deleteUser(req, res as any);
+      expect(res.statusCode).toBe(400);
+      expect(res.body.code).toBe(MessageCodes.USER_NO_ID);
+    });
+
+    it("should return 401 when no token is provided", async () => {
+      const req = createMockRequest({ params: { id: "1" } });
+      const res = createMockResponse();
+
+      await UserHandler.deleteUser(req, res as any);
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("should return 403 when deleting another user's account", async () => {
+      const req = createMockRequest({ params: { id: "1" }, tokenUserId: 2 });
+      const res = createMockResponse();
+
+      await UserHandler.deleteUser(req, res as any);
+      expect(res.statusCode).toBe(403);
+    });
+
+    it("should return 404 when the user does not exist", async () => {
+      vi.mocked(UserRepository.findById).mockResolvedValueOnce(undefined as any);
+
+      const req = createMockRequest({ params: { id: "1" }, tokenUserId: 1 });
+      const res = createMockResponse();
+
+      await UserHandler.deleteUser(req, res as any);
+      expect(res.statusCode).toBe(404);
+      expect(res.body.code).toBe(MessageCodes.USER_NOT_FOUND);
+    });
+
+    it("should delete the user and return 204", async () => {
+      vi.mocked(UserRepository.findById).mockResolvedValueOnce({ userId: 1 } as any);
+      vi.mocked(UserRepository.deleteUser).mockResolvedValueOnce(undefined as any);
+
+      const req = createMockRequest({ params: { id: "1" }, tokenUserId: 1 });
+      const res = createMockResponse();
+
+      await UserHandler.deleteUser(req, res as any);
+      expect(res.statusCode).toBe(204);
+      expect(UserRepository.deleteUser).toHaveBeenCalledWith(1);
+    });
+
+    it("should return 500 when the repository fails", async () => {
+      vi.mocked(UserRepository.findById).mockResolvedValueOnce({ userId: 1 } as any);
+      vi.mocked(UserRepository.deleteUser).mockRejectedValueOnce(new Error("DB error"));
+
+      const req = createMockRequest({ params: { id: "1" }, tokenUserId: 1 });
+      const res = createMockResponse();
+
+      await UserHandler.deleteUser(req, res as any);
       expect(res.statusCode).toBe(500);
       expect(res.body).toEqual({ code: 500, message: "Internal server error" });
     });

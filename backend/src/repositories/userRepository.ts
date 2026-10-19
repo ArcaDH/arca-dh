@@ -60,4 +60,11 @@ export namespace UserRepository {
   export async function updateCurrentPlanId(userId: number, planId: string | null) {
     await db.update(User).set({ currentPlanId: planId }).where(eq(User.userId, userId));
   }
+
+  /**
+   * Delete a user. Their plans and tags cascade (ON DELETE CASCADE in the schema).
+   */
+  export async function deleteUser(userId: number) {
+    await db.delete(User).where(eq(User.userId, userId));
+  }
 }
