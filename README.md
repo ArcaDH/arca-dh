@@ -73,6 +73,26 @@ npm test              # backend only (Vitest)
 pre-commit run --all-files   # run all hooks manually
 ```
 
+### Frontend end-to-end tests (Playwright)
+
+```bash
+cd frontend
+npx playwright install chromium   # first run only
+npm run test:e2e                  # headless
+npm run test:e2e:ui               # interactive UI
+```
+
+Authenticated specs need a running backend + database and are skipped when none
+is reachable. To run them, start the dev stack and point the tests at it:
+
+```bash
+docker compose up -d backend              # Postgres + backend
+docker compose exec backend npm run db:push   # first time only
+cd frontend && E2E_API_URL=http://localhost:3001 npm run test:e2e
+```
+
+See [frontend/README.md](frontend/README.md) for details.
+
 ## License
 
 Released under the [MIT License](LICENSE).
