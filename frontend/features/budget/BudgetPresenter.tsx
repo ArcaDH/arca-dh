@@ -41,6 +41,13 @@ const formTitle = (target: FormTarget): string => {
 const isSubcategoryForm = (target: FormTarget) =>
   target.mode === "createSubcategory" || target.mode === "editSubcategory";
 
+// Parse the optional target field: blank means "no target" (null); a bad value is "invalid".
+const parseTargetField = (value: string): number | null | "invalid" => {
+  if (value.trim() === "") return null;
+  const parsed = parseKr(value);
+  return parsed === null ? "invalid" : parsed;
+};
+
 export const BudgetPresenter = () => {
   const [month, setMonth] = useState(currentMonth);
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
@@ -103,23 +110,21 @@ export const BudgetPresenter = () => {
 
   function toggleLine(subcategoryId: string) {
     setSelectionError(null);
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(subcategoryId)) next.delete(subcategoryId);
-      else next.add(subcategoryId);
-      return next;
-    });
+    setSelectedIds((current) =>
+      current.has(subcategoryId)
+        ? new Set([...current].filter((id) => id !== subcategoryId))
+        : new Set([...current, subcategoryId]),
+    );
   }
 
   function toggleCategory(subcategoryIds: string[]) {
     setSelectionError(null);
     setSelectedIds((current) => {
-      const next = new Set(current);
-      const allSelected = subcategoryIds.length > 0 && subcategoryIds.every((id) => next.has(id));
+      const allSelected = subcategoryIds.length > 0 && subcategoryIds.every((id) => current.has(id));
       // Selecting a heading selects all its subcategories; toggling off clears them.
-      if (allSelected) subcategoryIds.forEach((id) => next.delete(id));
-      else subcategoryIds.forEach((id) => next.add(id));
-      return next;
+      return allSelected
+        ? new Set([...current].filter((id) => !subcategoryIds.includes(id)))
+        : new Set([...current, ...subcategoryIds]);
     });
   }
 
@@ -127,6 +132,12 @@ export const BudgetPresenter = () => {
     setSelectedIds(new Set());
     setBulkAmount("");
     setSelectionError(null);
+  }
+
+  // Changing month clears the selection so nothing stays checked across a different month's lines.
+  function changeMonth(next: string) {
+    clearSelection();
+    setMonth(next);
   }
 
   function openForm(target: FormTarget, initial: BudgetItemForm) {
@@ -151,11 +162,8 @@ export const BudgetPresenter = () => {
     }
 
     // Subcategory: name required, target optional (blank = no target).
-    let target: number | null = null;
-    if (form.target.trim() !== "") {
-      target = parseKr(form.target);
-      if (target === null) return setFormError("Enter a target like 3000 or 249,50, or leave it blank.");
-    }
+    const target = parseTargetField(form.target);
+    if (target === "invalid") return setFormError("Enter a target like 3000 or 249,50, or leave it blank.");
 
     if (formTarget.mode === "createSubcategory") {
       createSubcategory.mutate({ categoryId: formTarget.categoryId, input: { name, target } }, options);
@@ -335,7 +343,7 @@ export const BudgetPresenter = () => {
       isRefreshing={overview.isPlaceholderData}
       errorMessage={actionError ?? loadError ?? null}
       dialog={formDialog || deleteDialog || incomeDialog}
-      onMonthChange={setMonth}
+      onMonthChange={changeMonth}
       onAddCategory={() => openForm({ mode: "createCategory" }, { name: "", target: "" })}
       onAddSubcategory={(category) =>
         openForm(

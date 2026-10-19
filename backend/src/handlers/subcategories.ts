@@ -1,13 +1,12 @@
 import { Request, Response } from "express";
 import { SubcategoryRepository } from "../repositories/subcategoryRepository";
 import { SubcategoryAssignmentRepository } from "../repositories/subcategoryAssignmentRepository";
+import { SubcategoryAssignmentService } from "../services/subcategoryAssignmentService";
 import { CategoryRepository } from "../repositories/categoryRepository";
 import { PlanRepository } from "../repositories/planRepository";
 import { returnJson, returnCode, authorizeRequest, userIdFromToken } from "../services/apiService";
-import { validateSubcategoryData, validateAssignmentData, isValidMonth } from "../validators/subcategories";
-
-// A stored numeric amount (DB numeric comes back as a string); null means nothing assigned yet.
-const assignedAmount = (value: string | null): number => (value === null ? 0 : Number.parseFloat(value));
+import { validateSubcategoryData, validateAssignmentData } from "../validators/subcategories";
+import { isValidMonth } from "../services/monthlyDates";
 
 // Shared validation for the bulk assignment endpoints. Validates auth, the month param, the
 // subcategoryIds array, and that the plan belongs to the user. Sends the error response and returns
@@ -199,23 +198,12 @@ export namespace SubcategoryHandler {
       const ctx = await resolveBulkRequest(request, response);
       if (!ctx) return;
 
-      const owned = await SubcategoryAssignmentRepository.findOwnedWithAssignment(
+      const funded = await SubcategoryAssignmentService.fundTargets(
         ctx.subcategoryIds,
         ctx.userId,
         ctx.planId,
         ctx.month,
       );
-
-      // Only under-funded lines that have a target; set each to its target.
-      const entries = owned
-        .filter((sub) => sub.target !== null)
-        .filter((sub) => assignedAmount(sub.assigned) < Number.parseFloat(sub.target as string))
-        .map((sub) => ({
-          subcategoryId: sub.subcategoryId,
-          assigned: Number.parseFloat(sub.target as string).toString(),
-        }));
-
-      const funded = await SubcategoryAssignmentRepository.setAssignedEach(entries, ctx.month);
       return returnJson(response, 200, { month: ctx.month, funded });
     } catch (error) {
       console.error("Error in fundTargets:", error);
@@ -236,17 +224,10 @@ export namespace SubcategoryHandler {
       const validData = validateAssignmentData(request.body, response);
       if (!validData) return;
 
-      // Restrict to subcategories the user owns in this plan.
-      const owned = await SubcategoryAssignmentRepository.findOwnedWithAssignment(
+      const assignments = await SubcategoryAssignmentService.assignToEach(
         ctx.subcategoryIds,
         ctx.userId,
         ctx.planId,
-        ctx.month,
-      );
-      const ownedIds = owned.map((sub) => sub.subcategoryId);
-
-      const assignments = await SubcategoryAssignmentRepository.setAssignedMany(
-        ownedIds,
         ctx.month,
         validData.assigned,
       );
@@ -268,19 +249,12 @@ export namespace SubcategoryHandler {
       const ctx = await resolveBulkRequest(request, response);
       if (!ctx) return;
 
-      const owned = await SubcategoryAssignmentRepository.findOwnedWithAssignment(
+      const covered = await SubcategoryAssignmentService.coverOverspending(
         ctx.subcategoryIds,
         ctx.userId,
         ctx.planId,
         ctx.month,
       );
-
-      // Only overspent lines (spent > assigned); raise each to its spent amount.
-      const entries = owned
-        .filter((sub) => Number.parseFloat(sub.spent) > assignedAmount(sub.assigned))
-        .map((sub) => ({ subcategoryId: sub.subcategoryId, assigned: Number.parseFloat(sub.spent).toString() }));
-
-      const covered = await SubcategoryAssignmentRepository.setAssignedEach(entries, ctx.month);
       return returnJson(response, 200, { month: ctx.month, covered });
     } catch (error) {
       console.error("Error in coverOverspending:", error);

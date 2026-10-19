@@ -1,6 +1,14 @@
 import { Response } from "express";
 import { returnJson } from "../services/apiService";
 
+// Parse a value that may be absent, null, or empty into a non-negative amount string, or null for "none".
+// Returns undefined when the value is present but not a valid non-negative number.
+function parseOptionalAmount(value: unknown): string | null | undefined {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number.parseFloat(value as string);
+  return Number.isNaN(parsed) || parsed < 0 ? undefined : parsed.toString();
+}
+
 /**
  * Validates request data for subcategory creation and update.
  * A subcategory needs only a name. `target` is the optional monthly funding goal:
@@ -17,17 +25,13 @@ export function validateSubcategoryData(body: any, response: Response) {
     return null;
   }
 
-  let normalizedTarget: string | null = null;
-  if (target !== undefined && target !== null && target !== "") {
-    const parsedTarget = typeof target === "number" ? target : Number.parseFloat(target);
-    if (Number.isNaN(parsedTarget) || parsedTarget < 0) {
-      returnJson(response, 400, {
-        code: 400,
-        message: "Invalid input: 'target' must be a non-negative number.",
-      });
-      return null;
-    }
-    normalizedTarget = parsedTarget.toString();
+  const normalizedTarget = parseOptionalAmount(target);
+  if (normalizedTarget === undefined) {
+    returnJson(response, 400, {
+      code: 400,
+      message: "Invalid input: 'target' must be a non-negative number.",
+    });
+    return null;
   }
 
   return {
@@ -41,10 +45,8 @@ export function validateSubcategoryData(body: any, response: Response) {
  * Requires a non-negative `assigned` amount. The month comes from the route param.
  */
 export function validateAssignmentData(body: any, response: Response) {
-  const { assigned } = body || {};
-
-  const parsedAssigned = typeof assigned === "number" ? assigned : Number.parseFloat(assigned);
-  if (Number.isNaN(parsedAssigned) || parsedAssigned < 0) {
+  const parsedAssigned = parseOptionalAmount(body?.assigned);
+  if (parsedAssigned === undefined || parsedAssigned === null) {
     returnJson(response, 400, {
       code: 400,
       message: "Invalid input: 'assigned' must be a non-negative number.",
@@ -52,14 +54,5 @@ export function validateAssignmentData(body: any, response: Response) {
     return null;
   }
 
-  return { assigned: parsedAssigned.toString() };
-}
-
-const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
-
-/**
- * Validates a "YYYY-MM" month string (route param or body field).
- */
-export function isValidMonth(month: unknown): month is string {
-  return typeof month === "string" && MONTH_REGEX.test(month);
+  return { assigned: parsedAssigned };
 }

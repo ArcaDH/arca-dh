@@ -4,8 +4,8 @@ import Button from "@/components/ui/button";
 import { StatusBadge, type BadgeTone } from "@/components/ui/StatusBadge";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { MenuItem } from "@/components/ui/MenuItem";
-import { MoneyProgress } from "@/components/ui/MoneyProgress";
-import { fundingShare, isFunded } from "@/lib/budget";
+import { MoneyProgress, type ProgressTone } from "@/components/ui/MoneyProgress";
+import { availableBadge, spentShare, subcategoryFunding, type FundingState } from "@/lib/budget";
 import { formatWholeKr } from "@/lib/money";
 import type { BudgetLine, BudgetStatus } from "@/types/budget";
 
@@ -13,6 +13,14 @@ const statusStyle: Record<BudgetStatus, { tone: BadgeTone; variant: "solid" | "s
   progress: { tone: "success", variant: "soft" },
   covered: { tone: "success", variant: "solid" },
   over: { tone: "accent", variant: "soft" },
+};
+
+// Funding-bar tone per state (computed in lib/budget; the view only maps it to a colour).
+const fundingTone: Record<FundingState, ProgressTone> = {
+  overspent: "accent",
+  funded: "success",
+  funding: "primary",
+  none: "primary",
 };
 
 // The inline Assigned input: Enter or leaving saves, Escape cancels
@@ -104,11 +112,8 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
   onRename,
   onDelete,
 }) => {
-  const left = assigned - spent;
   const isLine = kind !== undefined;
-  const hasTarget = kind === "subcategory" && target !== null && target !== undefined && target > 0;
-  const funded = hasTarget && isFunded(assigned, target as number);
-  const overspent = kind === "subcategory" && spent > assigned;
+  const funding = kind === "subcategory" ? subcategoryFunding(assigned, spent, target ?? null) : null;
 
   return (
     <tr className={`group border-t border-foreground/10 ${isLine ? "" : "bg-foreground/[0.025] font-medium"}`}>
@@ -152,34 +157,24 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
                 or an empty bar when there is no target yet, with the funded text on the same line. */}
             {kind === "goal" && (
               <MoneyProgress
-                value={isDone ? 1 : assigned > 0 ? Math.min(spent / assigned, 1) : 0}
+                value={isDone ? 1 : spentShare(spent, assigned)}
                 tone={isDone ? "success" : statusStyle[status].tone}
                 label={`${name}: ${formatWholeKr(spent)} of ${formatWholeKr(assigned)} saved`}
                 className="mt-1 w-36"
               />
             )}
-            {kind === "subcategory" && (
+            {kind === "subcategory" && funding && (
               <div className="mt-1 flex items-center gap-2">
                 <MoneyProgress
-                  value={overspent ? 1 : fundingShare(assigned, target ?? null)}
-                  tone={overspent ? "accent" : funded ? "success" : "primary"}
-                  label={
-                    overspent
-                      ? `${name}: overspent, ${formatWholeKr(spent)} spent of ${formatWholeKr(assigned)} assigned`
-                      : hasTarget
-                        ? `${name}: ${formatWholeKr(assigned)} of ${formatWholeKr(target as number)} funded`
-                        : `${name}: no target`
-                  }
+                  value={funding.share}
+                  tone={fundingTone[funding.state]}
+                  label={`${name}: ${funding.label}`}
                   className="w-36"
                 />
-                <p className={`text-xs whitespace-nowrap tabular-nums ${overspent ? "text-accent" : "text-muted"}`}>
-                  {overspent
-                    ? `Overspent ${formatWholeKr(spent - assigned)}`
-                    : hasTarget
-                      ? funded
-                        ? `Funded ${formatWholeKr(target as number)}`
-                        : `${formatWholeKr(assigned)} of ${formatWholeKr(target as number)} funded`
-                      : "No target"}
+                <p
+                  className={`text-xs whitespace-nowrap tabular-nums ${funding.state === "overspent" ? "text-accent" : "text-muted"}`}
+                >
+                  {funding.caption}
                 </p>
               </div>
             )}
@@ -219,7 +214,7 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
           </StatusBadge>
         ) : (
           <StatusBadge tone={statusStyle[status].tone} variant={statusStyle[status].variant}>
-            {left < 0 && status !== "over" ? `+${formatWholeKr(-left)}` : formatWholeKr(left)}
+            {availableBadge(assigned, spent, status)}
           </StatusBadge>
         )}
       </td>

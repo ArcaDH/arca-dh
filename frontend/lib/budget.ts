@@ -1,5 +1,5 @@
 import { goalAssigned, isGoalDone } from "@/lib/goals";
-import { sumKr } from "@/lib/money";
+import { formatWholeKr, sumKr } from "@/lib/money";
 import type { BudgetGroup, BudgetLine, BudgetStatus } from "@/types/budget";
 import type { CategorySpending, GoalProgress, SubcategorySpending } from "@/types/overview";
 
@@ -24,6 +24,52 @@ export function fundingShare(assigned: number, target: number | null): number {
 
 export const isFunded = (assigned: number, target: number | null): boolean =>
   target !== null && target > 0 && assigned >= target;
+
+// Everything the row needs to render a subcategory's funding bar and caption, computed here so the
+// view stays a dummy component. `state` drives the bar/text colour; the view only maps it to a tone.
+export type FundingState = "overspent" | "funded" | "funding" | "none";
+
+export type SubcategoryFunding = {
+  state: FundingState;
+  share: number; // 0..1 for the bar
+  label: string; // accessible progressbar label
+  caption: string; // short text shown next to the bar
+};
+
+export function subcategoryFunding(assigned: number, spent: number, target: number | null): SubcategoryFunding {
+  if (spent > assigned) {
+    return {
+      state: "overspent",
+      share: 1,
+      label: `overspent, ${formatWholeKr(spent)} spent of ${formatWholeKr(assigned)} assigned`,
+      caption: `Overspent ${formatWholeKr(spent - assigned)}`,
+    };
+  }
+  if (target === null || target <= 0) {
+    return { state: "none", share: 0, label: "no target", caption: "No target" };
+  }
+  if (isFunded(assigned, target)) {
+    return {
+      state: "funded",
+      share: 1,
+      label: `${formatWholeKr(assigned)} of ${formatWholeKr(target)} funded`,
+      caption: `Funded ${formatWholeKr(target)}`,
+    };
+  }
+  return {
+    state: "funding",
+    share: fundingShare(assigned, target),
+    label: `${formatWholeKr(assigned)} of ${formatWholeKr(target)} funded`,
+    caption: `${formatWholeKr(assigned)} of ${formatWholeKr(target)} funded`,
+  };
+}
+
+// The "Available" column value and its display text. Overspending (negative, not a saving) shows the
+// shortfall; a positive leftover on a saving shows a "+" since putting in more is good.
+export function availableBadge(assigned: number, spent: number, status: BudgetStatus): string {
+  const left = assigned - spent;
+  return left < 0 && status !== "over" ? `+${formatWholeKr(-left)}` : formatWholeKr(left);
+}
 
 export const categoryAssigned = (category: { subcategories: { assigned: number }[] }): number =>
   sumKr(category.subcategories.map((subcategory) => subcategory.assigned));

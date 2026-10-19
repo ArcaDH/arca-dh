@@ -2,13 +2,13 @@ import { eq, and, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import { budgetPlans, categories, subcategories, subcategoryAssignments, transactions } from "../db/schema";
 
+// Any Drizzle executor: the shared db, or a transaction handle inside db.transaction(...).
+type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 export namespace SubcategoryAssignmentRepository {
-  /**
-   * Set (insert or update) the money assigned to a subcategory in a given month.
-   * Returns the stored row.
-   */
-  export async function setAssigned(subcategoryId: string, month: string, assigned: string) {
-    const [row] = await db
+  // Insert or update one subcategory's assigned money for a month, on the given executor.
+  async function upsertAssigned(executor: Executor, subcategoryId: string, month: string, assigned: string) {
+    const [row] = await executor
       .insert(subcategoryAssignments)
       .values({ subcategoryId, month, assigned })
       .onConflictDoUpdate({
@@ -20,19 +20,33 @@ export namespace SubcategoryAssignmentRepository {
   }
 
   /**
-   * Set the same assigned amount on several subcategories for a month. Returns the stored rows.
+   * Set (insert or update) the money assigned to a subcategory in a given month.
+   * Returns the stored row.
    */
-  export async function setAssignedMany(subcategoryIds: string[], month: string, assigned: string) {
-    if (subcategoryIds.length === 0) return [];
-    return Promise.all(subcategoryIds.map((subcategoryId) => setAssigned(subcategoryId, month, assigned)));
+  export async function setAssigned(subcategoryId: string, month: string, assigned: string) {
+    return upsertAssigned(db, subcategoryId, month, assigned);
   }
 
   /**
-   * Set a per-subcategory assigned amount for a month in one batch. Returns the stored rows.
+   * Set the same assigned amount on several subcategories for a month, in one transaction
+   * so a failure rolls them all back. Returns the stored rows.
+   */
+  export async function setAssignedMany(subcategoryIds: string[], month: string, assigned: string) {
+    if (subcategoryIds.length === 0) return [];
+    return db.transaction((tx) =>
+      Promise.all(subcategoryIds.map((subcategoryId) => upsertAssigned(tx, subcategoryId, month, assigned))),
+    );
+  }
+
+  /**
+   * Set a per-subcategory assigned amount for a month in one transaction, so a failure
+   * rolls them all back. Returns the stored rows.
    */
   export async function setAssignedEach(entries: { subcategoryId: string; assigned: string }[], month: string) {
     if (entries.length === 0) return [];
-    return Promise.all(entries.map((entry) => setAssigned(entry.subcategoryId, month, entry.assigned)));
+    return db.transaction((tx) =>
+      Promise.all(entries.map((entry) => upsertAssigned(tx, entry.subcategoryId, month, entry.assigned))),
+    );
   }
 
   /**

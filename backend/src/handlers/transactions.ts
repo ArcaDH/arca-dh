@@ -4,10 +4,9 @@ import { validateExistingRequest, validateRequest, validateTransactionData } fro
 import { returnJson, userIdFromToken } from "../services/apiService";
 import { MonthlyPaymentRepository } from "../repositories/monthlyPaymentRepository";
 import { MonthlyPaymentService } from "../services/monthlyPaymentService";
-import { handledThroughFor, monthOf, todayOf } from "../services/monthlyDates";
+import { handledThroughFor, isValidMonth, monthOf, todayOf } from "../services/monthlyDates";
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export namespace TransactionHandler {
   /**
@@ -24,7 +23,7 @@ export namespace TransactionHandler {
       const queryCategory = request.query.categoryId as string | undefined;
       const queryType = request.query.type as "EXPENSE" | "SAVING" | undefined;
 
-      if (queryMonth && !MONTH_REGEX.test(queryMonth.trim())) {
+      if (queryMonth && !isValidMonth(queryMonth)) {
         return returnJson(response, 400, {
           code: 400,
           message: "Invalid query parameter: 'month' must be in YYYY-MM format.",
