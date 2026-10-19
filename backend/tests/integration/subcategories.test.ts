@@ -222,6 +222,24 @@ describe("SubcategoryHandler (subcategories.ts)", () => {
       expect(res.statusCode).toBe(500);
       expect(res.body).toEqual({ code: 500, message: "Internal server error" });
     });
+
+    it("should return 409 when the category already has a subcategory with that name", async () => {
+      vi.mocked(CategoryRepository.findCategoryByIdAndUserId).mockResolvedValueOnce({ id: validCategoryId } as any);
+      vi.mocked(SubcategoryRepository.createSubcategory).mockRejectedValueOnce(
+        new Error("Failed query", { cause: { code: "23505" } }),
+      );
+
+      const req = createMockRequest({
+        params: { id: validCategoryId },
+        body: { name: "Dining" },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await SubcategoryHandler.createSubcategory(req, res as any);
+      expect(res.statusCode).toBe(409);
+      expect(res.body).toEqual({ code: 409, message: "This category already has a subcategory with that name." });
+    });
   });
 
   describe("updateSubcategory", () => {
@@ -324,6 +342,26 @@ describe("SubcategoryHandler (subcategories.ts)", () => {
       await SubcategoryHandler.updateSubcategory(req, res as any);
       expect(res.statusCode).toBe(500);
       expect(res.body).toEqual({ code: 500, message: "Internal server error" });
+    });
+
+    it("should return 409 when renaming to a name another subcategory in the category has", async () => {
+      vi.mocked(SubcategoryRepository.findSubcategoryByIdAndUserId).mockResolvedValueOnce({
+        id: validSubcategoryId,
+      } as any);
+      vi.mocked(SubcategoryRepository.updateSubcategory).mockRejectedValueOnce(
+        Object.assign(new Error("duplicate key value"), { code: "23505" }),
+      );
+
+      const req = createMockRequest({
+        params: { id: validSubcategoryId },
+        body: { name: "Fast Food" },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await SubcategoryHandler.updateSubcategory(req, res as any);
+      expect(res.statusCode).toBe(409);
+      expect(res.body).toEqual({ code: 409, message: "This category already has a subcategory with that name." });
     });
   });
 
