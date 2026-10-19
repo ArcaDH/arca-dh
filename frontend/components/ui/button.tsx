@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from "react";
 
-type Variant = "primary" | "secondary" | "soft" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "soft" | "ghost" | "danger" | "dangerOutline";
 type Size = "xs" | "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -14,6 +14,8 @@ const variantClasses: Record<Variant, string> = {
   // Outlined in the secondary color: the same shape as primary, without the fill
   secondary: "border border-secondary bg-white text-secondary hover:bg-secondary/5 active:bg-secondary/10",
   danger: "bg-accent text-white hover:bg-accent-hover active:bg-accent-active",
+  // Outlined in the accent color: the same shape as danger, without the fill
+  dangerOutline: "border border-accent bg-white text-accent hover:bg-accent/5 active:bg-accent/10",
   soft: "bg-primary/10 text-primary hover:bg-primary hover:text-white",
   ghost: "text-muted hover:bg-foreground/5 hover:text-foreground active:bg-foreground/10",
 };

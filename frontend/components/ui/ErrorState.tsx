@@ -1,3 +1,5 @@
+import Button from "@/components/ui/button";
+
 interface ErrorStateProps {
   message: string;
   /** Shows a "Try again" button. Leave it out for errors where trying again would not help. */
@@ -12,13 +14,9 @@ export default function ErrorState({ message, onRetry }: ErrorStateProps) {
     >
       <p>{message}</p>
       {onRetry && (
-        <button
-          type="button"
-          onClick={onRetry}
-          className="shrink-0 cursor-pointer rounded-full border border-accent px-3 py-1 text-xs font-medium text-accent transition-colors hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-        >
+        <Button variant="dangerOutline" size="xs" onClick={onRetry} className="shrink-0 py-1">
           Try again
-        </button>
+        </Button>
       )}
     </div>
   );
