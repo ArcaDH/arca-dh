@@ -191,4 +191,36 @@ router.route("/:id").patch(UserHandler.patchUser);
  */
 router.route("/:id").get(UserHandler.getUser);
 
+/**
+ * @swagger
+ *  /users/{id}:
+ *    delete:
+ *      summary: Delete a user
+ *      description: Deletes the authenticated user's own account. Their plans and tags are removed too.
+ *      tags:
+ *        - Users
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *            example: "42"
+ *          description: ID of the user to delete
+ *      security:
+ *        - bearerAuth: []
+ *      responses:
+ *        '204':
+ *          description: User deleted successfully
+ *        '400':
+ *          description: Invalid or missing user id
+ *        '401':
+ *          description: Invalid or missing token
+ *        '403':
+ *          description: Not authorized to delete this user
+ *        '404':
+ *          description: User not found
+ */
+router.route("/:id").delete(UserHandler.deleteUser);
+
 export default router;
