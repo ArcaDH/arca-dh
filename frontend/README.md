@@ -20,6 +20,60 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## End-to-end tests
+
+End-to-end tests are written with [Playwright](https://playwright.dev) and live in the `e2e/` directory.
+
+The Playwright config (`playwright.config.ts`) automatically starts the Next.js dev
+server before the run, so no separate server needs to be running.
+
+```bash
+# Install browsers once (first run only)
+npx playwright install chromium
+
+# Run the full suite (headless)
+npm run test:e2e
+
+# Run with the interactive UI
+npm run test:e2e:ui
+
+# Open the HTML report from the last run
+npm run test:e2e:report
+```
+
+The current suite covers backend-independent flows: the auth-guard redirects
+(driven by `proxy.ts`), and rendering, client-side validation, and navigation
+of the login and register pages.
+
+### Authenticated (seeded) tests
+
+The specs in `e2e/authenticated/` drive real logged-in flows — loading the
+budget page, adding a category and a transaction, creating a savings goal, and
+the login/logout round-trip. Each test seeds its own fresh user, plan and
+category through the backend API, so they need a running backend + database.
+
+They are **skipped automatically** when no backend is reachable, so the rest of
+the suite still runs without the stack.
+
+To run them locally, start Postgres + the backend (the repo's docker-compose
+dev stack), create the schema once, then point the tests at it:
+
+```bash
+# From the repo root — starts Postgres (:5434) and the backend (:3001)
+docker compose up -d backend
+
+# First time only: create the schema in the dev database
+docker compose exec backend npm run db:push
+
+# From frontend/ — run the whole suite against the local backend
+E2E_API_URL=http://localhost:3001 npm run test:e2e
+```
+
+`E2E_API_URL` is passed through to the Next.js dev server as
+`NEXT_PUBLIC_API_URL`, so the app and the seed helper both talk to the same
+backend. Without it, the frontend would default to the hosted backend and the
+authenticated tests would be skipped.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
