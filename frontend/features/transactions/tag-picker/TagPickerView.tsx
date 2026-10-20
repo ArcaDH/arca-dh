@@ -1,71 +1,68 @@
-"use client";
-
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
 import Button from "@/components/ui/button";
 import IconButton from "@/components/ui/IconButton";
 import Input from "@/components/ui/input";
 import { TAG_STYLES } from "@/lib/tags";
-import { MAX_TAG_NAME_LENGTH, MAX_TAGS_PER_TRANSACTION, TAG_COLORS, type NewTag, type Tag } from "@/types/tag";
-import TagChip from "./TagChip";
+import { MAX_TAG_NAME_LENGTH, TAG_COLORS, type NewTag, type Tag } from "@/types/tag";
+import TagChipView from "../tag-chip/TagChipView";
 
-interface TagPickerProps {
-  allTags: Tag[];
-  selectedIds: string[];
-  onChange: (ids: string[]) => void;
-  /** Saves a new tag and resolves with it. Rejects with an Error when it can't be saved. */
-  onCreateTag: (input: NewTag) => Promise<Tag>;
-  /** Asks to delete a tag for good, from every transaction. The page confirms first. */
+interface TagPickerViewProps {
+  /** The tags on the transaction, as chips with a remove button. */
+  selected: Tag[];
+  /** The tags that can still be added. */
+  available: Tag[];
+  selectedCount: number;
+  maxTags: number;
+  /** No more tags can be added. */
+  isFull: boolean;
+  isCreating: boolean;
+  name: string;
+  color: NewTag["color"];
+  isSaving: boolean;
+  error: string | null;
+  onAdd: (id: string) => void;
+  onRemove: (id: string) => void;
   onDeleteTag: (tag: Tag) => void;
+  onStartCreate: () => void;
+  onCancelCreate: () => void;
+  onNameChange: (name: string) => void;
+  onColorChange: (color: NewTag["color"]) => void;
+  onCreate: () => void;
 }
 
-export default function TagPicker({ allTags, selectedIds, onChange, onCreateTag, onDeleteTag }: TagPickerProps) {
-  const [isCreating, setIsCreating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [name, setName] = useState("");
-  const [color, setColor] = useState<NewTag["color"]>("blue");
-  const [error, setError] = useState<string | null>(null);
-
-  const selected = selectedIds.map((id) => allTags.find((tag) => tag.id === id)).filter((tag): tag is Tag => !!tag);
-  const available = allTags.filter((tag) => !selectedIds.includes(tag.id));
-  const isFull = selectedIds.length >= MAX_TAGS_PER_TRANSACTION;
-
-  function closeCreate() {
-    setIsCreating(false);
-    setName("");
-    setError(null);
-  }
-
-  async function handleCreate() {
-    const trimmed = name.trim();
-    if (!trimmed) return setError("Enter a tag name.");
-
-    setIsSaving(true);
-    try {
-      const tag = await onCreateTag({ name: trimmed, color });
-      // A new tag is added to the transaction straight away, as long as there is room
-      if (!isFull) onChange([...selectedIds, tag.id]);
-      closeCreate();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't create the tag.");
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
+export default function TagPickerView({
+  selected,
+  available,
+  selectedCount,
+  maxTags,
+  isFull,
+  isCreating,
+  name,
+  color,
+  isSaving,
+  error,
+  onAdd,
+  onRemove,
+  onDeleteTag,
+  onStartCreate,
+  onCancelCreate,
+  onNameChange,
+  onColorChange,
+  onCreate,
+}: TagPickerViewProps) {
   return (
     <div>
       <div className="mb-1 flex justify-between text-xs text-foreground/60">
         <span>Tags</span>
         <span>
-          {selectedIds.length} of {MAX_TAGS_PER_TRANSACTION}
+          {selectedCount} of {maxTags}
         </span>
       </div>
 
       {selected.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1.5">
           {selected.map((tag) => (
-            <TagChip key={tag.id} tag={tag} onRemove={() => onChange(selectedIds.filter((id) => id !== tag.id))} />
+            <TagChipView key={tag.id} tag={tag} onRemove={() => onRemove(tag.id)} />
           ))}
         </div>
       )}
@@ -76,12 +73,12 @@ export default function TagPicker({ allTags, selectedIds, onChange, onCreateTag,
             <li key={tag.id} className="group flex items-center">
               <button
                 type="button"
-                onClick={() => onChange([...selectedIds, tag.id])}
+                onClick={() => onAdd(tag.id)}
                 disabled={isFull}
                 aria-label={`Add tag ${tag.name}`}
                 className="cursor-pointer rounded-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none disabled:cursor-default disabled:opacity-50"
               >
-                <TagChip tag={tag} />
+                <TagChipView tag={tag} />
               </button>
               <IconButton
                 onClick={() => onDeleteTag(tag)}
@@ -101,12 +98,12 @@ export default function TagPicker({ allTags, selectedIds, onChange, onCreateTag,
         <div className="flex flex-col gap-2 rounded-lg border border-foreground/10 p-2">
           <Input
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => onNameChange(event.target.value)}
             onKeyDown={(event) => {
               // This sits inside the transaction form, so Enter must not submit that
               if (event.key === "Enter") {
                 event.preventDefault();
-                void handleCreate();
+                onCreate();
               }
             }}
             maxLength={MAX_TAG_NAME_LENGTH}
@@ -119,7 +116,7 @@ export default function TagPicker({ allTags, selectedIds, onChange, onCreateTag,
               <button
                 key={option}
                 type="button"
-                onClick={() => setColor(option)}
+                onClick={() => onColorChange(option)}
                 aria-label={option}
                 aria-pressed={color === option}
                 className={`size-6 cursor-pointer rounded-full ${TAG_STYLES[option].swatch} focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
@@ -134,16 +131,16 @@ export default function TagPicker({ allTags, selectedIds, onChange, onCreateTag,
             </p>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={closeCreate}>
+            <Button variant="ghost" size="sm" onClick={onCancelCreate}>
               Cancel
             </Button>
-            <Button size="sm" isLoading={isSaving} onClick={() => void handleCreate()}>
+            <Button size="sm" isLoading={isSaving} onClick={onCreate}>
               Add tag
             </Button>
           </div>
         </div>
       ) : (
-        <Button variant="ghost" size="sm" onClick={() => setIsCreating(true)} className="-ml-3">
+        <Button variant="ghost" size="sm" onClick={onStartCreate} className="-ml-3">
           <Plus size={14} aria-hidden />
           New tag
         </Button>

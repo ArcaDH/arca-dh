@@ -2,13 +2,13 @@ import { X } from "lucide-react";
 import { TAG_STYLES } from "@/lib/tags";
 import type { Tag } from "@/types/tag";
 
-interface TagChipProps {
+interface TagChipViewProps {
   tag: Tag;
   /** When given, the chip shows a small remove button. */
   onRemove?: () => void;
 }
 
-export default function TagChip({ tag, onRemove }: TagChipProps) {
+export default function TagChipView({ tag, onRemove }: TagChipViewProps) {
   return (
     <span
       className={`inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${TAG_STYLES[tag.color].chip}`}

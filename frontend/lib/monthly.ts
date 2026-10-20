@@ -17,3 +17,10 @@ export function parseDayOfMonth(input: string): number | null {
   const day = Number(text);
   return day >= 1 && day <= 31 ? day : null;
 }
+
+/** The sentence under the "Day of the month" field: what will happen, or what to fix. */
+export function repeatHint(day: number | null): string {
+  if (day === null) return "Enter a day from 1 to 31.";
+  const shorterMonths = day > 28 ? " In shorter months it's the last day." : "";
+  return `Added automatically on the ${ordinal(day)} of every month, starting next month.${shorterMonths}`;
+}

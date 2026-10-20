@@ -5,7 +5,8 @@ import { ApiError } from "@/api/client";
 import { categoryLook } from "@/lib/categoryColors";
 import { currentMonth } from "@/lib/format";
 import { ordinal } from "@/lib/monthly";
-import { parseKr, sumKr, toMoneyFlow } from "@/lib/money";
+import { sumKr, toMoneyFlow } from "@/lib/money";
+import { applyFilters, isFiltered, netSummary } from "@/lib/transactions";
 import { useCategories } from "@/models/useCategories";
 import { useTags } from "@/models/useTags";
 import { useCurrentPlan } from "@/models/usePlans";
@@ -15,9 +16,9 @@ import { useDeleteTransaction, useMonthTransactions } from "@/models/useTransact
 import type { CategoryWithSubcategories } from "@/types/category";
 import type { SavingsGoal } from "@/types/goal";
 import type { MonthlyPayment, MonthlyPaymentRow } from "@/types/monthlyPayment";
-import type { Tag } from "@/types/tag";
 import { DEFAULT_FILTERS, type Transaction, type TransactionFilters, type TransactionRow } from "@/types/transaction";
-import TransactionFormPresenter from "./TransactionFormPresenter";
+import TransactionFiltersPresenter from "./filters/TransactionFiltersPresenter";
+import TransactionFormPresenter from "./form/TransactionFormPresenter";
 import TransactionsView from "./TransactionsView";
 
 /** The backend sends category and goal ids only, so the names are looked up here. */
@@ -75,36 +76,6 @@ function toPaymentRows(payments: MonthlyPayment[], categories: CategoryWithSubca
   });
 }
 
-/**
- * The backend only filters by month, so search, category, amount and sort are applied here.
- * Amounts are compared by size, since money out is a negative number.
- * Tags: "any" keeps a transaction with at least one of the chosen tags, "all" one with every chosen tag.
- * A chosen tag that has been deleted since is ignored, otherwise "all" would match nothing.
- */
-function applyFilters(rows: TransactionRow[], filters: TransactionFilters, tags: Tag[] | undefined): TransactionRow[] {
-  const query = filters.q.trim().toLowerCase();
-  const min = parseKr(filters.minKr);
-  const max = parseKr(filters.maxKr);
-  const tagIds = tags ? filters.tagIds.filter((id) => tags.some((tag) => tag.id === id)) : filters.tagIds;
-  const hasTag = (row: TransactionRow, id: string) => row.tags.some((tag) => tag.id === id);
-
-  const matching = rows.filter(
-    (row) =>
-      (!query || (row.description ?? "").toLowerCase().includes(query)) &&
-      (!filters.categoryId || row.categoryId === filters.categoryId) &&
-      (tagIds.length === 0 ||
-        (filters.tagMode === "all" ? tagIds.every((id) => hasTag(row, id)) : tagIds.some((id) => hasTag(row, id)))) &&
-      (min === null || Math.abs(row.amount) >= min) &&
-      (max === null || Math.abs(row.amount) <= max),
-  );
-
-  const direction = filters.dir === "asc" ? 1 : -1;
-  return matching.sort(
-    (a, b) =>
-      direction * (filters.sort === "amount" ? Math.abs(a.amount) - Math.abs(b.amount) : a.date.localeCompare(b.date)),
-  );
-}
-
 // The list starts with the most recent transactions, and "Show more" adds more
 const FIRST_PAGE = 5;
 const NEXT_PAGE = 10;
@@ -136,6 +107,9 @@ export default function TransactionsPresenter() {
     [allRows, filters, tags.data],
   );
   const visibleRows = rows ? rows.slice(0, visibleCount) : null;
+  // "Show more" says how many more it adds, which is fewer than a full page at the end
+  const hiddenCount = rows && visibleRows ? rows.length - visibleRows.length : 0;
+  const showMoreCount = Math.min(NEXT_PAGE, hiddenCount);
   const paymentRows = useMemo(
     () => (monthlyPayments.data ? toPaymentRows(monthlyPayments.data, categories.data ?? []) : []),
     [monthlyPayments.data, categories.data],
@@ -149,7 +123,6 @@ export default function TransactionsPresenter() {
       )
     : null;
 
-  const isFiltered = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS);
   const noPlanYet = plan.error instanceof ApiError && plan.error.status === 404;
   const loadError = noPlanYet
     ? "Create a budget plan first."
@@ -201,14 +174,24 @@ export default function TransactionsPresenter() {
         ) : null
       }
       month={month}
-      net={net}
-      filters={filters}
-      isFiltered={isFiltered}
-      categories={categories.data ?? []}
-      tags={tags.data ?? []}
+      netSummary={netSummary(net)}
+      filters={
+        <TransactionFiltersPresenter
+          filters={filters}
+          onChange={(next) => {
+            setFilters(next);
+            setVisibleCount(FIRST_PAGE);
+          }}
+          categories={categories.data ?? []}
+          tags={tags.data ?? []}
+        />
+      }
+      isFiltered={isFiltered(filters)}
       monthlyPayments={paymentRows}
       rows={visibleRows}
       matchCount={rows?.length ?? 0}
+      hiddenCount={hiddenCount}
+      showMoreCount={showMoreCount}
       onShowMore={() => setVisibleCount((count) => count + NEXT_PAGE)}
       isRefreshing={expenses.isPlaceholderData}
       errorMessage={actionError ?? loadError ?? null}
@@ -217,10 +200,6 @@ export default function TransactionsPresenter() {
       pendingStop={pendingStop}
       onMonthChange={(next) => {
         setMonth(next);
-        setVisibleCount(FIRST_PAGE);
-      }}
-      onFiltersChange={(next) => {
-        setFilters(next);
         setVisibleCount(FIRST_PAGE);
       }}
       onAskDelete={setPendingDelete}
