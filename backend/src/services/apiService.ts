@@ -3,13 +3,7 @@ import { MessageCodes, toMessage } from "../handlers/codes";
 import { decodeToken, TokenValidationResult, verifyToken } from "./tokenService";
 import { AppError } from "../data/app_error";
 
-/**
- * Send a response to the client who made the request.
- * @param response object built by the express framework
- * @param code status code to return to the client
- * @param messageId unique id destinated to the client representing the message. It could be used by a translation service of message code into user friendly message by the application.
- * @param message message that the API wants to send to the client
- */
+/** Send a status code and optional message to the client. */
 export function returnCode(response: Response, code: number, message: MessageCodes | undefined = undefined) {
   response.status(code);
 
@@ -19,17 +13,11 @@ export function returnCode(response: Response, code: number, message: MessageCod
       message: toMessage(message),
     });
   } else {
-    // Case where the developper has not specified any message.
     response.send();
   }
 }
 
-/**
- * Send a response to the client with a code and a content.
- * @param response object built by the express framework
- * @param code status code to return to the client
- * @param content an object of any type that will be sent to the client as a JSON object
- */
+/** Send a JSON response with the given status code. */
 export function returnJson(response: Response, code: number, content: any) {
   response.status(code).json(content);
 }
@@ -37,7 +25,6 @@ export function returnJson(response: Response, code: number, content: any) {
 export function authorizeRequestWithoutAnswer(request: Request, email: String = "", id: number = -1): boolean {
   const token = request.headers.authorization;
 
-  // No token provided
   if (!token || token.length == 0) {
     return false;
   }
@@ -45,17 +32,10 @@ export function authorizeRequestWithoutAnswer(request: Request, email: String = 
   return verifyToken(token, email, id) == TokenValidationResult.SUCCESS;
 }
 
-/**
- * Validate if the client is authorized to make this request.
- * If the user is not authorized, an invalid response is prepared.
- * @param request The express object representing the client request
- * @param email If provided, it will check that this token belong to this email (token.email = email)
- * @param id If provided, it will check that this token belon to this id (token.userId = id)
- */
+/** Validate request authorization and send an error response if unauthorized. */
 export function authorizeRequest(request: Request, response: Response, email: String = "", id: number = -1): boolean {
   const token = request.headers.authorization;
 
-  // No token provided
   if (!token || token.length == 0) {
     returnCode(response, 401);
     return false;
@@ -74,10 +54,7 @@ export function authorizeRequest(request: Request, response: Response, email: St
   }
 }
 
-/**
- * Tries to extract the user id from the jwt token.
- * @param request
- */
+/** Extract the user id from the authorization token. */
 export function userIdFromToken(request: Request): number | undefined {
   const token = request.headers.authorization;
   if (!token || token.length == 0) return undefined;
@@ -85,10 +62,7 @@ export function userIdFromToken(request: Request): number | undefined {
   return decodeToken(token)?.user;
 }
 
-/**
- * Tries to extract the user mail from the jwt token
- * @param request
- */
+/** Extract the email from the authorization token. */
 export function emailFromToken(request: Request): string | undefined {
   const token = request.headers.authorization;
   if (!token || token.length == 0) return undefined;

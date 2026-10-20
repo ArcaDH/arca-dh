@@ -3,28 +3,28 @@ import { UserRepository } from "../repositories/userRepository";
 import type { UserModel } from "../db/schema";
 import { isValidMonth } from "./monthlyDates";
 
-// The month a plan ends up with, or why the given month can't be used
+// Valid plan month or validation error code
 export type PlanMonth = { month: string } | { error: "invalid" | "past" };
 
 export namespace PlanService {
-  // A given month must be "YYYY-MM" and can't be before this month
+  // Validate format and ensure month is not in the past
   const checkMonth = (input: unknown, thisMonth: string): PlanMonth => {
     if (!isValidMonth(input)) return { error: "invalid" };
     const month = input.trim();
     return month < thisMonth ? { error: "past" } : { month };
   };
 
-  // A new plan without a month (also blank text) is for this month
+  // Defaults to current month if unspecified
   export const monthForNewPlan = (input: unknown, thisMonth: string): PlanMonth =>
     input === null || input === undefined || (typeof input === "string" && input.trim() === "")
       ? { month: thisMonth }
       : checkMonth(input, thisMonth);
 
-  // Updating a plan without a month keeps the month it has
+  // Retains existing month if unspecified
   export const monthForUpdatedPlan = (input: unknown, planMonth: string, thisMonth: string): PlanMonth =>
     input === null || input === undefined || input === "" ? { month: planMonth } : checkMonth(input, thisMonth);
 
-  // A user's first plan becomes their current plan
+  // Set as current plan if user has none
   export async function createPlanForUser(
     user: Pick<UserModel, "userId" | "currentPlanId">,
     name: string,
@@ -35,7 +35,7 @@ export namespace PlanService {
     return { plan, current: !user.currentPlanId || user.currentPlanId === plan.id };
   }
 
-  // Deleting the current plan leaves the user without a current plan
+  // Clear currentPlanId if deleting the active plan
   export async function deletePlanForUser(user: Pick<UserModel, "userId" | "currentPlanId">, planId: string) {
     if (user.currentPlanId === planId) await UserRepository.updateCurrentPlanId(user.userId, null);
     await PlanRepository.deletePlan(planId);

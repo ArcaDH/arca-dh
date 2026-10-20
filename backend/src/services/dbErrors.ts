@@ -1,4 +1,4 @@
-// Postgres error code for breaking a unique rule
+// Postgres unique violation error code
 const UNIQUE_VIOLATION = "23505";
 
 export const isUniqueViolation = (error: unknown): boolean => {

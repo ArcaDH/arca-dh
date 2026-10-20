@@ -1,17 +1,11 @@
 import { SubcategoryAssignmentRepository } from "../repositories/subcategoryAssignmentRepository";
 
-// A stored numeric amount (DB numeric comes back as a string); null means nothing assigned yet.
+// Parse numeric amount from DB string, defaulting null to 0
 const assignedAmount = (value: string | null): number => (value === null ? 0 : Number.parseFloat(value));
 
-/**
- * Business rules for bulk budget assignment. Handlers stay thin: they validate the request and call
- * these, which decide which subcategories to change and by how much, then persist via the repository.
- */
+/** Business logic for bulk budget assignments. */
 export namespace SubcategoryAssignmentService {
-  /**
-   * Fund the targets of the given owned subcategories for a month: set each under-funded line that
-   * has a target to its target. Lines without a target, or already at/above it, are left untouched.
-   */
+  /** Fund target amounts for under-funded subcategories in a month. */
   export async function fundTargets(subcategoryIds: string[], userId: number, planId: string, month: string) {
     const owned = await SubcategoryAssignmentRepository.findOwnedWithAssignment(subcategoryIds, userId, planId, month);
     const entries = owned
@@ -24,9 +18,7 @@ export namespace SubcategoryAssignmentService {
     return SubcategoryAssignmentRepository.setAssignedEach(entries, month);
   }
 
-  /**
-   * Assign the same amount to every given owned subcategory for a month.
-   */
+  /** Assign a fixed amount to multiple subcategories for a month. */
   export async function assignToEach(
     subcategoryIds: string[],
     userId: number,
@@ -39,10 +31,7 @@ export namespace SubcategoryAssignmentService {
     return SubcategoryAssignmentRepository.setAssignedMany(ownedIds, month, assigned);
   }
 
-  /**
-   * Cover overspending: for each owned subcategory whose spending exceeds its assigned money,
-   * raise its assigned for the month to the amount spent. Lines that are not overspent are untouched.
-   */
+  /** Top up assigned amounts to match spending for overspent subcategories. */
   export async function coverOverspending(subcategoryIds: string[], userId: number, planId: string, month: string) {
     const owned = await SubcategoryAssignmentRepository.findOwnedWithAssignment(subcategoryIds, userId, planId, month);
     const entries = owned

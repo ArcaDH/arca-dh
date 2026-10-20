@@ -2,11 +2,7 @@ import { MonthlyPaymentRepository } from "../repositories/monthlyPaymentReposito
 import { dueDate, dueMonths, nextChargeDate, todayOf } from "./monthlyDates";
 
 export namespace MonthlyPaymentService {
-  /**
-   * Create the transactions of a plan's monthly payments that are due by today and not made yet.
-   * There is no scheduler: this runs when a page asks for the plan's transactions or overview.
-   * A failure is logged and never stops the request that called it.
-   */
+  /** Generate transactions for all monthly payments due by today. */
   export async function ensureGenerated(planId: string, now: Date = new Date()) {
     try {
       const today = todayOf(now);
@@ -26,9 +22,7 @@ export namespace MonthlyPaymentService {
     }
   }
 
-  /**
-   * A plan's monthly payments, each with the day it is next due
-   */
+  /** List monthly payments for a plan with their next due date. */
   export async function listWithNextCharge(planId: string, now: Date = new Date()) {
     const today = todayOf(now);
     const payments = await MonthlyPaymentRepository.findByPlanId(planId);

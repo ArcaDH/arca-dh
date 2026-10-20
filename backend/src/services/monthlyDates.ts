@@ -1,7 +1,4 @@
-/**
- * Date logic for monthly payments. Everything here is plain strings and numbers ("2026-10" for a month,
- * "2026-10-31" for a day), so no time zone can shift a date by a day.
- */
+/** Date logic for monthly payments using ISO date strings and numbers. */
 
 export const monthOf = (date: string): string => date.slice(0, 7);
 
@@ -33,8 +30,7 @@ export function monthsBetween(from: string, to: string): string[] {
   return from > to ? [] : [from, ...monthsBetween(addMonths(from, 1), to)];
 }
 
-// The app is for Swedish users, so "today" follows Swedish time (summer and winter time included) and not the
-// server's UTC clock. Otherwise a payment due on the 1st would be created an hour or two after midnight.
+// Swedish time zone so due dates align with local midnight rather than UTC
 const APP_TIME_ZONE = "Europe/Stockholm";
 const todayFormat = new Intl.DateTimeFormat("sv-SE", { timeZone: APP_TIME_ZONE });
 
@@ -43,12 +39,7 @@ export const todayOf = (now: Date): string => todayFormat.format(now);
 
 type Schedule = { generatedThrough: string; dayOfMonth: number };
 
-/**
- * The last month that counts as handled when a payment is created. The transaction the user logs is its own month's
- * payment, and old months are not backfilled. This month counts as handled only once its day has passed: if it is
- * still ahead, this month's payment is created when the day comes, even if the logged transaction is from an earlier
- * month (September's rent logged on 10 October, repeating on the 25th, still gets October's on the 25th).
- */
+/** Determine the last month considered generated when creating a recurring schedule. */
 export function handledThroughFor(firstTransactionDate: string, today: string, dayOfMonth: number): string {
   const first = monthOf(firstTransactionDate);
   const current = monthOf(today);
@@ -56,14 +47,14 @@ export function handledThroughFor(firstTransactionDate: string, today: string, d
   return first > cutoff ? first : cutoff;
 }
 
-/** The months still to create by today: after the handled ones, once the due date has been reached. */
+/** Pending due months up to today that have not yet been generated. */
 export function dueMonths(schedule: Schedule, today: string): string[] {
   return monthsBetween(addMonths(schedule.generatedThrough, 1), monthOf(today)).filter(
     (month) => dueDate(month, schedule.dayOfMonth) <= today,
   );
 }
 
-// The first due date after today, starting the search at `month`
+// Find first due date strictly after today, starting from month
 const firstDueAfter = (month: string, dayOfMonth: number, today: string): string =>
   dueDate(month, dayOfMonth) > today
     ? dueDate(month, dayOfMonth)
@@ -76,7 +67,7 @@ export function nextChargeDate(schedule: Schedule, today: string): string {
   return firstDueAfter(first > current ? first : current, schedule.dayOfMonth, today);
 }
 
-// A month is "YYYY-MM" with a real month number (01-12). Shared by every place that takes a month.
+// Format: YYYY-MM with valid month 01-12
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** Whether a value is a valid "YYYY-MM" month string. */

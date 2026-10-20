@@ -6,10 +6,7 @@ import { handledThroughFor, monthOf, todayOf } from "./monthlyDates";
 type TransactionData = NonNullable<Awaited<ReturnType<typeof validateTransactionData>>>;
 
 export namespace TransactionService {
-  /**
-   * Create a transaction. A repeating expense also starts a monthly payment: the payment and the
-   * transaction the user logged are created together, and the payment counts this month as handled.
-   */
+  /** Create a transaction, initializing a recurring monthly payment if repeatMonthly is set. */
   export async function createTransaction(planId: string, data: TransactionData, now: Date) {
     const { tagIds, repeatMonthly, ...fields } = data;
 
@@ -22,7 +19,7 @@ export namespace TransactionService {
         description: fields.description,
         dayOfMonth: repeatMonthly.dayOfMonth,
         generatedThrough: handledThroughFor(fields.date, todayOf(now), repeatMonthly.dayOfMonth),
-        // An expense always has a category, the validator makes sure of it
+        // Category is guaranteed by validator for expenses
         categoryId: fields.categoryId as string,
         subcategoryId: fields.subcategoryId,
       },
