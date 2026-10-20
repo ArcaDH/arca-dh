@@ -9,10 +9,7 @@ const duplicateName = (response: Response) =>
   returnJson(response, 409, { code: 409, message: "You already have a tag with that name." });
 
 export namespace TagHandler {
-  /**
-   * GET /tags
-   * List the tags of the logged-in user
-   */
+  /** GET /tags */
   export async function getTags(request: Request, response: Response) {
     try {
       const userId = validateRequest(request, response);
@@ -26,10 +23,7 @@ export namespace TagHandler {
     }
   }
 
-  /**
-   * POST /tags
-   * Create a tag. The name is unique per user, ignoring capital letters.
-   */
+  /** POST /tags (unique per user, case-insensitive) */
   export async function createTag(request: Request, response: Response) {
     try {
       const userId = validateRequest(request, response);
@@ -43,17 +37,14 @@ export namespace TagHandler {
       const created = await TagRepository.createTag({ ...validData, userId });
       return returnJson(response, 201, created);
     } catch (error: any) {
-      // Two requests with the same name can pass the check above at the same time, the database index stops the second
+      // Handle concurrent duplicate insertion caught by unique index
       if ((error?.code ?? error?.cause?.code) === UNIQUE_VIOLATION) return duplicateName(response);
       console.error("Error in createTag:", error);
       return returnJson(response, 500, { code: 500, message: "Internal server error" });
     }
   }
 
-  /**
-   * DELETE /tags/:id
-   * Delete a tag. It is removed from every transaction that had it.
-   */
+  /** DELETE /tags/:id */
   export async function deleteTag(request: Request, response: Response) {
     try {
       const userId = validateRequest(request, response);

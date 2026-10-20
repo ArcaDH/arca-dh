@@ -10,10 +10,7 @@ const PAST_MONTH_MESSAGE =
   "Invalid input: 'month' cannot be in the past. It must be the current month or a future month.";
 
 export namespace PlanHandler {
-  /**
-   * GET /plans
-   * List budget plans for the logged-in user (optional query parameter: ?month=YYYY-MM)
-   */
+  /** GET /plans (?month=YYYY-MM) */
   export async function getPlans(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -58,10 +55,7 @@ export namespace PlanHandler {
     }
   }
 
-  /**
-   * POST /plans
-   * Create a budget plan
-   */
+  /** POST /plans */
   export async function createPlan(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -114,10 +108,7 @@ export namespace PlanHandler {
     }
   }
 
-  /**
-   * GET /plans/current
-   * Get my current (default) plan
-   */
+  /** GET /plans/current */
   export async function getCurrentPlan(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -158,10 +149,7 @@ export namespace PlanHandler {
     }
   }
 
-  /**
-   * PUT /plans/current
-   * Select my current (default) plan
-   */
+  /** PUT /plans/current */
   export async function setCurrentPlan(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -203,10 +191,7 @@ export namespace PlanHandler {
     }
   }
 
-  /**
-   * GET /plans/:planId
-   * Get a plan by ID
-   */
+  /** GET /plans/:planId */
   export async function getPlanById(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -253,10 +238,7 @@ export namespace PlanHandler {
     }
   }
 
-  /**
-   * PUT /plans/:planId
-   * Update a plan by ID
-   */
+  /** PUT /plans/:planId */
   export async function updatePlan(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -325,10 +307,7 @@ export namespace PlanHandler {
     }
   }
 
-  /**
-   * DELETE /plans/:planId
-   * Delete a plan by ID
-   */
+  /** DELETE /plans/:planId */
   export async function deletePlan(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;

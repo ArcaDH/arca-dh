@@ -1,13 +1,9 @@
 export enum MessageCodes {
-  // --------------------
   // General
-  // --------------------
   RESOURCE_CREATED = 1,
   USER_NOT_FOUND,
 
-  // --------------------
   // User routes
-  // --------------------
   LOGIN_MISSING_DATA,
   LOGIN_INCORRECT_DATA,
 

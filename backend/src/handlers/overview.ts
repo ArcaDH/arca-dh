@@ -5,6 +5,7 @@ import { returnJson } from "../services/apiService";
 import { MonthlyPaymentService } from "../services/monthlyPaymentService";
 
 export namespace OverviewHandler {
+  /** GET /plans/:planId/overview */
   export async function getOverview(request: Request, response: Response) {
     try {
       const planId = await validateRequest(request, response);
@@ -13,7 +14,7 @@ export namespace OverviewHandler {
       const month = validateMonthParam(request.query, response);
       if (month == null) return;
 
-      // Monthly payments that are due get their transactions first, so the spending adds up whichever page is opened first
+      // Ensure due monthly payments are generated before computing totals
       await MonthlyPaymentService.ensureGenerated(planId);
 
       const overview = await OverviewRepository.getMonthlyOverview(planId, month);

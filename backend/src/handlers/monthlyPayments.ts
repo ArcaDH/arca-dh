@@ -5,10 +5,7 @@ import { returnJson } from "../services/apiService";
 import { validateExistingRequest, validateRequest } from "../validators/monthlyPayments";
 
 export namespace MonthlyPaymentHandler {
-  /**
-   * GET /plans/:planId/monthly-payments
-   * List the active monthly payments of a plan, each with the day it is next due
-   */
+  /** GET /plans/:planId/monthly-payments */
   export async function getMonthlyPayments(request: Request, response: Response) {
     try {
       const planId = await validateRequest(request, response);
@@ -22,10 +19,7 @@ export namespace MonthlyPaymentHandler {
     }
   }
 
-  /**
-   * DELETE /monthly-payments/:id
-   * Stop a monthly payment. The transactions it already made are kept.
-   */
+  /** DELETE /monthly-payments/:id (preserves existing transactions) */
   export async function deleteMonthlyPayment(request: Request, response: Response) {
     try {
       const id = await validateExistingRequest(request, response);

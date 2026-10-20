@@ -4,10 +4,7 @@ import { returnJson, returnCode, authorizeRequest, userIdFromToken } from "../se
 import { validateRequest, validateIncomeSourceData } from "../validators/incomeSources";
 
 export namespace IncomeSourceHandler {
-  /**
-   * GET /plans/:planId/income-sources
-   * List income sources of a plan
-   */
+  /** GET /plans/:planId/income-sources */
   export async function getIncomeSources(request: Request, response: Response) {
     try {
       const planId = await validateRequest(request, response);
@@ -21,10 +18,7 @@ export namespace IncomeSourceHandler {
     }
   }
 
-  /**
-   * POST /plans/:planId/income-sources
-   * Add an income source
-   */
+  /** POST /plans/:planId/income-sources */
   export async function createIncomeSource(request: Request, response: Response) {
     try {
       const planId = await validateRequest(request, response);
@@ -46,10 +40,7 @@ export namespace IncomeSourceHandler {
     }
   }
 
-  /**
-   * PUT /income-sources/:id
-   * Update an income source
-   */
+  /** PUT /income-sources/:id */
   export async function updateIncomeSource(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -77,10 +68,7 @@ export namespace IncomeSourceHandler {
     }
   }
 
-  /**
-   * DELETE /income-sources/:id
-   * Delete an income source
-   */
+  /** DELETE /income-sources/:id */
   export async function deleteIncomeSource(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;

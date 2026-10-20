@@ -121,7 +121,6 @@ export namespace UserHandler {
         return;
       }
 
-      // Users may only delete their own account.
       if (!authorizeRequest(request, response, "", userId)) return;
 
       const user = await UserRepository.findById(userId);
@@ -130,7 +129,7 @@ export namespace UserHandler {
         return;
       }
 
-      // Plans and tags cascade, so this removes all of the user's data.
+      // Cascades to user's plans and tags
       await UserRepository.deleteUser(userId);
 
       response.status(204).send();

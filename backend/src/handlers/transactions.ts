@@ -8,11 +8,7 @@ import { TransactionService } from "../services/transactionService";
 import { isUuid } from "../validators/uuid";
 
 export namespace TransactionHandler {
-  /**
-   * GET /plans/:planId/transactions
-   * List transactions of a plan (sorted by date, newest first).
-   * Optional query filters: ?month=YYYY-MM & ?categoryId=UUID & ?type=EXPENSE|SAVING
-   */
+  /** GET /plans/:planId/transactions (?month, ?categoryId, ?type) */
   export async function getTransactions(request: Request, response: Response) {
     try {
       const planId = await validateRequest(request, response);
@@ -49,7 +45,7 @@ export namespace TransactionHandler {
         type: queryType,
       };
 
-      // The monthly payments that are due get their transactions first, so the list is complete
+      // Generate due recurring transactions before fetching
       await MonthlyPaymentService.ensureGenerated(planId);
 
       const result = await TransactionRepository.findByPlanId(planId, filters);
@@ -60,10 +56,7 @@ export namespace TransactionHandler {
     }
   }
 
-  /**
-   * POST /plans/:planId/transactions
-   * Create a transaction for a plan
-   */
+  /** POST /plans/:planId/transactions */
   export async function createTransaction(request: Request, response: Response) {
     try {
       const planId = await validateRequest(request, response);
@@ -79,10 +72,7 @@ export namespace TransactionHandler {
     }
   }
 
-  /**
-   * PUT /transactions/:id
-   * Update a transaction by ID
-   */
+  /** PUT /transactions/:id */
   export async function updateTransaction(request: Request, response: Response) {
     try {
       const id = await validateExistingRequest(request, response);
@@ -107,10 +97,7 @@ export namespace TransactionHandler {
     }
   }
 
-  /**
-   * DELETE /transactions/:id
-   * Delete a transaction by ID. With ?stopRepeating=true, a transaction made by a monthly payment also stops it.
-   */
+  /** DELETE /transactions/:id (?stopRepeating=true) */
   export async function deleteTransaction(request: Request, response: Response) {
     try {
       const id = await validateExistingRequest(request, response);
@@ -126,7 +113,7 @@ export namespace TransactionHandler {
 
       const existing = stopRepeating === "true" ? await TransactionRepository.findById(id) : undefined;
 
-      // Stopping the payment is done in the same database transaction as the delete, so it can't half happen
+      // Delete transaction and stop recurring payment atomically
       if (existing?.monthlyPaymentId) await TransactionRepository.deleteTransaction(id, existing.monthlyPaymentId);
       else await TransactionRepository.deleteTransaction(id);
       return response.status(204).send();

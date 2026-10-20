@@ -5,10 +5,7 @@ import { authorizeRequest, returnCode, userIdFromToken } from "../services/apiSe
 import { validateRequest, validateSavingsGoalData } from "../validators/savingsGoals";
 
 export namespace SavingsGoalHandler {
-  /**
-   * GET /plans/:planId/goals
-   * List savings goals for a budget plan with progress calculation
-   */
+  /** GET /plans/:planId/goals */
   export async function getGoals(request: Request, response: Response) {
     try {
       const planId = await validateRequest(request, response);
@@ -22,10 +19,7 @@ export namespace SavingsGoalHandler {
     }
   }
 
-  /**
-   * POST /plans/:planId/goals
-   * Create a savings goal for a budget plan
-   */
+  /** POST /plans/:planId/goals */
   export async function createGoal(request: Request, response: Response) {
     try {
       const planId = await validateRequest(request, response);
@@ -49,10 +43,7 @@ export namespace SavingsGoalHandler {
     }
   }
 
-  /**
-   * GET /goals/:id
-   * Get a single savings goal by ID
-   */
+  /** GET /goals/:id */
   export async function getGoalById(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -72,10 +63,7 @@ export namespace SavingsGoalHandler {
     }
   }
 
-  /**
-   * PUT /goals/:id
-   * Update a savings goal
-   */
+  /** PUT /goals/:id */
   export async function updateGoal(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -105,10 +93,7 @@ export namespace SavingsGoalHandler {
     }
   }
 
-  /**
-   * DELETE /goals/:id
-   * Delete a savings goal
-   */
+  /** DELETE /goals/:id */
   export async function deleteGoal(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;

@@ -8,10 +8,7 @@ const duplicateName = (response: Response) =>
   returnJson(response, 409, { code: 409, message: "You already have a category with that name in this budget." });
 
 export namespace CategoryHandler {
-  /**
-   * GET /plans/:planId/categories
-   * List categories of a plan
-   */
+  /** GET /plans/:planId/categories */
   export async function getCategories(request: Request, response: Response) {
     try {
       const planId = await validateRequest(request, response);
@@ -25,10 +22,7 @@ export namespace CategoryHandler {
     }
   }
 
-  /**
-   * POST /plans/:planId/categories
-   * Create a category
-   */
+  /** POST /plans/:planId/categories */
   export async function createCategory(request: Request, response: Response) {
     try {
       const planId = await validateRequest(request, response);
@@ -51,10 +45,7 @@ export namespace CategoryHandler {
     }
   }
 
-  /**
-   * PUT /categories/:id
-   * Update a category
-   */
+  /** PUT /categories/:id */
   export async function updateCategory(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -83,10 +74,7 @@ export namespace CategoryHandler {
     }
   }
 
-  /**
-   * DELETE /categories/:id
-   * Delete a category
-   */
+  /** DELETE /categories/:id */
   export async function deleteCategory(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;

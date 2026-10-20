@@ -12,9 +12,7 @@ import { isValidMonth } from "../services/monthlyDates";
 const duplicateName = (response: Response) =>
   returnJson(response, 409, { code: 409, message: "This category already has a subcategory with that name." });
 
-// Shared validation for the bulk assignment endpoints. Validates auth, the month param, the
-// subcategoryIds array, and that the plan belongs to the user. Sends the error response and returns
-// null on failure, otherwise returns the resolved request context.
+// Shared validation context for bulk assignment endpoints
 async function resolveBulkRequest(
   request: Request,
   response: Response,
@@ -48,10 +46,7 @@ async function resolveBulkRequest(
 }
 
 export namespace SubcategoryHandler {
-  /**
-   * GET /categories/:id/subcategories
-   * List subcategories of a category
-   */
+  /** GET /categories/:id/subcategories */
   export async function getSubcategories(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -72,10 +67,7 @@ export namespace SubcategoryHandler {
     }
   }
 
-  /**
-   * POST /categories/:id/subcategories
-   * Create a subcategory under a category
-   */
+  /** POST /categories/:id/subcategories */
   export async function createSubcategory(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -105,10 +97,7 @@ export namespace SubcategoryHandler {
     }
   }
 
-  /**
-   * PUT /subcategories/:id
-   * Update a subcategory
-   */
+  /** PUT /subcategories/:id */
   export async function updateSubcategory(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -137,10 +126,7 @@ export namespace SubcategoryHandler {
     }
   }
 
-  /**
-   * DELETE /subcategories/:id
-   * Delete a subcategory
-   */
+  /** DELETE /subcategories/:id */
   export async function deleteSubcategory(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -161,10 +147,7 @@ export namespace SubcategoryHandler {
     }
   }
 
-  /**
-   * PUT /subcategories/:id/assignments/:month
-   * Set the money assigned to a subcategory in a month (YYYY-MM).
-   */
+  /** PUT /subcategories/:id/assignments/:month */
   export async function setAssignment(request: Request, response: Response) {
     try {
       if (!authorizeRequest(request, response)) return;
@@ -193,12 +176,7 @@ export namespace SubcategoryHandler {
     }
   }
 
-  /**
-   * POST /plans/:planId/assignments/fund-targets
-   * For each selected subcategory with a target, top up its assigned money for the month
-   * to meet the target. Lines already at/above target are skipped; lines with no target are ignored.
-   * Body: { month: "YYYY-MM", subcategoryIds: string[] }
-   */
+  /** POST /plans/:planId/assignments/fund-targets - Top up assigned amounts to meet targets */
   export async function fundTargets(request: Request, response: Response) {
     try {
       const ctx = await resolveBulkRequest(request, response);
@@ -217,11 +195,7 @@ export namespace SubcategoryHandler {
     }
   }
 
-  /**
-   * POST /plans/:planId/assignments/bulk
-   * Assign the same amount to several subcategories for a month.
-   * Body: { month: "YYYY-MM", subcategoryIds: string[], assigned: number }
-   */
+  /** POST /plans/:planId/assignments/bulk - Assign amount to multiple subcategories */
   export async function bulkAssign(request: Request, response: Response) {
     try {
       const ctx = await resolveBulkRequest(request, response);
@@ -244,12 +218,7 @@ export namespace SubcategoryHandler {
     }
   }
 
-  /**
-   * POST /plans/:planId/assignments/cover-overspending
-   * For each selected overspent subcategory, raise its assigned money for the month to the amount
-   * spent, so its available balance becomes zero. Lines that are not overspent are left untouched.
-   * Body: { month: "YYYY-MM", subcategoryIds: string[] }
-   */
+  /** POST /plans/:planId/assignments/cover-overspending - Raise assigned to spent for overspent subcategories */
   export async function coverOverspending(request: Request, response: Response) {
     try {
       const ctx = await resolveBulkRequest(request, response);
