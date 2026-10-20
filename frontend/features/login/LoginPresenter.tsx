@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLogin } from "@/models/useAuth";
+import { cancelOnboarding } from "@/models/useOnboarding";
 import LoginView from "@/features/login/LoginView";
 
 export default function LoginPresenter() {
@@ -12,7 +13,15 @@ export default function LoginPresenter() {
   const [password, setPassword] = useState("");
 
   function handleSubmit() {
-    login.mutate({ email, password }, { onSuccess: () => router.push("/") });
+    login.mutate(
+      { email, password },
+      {
+        onSuccess: () => {
+          cancelOnboarding();
+          router.push("/");
+        },
+      },
+    );
   }
 
   return (
