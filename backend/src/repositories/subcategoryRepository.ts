@@ -3,9 +3,7 @@ import { db } from "../db";
 import { categories, subcategories, budgetPlans, SubcategoryModel, NewSubcategoryModel } from "../db/schema";
 
 export namespace SubcategoryRepository {
-  /**
-   * Find a subcategory by ID
-   */
+  /** Find subcategory by ID. */
   export async function findSubcategoryById(subcategoryId: string) {
     return db
       .select()
@@ -15,9 +13,7 @@ export namespace SubcategoryRepository {
       .then((rows) => rows[0]);
   }
 
-  /**
-   * Find a subcategory by ID verifying it belongs to the authenticated user's category
-   */
+  /** Find subcategory by ID, verifying user ownership. */
   export async function findSubcategoryByIdAndUserId(subcategoryId: string, userId: number) {
     const rows = await db
       .select({ subcategory: subcategories })
@@ -29,9 +25,7 @@ export namespace SubcategoryRepository {
     return rows[0]?.subcategory ?? null;
   }
 
-  /**
-   * List all subcategories for a category
-   */
+  /** List subcategories for a category. */
   export async function findSubcategoriesByCategoryId(categoryId: string) {
     return db
       .select()
@@ -40,33 +34,25 @@ export namespace SubcategoryRepository {
       .orderBy(subcategories.createdAt);
   }
 
-  /**
-   * Create a subcategory
-   */
+  /** Create a subcategory. */
   export async function createSubcategory(data: NewSubcategoryModel) {
     const [created] = await db.insert(subcategories).values(data).returning();
     return created;
   }
 
-  /**
-   * Update a subcategory
-   */
+  /** Update a subcategory. */
   export async function updateSubcategory(subcategoryId: string, data: Pick<SubcategoryModel, "name" | "target">) {
     const [updated] = await db.update(subcategories).set(data).where(eq(subcategories.id, subcategoryId)).returning();
     return updated ?? null;
   }
 
-  /**
-   * Delete a subcategory
-   */
+  /** Delete a subcategory. */
   export async function deleteSubcategory(subcategoryId: string) {
     const result = await db.delete(subcategories).where(eq(subcategories.id, subcategoryId)).returning();
     return result.length > 0;
   }
 
-  /**
-   * Check if a subcategory belongs to a specific category
-   */
+  /** Check if a subcategory belongs to a category. */
   export async function isSubcategoryOfCategory(subcategoryId: string, categoryId: string) {
     const subcat = await db
       .select()

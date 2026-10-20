@@ -14,9 +14,7 @@ import {
 type PaymentTags = { id: string; name: string; color: (typeof tags.$inferSelect)["color"] }[];
 
 export namespace MonthlyPaymentRepository {
-  /**
-   * The monthly payments of a plan, oldest first, each with its tags
-   */
+  /** List monthly payments for a plan with their tags. */
   export async function findByPlanId(planId: string) {
     const rows = await db
       .select()
@@ -28,9 +26,7 @@ export namespace MonthlyPaymentRepository {
     return rows.map((row) => formatPayment(row, tagsByPayment.get(row.id) ?? []));
   }
 
-  /**
-   * Find a monthly payment by ID, verifying it belongs to the user (via its plan)
-   */
+  /** Find monthly payment by ID, verifying user ownership. */
   export async function findByIdAndUserId(id: string, userId: number) {
     const [row] = await db
       .select({ payment: monthlyPayments })
@@ -41,18 +37,13 @@ export namespace MonthlyPaymentRepository {
     return row ? formatPayment(row.payment, []) : null;
   }
 
-  /**
-   * Stop a monthly payment. The transactions it already made are kept, they only lose the link.
-   */
+  /** Delete a monthly payment without deleting generated transactions. */
   export async function deleteById(id: string) {
     const result = await db.delete(monthlyPayments).where(eq(monthlyPayments.id, id)).returning();
     return result.length > 0;
   }
 
-  /**
-   * Create a monthly payment together with the transaction the user logged, which counts as that month's payment.
-   * Both get the same tags. Everything happens in one database transaction. Returns the id of the transaction.
-   */
+  /** Create a monthly payment and its initial transaction atomically. */
   export async function createWithTransaction(
     payment: Omit<NewMonthlyPaymentModel, "id" | "createdAt">,
     transaction: Omit<NewTransactionModel, "id" | "monthlyPaymentId" | "monthlyPeriod">,
@@ -78,10 +69,7 @@ export namespace MonthlyPaymentRepository {
     });
   }
 
-  /**
-   * Create the transactions of a payment for the given months, copying its tags, and mark those months as handled.
-   * The unique rule on (payment, month) stops a month from being created twice if two requests arrive together.
-   */
+  /** Create transactions for due monthly periods and update generatedThrough. */
   export async function createDueTransactions(
     payment: ReturnType<typeof formatPayment>,
     periods: { month: string; date: string }[],
@@ -91,7 +79,7 @@ export namespace MonthlyPaymentRepository {
     const lastMonth = periods.reduce((latest, { month }) => (month > latest ? month : latest), periods[0].month);
 
     await db.transaction(async (tx) => {
-      // One insert for every month. A month that already exists is skipped by the unique rule.
+      // Insert transactions for due months, skipping existing via unique constraint
       const created = await tx
         .insert(transactions)
         .values(
@@ -134,7 +122,7 @@ export namespace MonthlyPaymentRepository {
       .where(inArray(monthlyPaymentTags.monthlyPaymentId, paymentIds))
       .orderBy(asc(sql`lower(${tags.name})`));
 
-    // One entry per payment
+    // Unique payments list
     const ids = [...new Set(rows.map((row) => row.paymentId))];
     return new Map<string, PaymentTags>(
       ids.map((id) => [
@@ -146,9 +134,7 @@ export namespace MonthlyPaymentRepository {
     );
   }
 
-  /**
-   * Format a monthly payment DB record for JSON output
-   */
+  /** Format monthly payment record for JSON output. */
   function formatPayment(payment: typeof monthlyPayments.$inferSelect, paymentTags: PaymentTags) {
     return {
       id: payment.id,

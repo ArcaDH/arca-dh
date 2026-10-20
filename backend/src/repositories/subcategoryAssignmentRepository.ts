@@ -2,11 +2,11 @@ import { eq, and, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import { budgetPlans, categories, subcategories, subcategoryAssignments, transactions } from "../db/schema";
 
-// Any Drizzle executor: the shared db, or a transaction handle inside db.transaction(...).
+// Drizzle DB or transaction executor handle
 type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export namespace SubcategoryAssignmentRepository {
-  // Insert or update one subcategory's assigned money for a month, on the given executor.
+  // Upsert assigned amount for a subcategory and month
   async function upsertAssigned(executor: Executor, subcategoryId: string, month: string, assigned: string) {
     const [row] = await executor
       .insert(subcategoryAssignments)
@@ -19,18 +19,12 @@ export namespace SubcategoryAssignmentRepository {
     return row;
   }
 
-  /**
-   * Set (insert or update) the money assigned to a subcategory in a given month.
-   * Returns the stored row.
-   */
+  /** Upsert assigned amount for a subcategory in a month. */
   export async function setAssigned(subcategoryId: string, month: string, assigned: string) {
     return upsertAssigned(db, subcategoryId, month, assigned);
   }
 
-  /**
-   * Set the same assigned amount on several subcategories for a month, in one transaction
-   * so a failure rolls them all back. Returns the stored rows.
-   */
+  /** Set identical assigned amount across multiple subcategories. */
   export async function setAssignedMany(subcategoryIds: string[], month: string, assigned: string) {
     if (subcategoryIds.length === 0) return [];
     return db.transaction((tx) =>
@@ -38,10 +32,7 @@ export namespace SubcategoryAssignmentRepository {
     );
   }
 
-  /**
-   * Set a per-subcategory assigned amount for a month in one transaction, so a failure
-   * rolls them all back. Returns the stored rows.
-   */
+  /** Set individual assigned amounts for multiple subcategories. */
   export async function setAssignedEach(entries: { subcategoryId: string; assigned: string }[], month: string) {
     if (entries.length === 0) return [];
     return db.transaction((tx) =>
@@ -49,10 +40,7 @@ export namespace SubcategoryAssignmentRepository {
     );
   }
 
-  /**
-   * List the subcategories of a plan together with the amount assigned to each in a month.
-   * assigned is null when the subcategory has no assignment that month.
-   */
+  /** List subcategories with assignments for a month. */
   export async function findPlanSubcategoriesWithAssignment(planId: string, month: string) {
     return db
       .select({
@@ -70,11 +58,7 @@ export namespace SubcategoryAssignmentRepository {
       .where(eq(categories.budgetPlanId, planId));
   }
 
-  /**
-   * Among the given subcategory ids, keep only those that belong to the user and plan.
-   * Returns their id, target, the current assignment for the month, and the money spent
-   * (sum of EXPENSE transactions) in that month.
-   */
+  /** Find owned subcategories with current assignment and monthly spending. */
   export async function findOwnedWithAssignment(
     subcategoryIds: string[],
     userId: number,
@@ -88,7 +72,7 @@ export namespace SubcategoryAssignmentRepository {
         subcategoryId: subcategories.id,
         target: subcategories.target,
         assigned: subcategoryAssignments.assigned,
-        // Spent this month on this subcategory. Expenses are stored negative, so negate to a positive spent.
+        // Monthly spending on subcategory (negate stored expense amount)
         spent: sql<string>`(
           SELECT -COALESCE(SUM(${transactions.amount}), 0)
           FROM ${transactions}

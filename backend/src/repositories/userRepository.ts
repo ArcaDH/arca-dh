@@ -3,9 +3,7 @@ import { db } from "../db";
 import { User, NewUserModel } from "../db/schema";
 
 export namespace UserRepository {
-  /**
-   * Find a user by their ID
-   */
+  /** Find user by ID. */
   export async function findById(userId: number) {
     return db
       .select()
@@ -15,9 +13,7 @@ export namespace UserRepository {
       .then((rows) => rows[0]);
   }
 
-  /**
-   * Find a user by their email address
-   */
+  /** Find user by email. */
   export async function findByEmail(email: string) {
     return db
       .select()
@@ -27,9 +23,7 @@ export namespace UserRepository {
       .then((rows) => rows[0]);
   }
 
-  /**
-   * Find a user by their username
-   */
+  /** Find user by username. */
   export async function findByUsername(username: string) {
     return db
       .select()
@@ -39,31 +33,23 @@ export namespace UserRepository {
       .then((rows) => rows[0]);
   }
 
-  /**
-   * Create a new user
-   */
+  /** Create a new user. */
   export async function createUser(userData: NewUserModel) {
     const [user] = await db.insert(User).values(userData).returning();
     return user;
   }
 
-  /**
-   * Update a user's profile information
-   */
+  /** Update user profile information. */
   export async function updateUser(userId: number, modifications: Partial<NewUserModel>) {
     await db.update(User).set(modifications).where(eq(User.userId, userId));
   }
 
-  /**
-   * Update a user's current (default) plan ID
-   */
+  /** Update user's current plan ID. */
   export async function updateCurrentPlanId(userId: number, planId: string | null) {
     await db.update(User).set({ currentPlanId: planId }).where(eq(User.userId, userId));
   }
 
-  /**
-   * Delete a user. Their plans and tags cascade (ON DELETE CASCADE in the schema).
-   */
+  /** Delete a user (cascades to plans and tags). */
   export async function deleteUser(userId: number) {
     await db.delete(User).where(eq(User.userId, userId));
   }

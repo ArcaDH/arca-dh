@@ -3,9 +3,7 @@ import { db } from "../db";
 import { savingsGoals, budgetPlans, transactions, NewSavingsGoalModel, SavingsGoalModel } from "../db/schema";
 
 export namespace SavingsGoalRepository {
-  /**
-   * Find a savings goal by ID
-   */
+  /** Find savings goal by ID. */
   export async function findById(goalId: string) {
     return db
       .select()
@@ -15,9 +13,7 @@ export namespace SavingsGoalRepository {
       .then((rows) => rows[0]);
   }
 
-  /**
-   * Find a savings goal by ID, verifying it belongs to the given user (via plan ownership)
-   */
+  /** Find savings goal by ID, verifying user ownership. */
   export async function findByIdAndUserId(goalId: string, userId: number) {
     const rows = await db
       .select({ goal: savingsGoals })
@@ -28,18 +24,14 @@ export namespace SavingsGoalRepository {
     return rows[0]?.goal ?? null;
   }
 
-  /**
-   * Find savings goals by budget plan ID, returning computed savedAmount and progress
-   */
+  /** Find savings goals by budget plan ID with progress calculation. */
   export async function findByPlanId(planId: string) {
     const goals = await db.select().from(savingsGoals).where(eq(savingsGoals.budgetPlanId, planId));
 
     return Promise.all(goals.map(getGoalWithProgress));
   }
 
-  /**
-   * Calculate savedAmount and progress for a single goal
-   */
+  /** Calculate savedAmount and progress for a single goal. */
   export async function getGoalWithProgress(goal: typeof savingsGoals.$inferSelect) {
     const [sumResult] = await db
       .select({
@@ -63,9 +55,7 @@ export namespace SavingsGoalRepository {
     };
   }
 
-  /**
-   * Create a new savings goal
-   */
+  /** Create a new savings goal. */
   export async function createGoal(goalData: NewSavingsGoalModel) {
     const [newGoal] = await db.insert(savingsGoals).values(goalData).returning();
 
@@ -80,9 +70,7 @@ export namespace SavingsGoalRepository {
     };
   }
 
-  /**
-   * Update an existing savings goal
-   */
+  /** Update an existing savings goal. */
   export async function updateGoal(
     goalId: string,
     data: Pick<SavingsGoalModel, "name" | "targetAmount" | "deadline" | "monthlyAmount">,
@@ -93,9 +81,7 @@ export namespace SavingsGoalRepository {
     return getGoalWithProgress(updated);
   }
 
-  /**
-   * Delete a savings goal by ID, together with the money saved toward it.
-   */
+  /** Delete a savings goal and its associated saving transactions. */
   export async function deleteGoal(goalId: string) {
     return db.transaction(async (tx) => {
       await tx.delete(transactions).where(eq(transactions.savingsGoalId, goalId));

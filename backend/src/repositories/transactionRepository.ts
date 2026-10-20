@@ -6,9 +6,7 @@ import { TagRepository } from "./tagRepository";
 type TransactionTags = Pick<TagModel, "id" | "name" | "color">[];
 
 export namespace TransactionRepository {
-  /**
-   * Find a transaction by ID
-   */
+  /** Find transaction by ID. */
   export async function findById(id: string) {
     return db
       .select()
@@ -18,9 +16,7 @@ export namespace TransactionRepository {
       .then((rows) => rows[0]);
   }
 
-  /**
-   * Find a transaction by ID, formatted for JSON output, with its tags
-   */
+  /** Find formatted transaction by ID with tags. */
   export async function findFormattedById(id: string) {
     const tx = await findById(id);
     if (!tx) return null;
@@ -28,15 +24,12 @@ export namespace TransactionRepository {
     return formatTransaction(tx, tagsByTransaction.get(id) ?? []);
   }
 
-  /**
-   * Find transactions for a specific plan with optional month, categoryId, and type filters.
-   * Sorted by date descending (newest first).
-   */
+  /** Find transactions for a plan with optional month, category, and type filters. */
   export async function findByPlanId(
     planId: string,
     filters?: { month?: string; categoryId?: string; type?: "EXPENSE" | "SAVING" },
   ) {
-    // Only the filters that were given narrow the list
+    // Apply optional filters
     const conditions = [
       eq(transactions.budgetPlanId, planId),
       ...(filters?.month ? [sql`${transactions.date}::text LIKE ${`${filters.month.trim()}%`}`] : []),
@@ -54,9 +47,7 @@ export namespace TransactionRepository {
     return rows.map((row) => formatTransaction(row, tagsByTransaction.get(row.id) ?? []));
   }
 
-  /**
-   * Create a new transaction, with its tags (if any)
-   */
+  /** Create a transaction and associate its tags. */
   export async function createTransaction(data: NewTransactionModel, tagIds: string[] = []) {
     const [tx] = await db.insert(transactions).values(data).returning();
     if (tagIds.length > 0) await TagRepository.setTransactionTags(tx.id, tagIds);
@@ -64,9 +55,7 @@ export namespace TransactionRepository {
     return formatTransaction(tx, tagsByTransaction.get(tx.id) ?? []);
   }
 
-  /**
-   * Update an existing transaction. The tags are replaced only when `tagIds` is given.
-   */
+  /** Update a transaction and optionally replace its tags. */
   export async function updateTransaction(id: string, data: Partial<NewTransactionModel>, tagIds?: string[]) {
     const [tx] = await db.update(transactions).set(data).where(eq(transactions.id, id)).returning();
     if (tagIds !== undefined) await TagRepository.setTransactionTags(id, tagIds);
@@ -74,10 +63,7 @@ export namespace TransactionRepository {
     return formatTransaction(tx, tagsByTransaction.get(id) ?? []);
   }
 
-  /**
-   * Delete a transaction by ID. With `alsoStopPaymentId` the monthly payment that made it is stopped too, in the same
-   * database transaction: either both happen or neither.
-   */
+  /** Delete a transaction, optionally stopping recurring monthly payment atomically. */
   export async function deleteTransaction(id: string, alsoStopPaymentId?: string) {
     if (!alsoStopPaymentId) {
       await db.delete(transactions).where(eq(transactions.id, id));
@@ -90,9 +76,7 @@ export namespace TransactionRepository {
     });
   }
 
-  /**
-   * Format transaction DB record for JSON output
-   */
+  /** Format transaction record for JSON output. */
   function formatTransaction(tx: typeof transactions.$inferSelect, tags: TransactionTags) {
     return {
       id: tx.id,

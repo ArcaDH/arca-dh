@@ -10,16 +10,12 @@ import {
 } from "../db/schema";
 
 export namespace OverviewRepository {
-  /**
-   * Build the full MonthlyOverview for a given plan and month (YYYY-MM).
-   */
+  /** Get monthly overview metrics and progress for a plan and month (YYYY-MM). */
   export async function getMonthlyOverview(planId: string, month: string) {
     const monthPrefix = `${month}%`;
 
-    // Expenses are stored as negative amounts (money out), so their sums are negated here to give a positive
-    // "spent". Money in (a positive EXPENSE row) then lowers the total. Savings are stored positive and unchanged.
-
-    // Total income; sum of all income sources for this plan
+    // Negate negative expense amounts to yield positive spent values
+    // Total income for plan
     const [incomeRow] = await db
       .select({
         total: sql<string>`COALESCE(SUM(${incomeSources.monthlyAmount}), 0)`,
@@ -29,7 +25,7 @@ export namespace OverviewRepository {
 
     const totalIncome = parseFloat(incomeRow?.total || "0");
 
-    // 2. Total expenses — sum of EXPENSE transactions in the given month
+    // Total expenses in the month
     const [expenseRow] = await db
       .select({
         total: sql<string>`-COALESCE(SUM(${transactions.amount}), 0)`,
@@ -45,7 +41,7 @@ export namespace OverviewRepository {
 
     const totalExpenses = parseFloat(expenseRow?.total || "0");
 
-    // Total savings; sum of SAVING transactions in the given month
+    // Total savings in the month
     const [savingRow] = await db
       .select({
         total: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
@@ -61,7 +57,7 @@ export namespace OverviewRepository {
 
     const savings = parseFloat(savingRow?.total || "0");
 
-    // Spending by category (with subcategories)
+    // Spending by category and subcategory
     const planCategories = await db
       .select()
       .from(categories)
@@ -70,7 +66,7 @@ export namespace OverviewRepository {
 
     const spendingByCategory = await Promise.all(
       planCategories.map(async (cat) => {
-        // Total spent in this category this month
+
         const [catSpentRow] = await db
           .select({
             spent: sql<string>`-COALESCE(SUM(${transactions.amount}), 0)`,
@@ -85,7 +81,7 @@ export namespace OverviewRepository {
             ),
           );
 
-        // Subcategories with their spending and the money assigned to them this month
+
         const catSubcategories = await db
           .select({
             id: subcategories.id,
@@ -137,7 +133,7 @@ export namespace OverviewRepository {
       }),
     );
 
-    // Goal progress; all-time saved amounts, plus what was saved in the given month
+    // Savings goal progress
     const goals = await db
       .select()
       .from(savingsGoals)
@@ -173,7 +169,7 @@ export namespace OverviewRepository {
       }),
     );
 
-    // Assemble response
+
     return {
       month,
       totalIncome,
