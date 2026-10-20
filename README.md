@@ -2,6 +2,16 @@
 
 A personal budgeting app. Monorepo with a TypeScript API and a Next.js web client.
 
+- **Frontend:** [https://arcadh.github.io/arca-dh/](https://arcadh.github.io/arca-dh/)
+- **Backend (swagger-doc):** [https://arca-dh-main.onrender.com/api-docs/](https://arca-dh-main.onrender.com/api-docs/)
+
+**Sonar analysis**
+
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=ArcaDH_arca-dh&metric=ncloc&token=6ea8417fccf52d36b3e22ace3de4bbfe45f8a01f)](https://sonarcloud.io/summary/new_code?id=ArcaDH_arca-dh)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ArcaDH_arca-dh&metric=coverage&token=6ea8417fccf52d36b3e22ace3de4bbfe45f8a01f)](https://sonarcloud.io/summary/new_code?id=ArcaDH_arca-dh)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ArcaDH_arca-dh&metric=reliability_rating&token=6ea8417fccf52d36b3e22ace3de4bbfe45f8a01f)](https://sonarcloud.io/summary/new_code?id=ArcaDH_arca-dh)
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=ArcaDH_arca-dh&metric=alert_status&token=6ea8417fccf52d36b3e22ace3de4bbfe45f8a01f)](https://sonarcloud.io/summary/new_code?id=ArcaDH_arca-dh)
+
 ## Tech Stack
 
 - **Backend:** Node.js, Express, TypeScript, Drizzle ORM, PostgreSQL
