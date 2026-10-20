@@ -66,7 +66,6 @@ export namespace OverviewRepository {
 
     const spendingByCategory = await Promise.all(
       planCategories.map(async (cat) => {
-
         const [catSpentRow] = await db
           .select({
             spent: sql<string>`-COALESCE(SUM(${transactions.amount}), 0)`,
@@ -80,7 +79,6 @@ export namespace OverviewRepository {
               sql`${transactions.date}::text LIKE ${monthPrefix}`,
             ),
           );
-
 
         const catSubcategories = await db
           .select({
@@ -168,7 +166,6 @@ export namespace OverviewRepository {
         };
       }),
     );
-
 
     return {
       month,
