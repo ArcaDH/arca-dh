@@ -9,7 +9,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import ErrorState from "@/components/ui/ErrorState";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { formatDay } from "@/lib/format";
-import { formatKr, formatSignedKr } from "@/lib/money";
+import { formatSignedKr, formatWholeKr } from "@/lib/money";
 import type { MonthlyPaymentRow } from "@/types/monthlyPayment";
 import type { Tag } from "@/types/tag";
 import type { TransactionFilters, TransactionRow } from "@/types/transaction";
@@ -58,19 +58,13 @@ export default function TransactionsView(props: TransactionsViewProps) {
     <div>
       <PageHeader
         aside={
-          <div
-            className={`rounded-lg px-3 py-1 text-right ${net !== null && net > 0 ? "bg-success/10" : "bg-accent/10"}`}
-          >
-            <p className={`text-lg font-semibold ${net !== null && net > 0 ? "text-success" : "text-accent"}`}>
-              {net !== null ? formatKr(Math.abs(net)) : "–"}
-            </p>
-            <p className={`text-xs ${net !== null && net > 0 ? "text-success" : "text-accent"}`}>
-              {net !== null && net > 0 ? "received this month" : "spent this month"}
-            </p>
-          </div>
+          <dl className="flex items-baseline gap-1.5 text-sm">
+            <dt className="text-muted">{net !== null && net > 0 ? "Received" : "Spent"}</dt>
+            <dd className="font-medium tabular-nums">{net !== null ? formatWholeKr(Math.abs(net)) : "–"}</dd>
+          </dl>
         }
       >
-        <h1 className="font-heading text-2xl font-semibold text-foreground">Transactions</h1>
+        <h1 className="text-lg font-semibold">Transactions</h1>
         <MonthPicker month={props.month} onChange={props.onMonthChange} />
       </PageHeader>
 

@@ -34,7 +34,7 @@ export const MonthPicker: FC<MonthPickerProps> = ({ month, onChange }) => {
         triggerClassName="group -ml-2 flex items-center gap-1.5 rounded-lg px-2 py-1 text-left hover:bg-foreground/5"
         trigger={
           <>
-            <span className="text-lg font-semibold tabular-nums">
+            <span className="text-lg font-semibold whitespace-nowrap tabular-nums">
               {shortMonth(month)}, {year}
             </span>
             <ChevronUp
