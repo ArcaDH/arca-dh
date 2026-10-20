@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { toISODate } from "@/lib/format";
-import { dayOfDate, parseDayOfMonth } from "@/lib/monthly";
+import { dayOfDate, parseDayOfMonth, repeatHint } from "@/lib/monthly";
 import { MAX_AMOUNT_KR, MIN_AMOUNT_KR, parseKr, toBackendAmount } from "@/lib/money";
-import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { forGroups } from "@/lib/transactions";
 import { useCreateTag, useDeleteTag, useTags } from "@/models/useTags";
 import { useCreateTransaction } from "@/models/useTransactions";
@@ -12,6 +11,7 @@ import type { CategoryWithSubcategories } from "@/types/category";
 import type { SavingsGoal } from "@/types/goal";
 import type { Tag } from "@/types/tag";
 import type { ForOption } from "@/types/transaction";
+import TagPickerPresenter from "../tag-picker/TagPickerPresenter";
 import TransactionFormView, { type FormState } from "./TransactionFormView";
 
 // sessionStorage keeps a half-filled form across a refresh, and forgets it when the tab is closed
@@ -134,29 +134,28 @@ export default function TransactionFormPresenter({ planId, categories, goals }: 
   }
 
   return (
-    <>
-      <TransactionFormView
-        form={{ ...form, tagIds }}
-        groups={groups}
-        tags={knownTags}
-        canRepeat={canRepeat}
-        repeatDay={repeatDay}
-        error={error}
-        isSaving={createTransaction.isPending}
-        onChange={update}
-        onCreateTag={createTag.mutateAsync}
-        onDeleteTag={setPendingDeleteTag}
-        onSubmit={handleSubmit}
-      />
-      {pendingDeleteTag && (
-        <ConfirmDialog
-          title={`Delete the tag "${pendingDeleteTag.name}"?`}
-          onCancel={() => setPendingDeleteTag(null)}
-          actions={[{ label: "Delete", danger: true, onClick: confirmDeleteTag }]}
-        >
-          It is removed from every transaction that has it. The transactions themselves are kept.
-        </ConfirmDialog>
-      )}
-    </>
+    <TransactionFormView
+      form={{ ...form, tagIds }}
+      groups={groups}
+      tagPicker={
+        <TagPickerPresenter
+          allTags={knownTags}
+          selectedIds={tagIds}
+          onChange={(ids) => update({ tagIds: ids })}
+          onCreateTag={createTag.mutateAsync}
+          onDeleteTag={setPendingDeleteTag}
+        />
+      }
+      canRepeat={canRepeat}
+      repeatDay={repeatDay}
+      repeatHint={repeatHint(repeatDay)}
+      error={error}
+      isSaving={createTransaction.isPending}
+      pendingDeleteTag={pendingDeleteTag}
+      onChange={update}
+      onSubmit={handleSubmit}
+      onConfirmDeleteTag={confirmDeleteTag}
+      onCancelDeleteTag={() => setPendingDeleteTag(null)}
+    />
   );
 }

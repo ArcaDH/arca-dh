@@ -4,15 +4,15 @@ import IconTile from "@/components/ui/IconTile";
 import { formatDay } from "@/lib/format";
 import { formatSignedKr } from "@/lib/money";
 import type { MonthlyPaymentRow } from "@/types/monthlyPayment";
-import TagChip from "./TagChip";
+import TagChipView from "../tag-chip/TagChipView";
 
-interface MonthlyPaymentsProps {
+interface MonthlyPaymentsViewProps {
   payments: MonthlyPaymentRow[];
   onStop: (payment: MonthlyPaymentRow) => void;
 }
 
 /** The active monthly payments, or an invitation to make the first one. */
-export default function MonthlyPayments({ payments, onStop }: MonthlyPaymentsProps) {
+export default function MonthlyPaymentsView({ payments, onStop }: MonthlyPaymentsViewProps) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-secondary/20 bg-secondary/[0.06] p-4">
       <div className="flex items-start justify-between gap-3">
@@ -48,7 +48,7 @@ export default function MonthlyPayments({ payments, onStop }: MonthlyPaymentsPro
                   <ul aria-label="Tags" className="mt-1 flex flex-wrap gap-1">
                     {payment.tags.map((tag) => (
                       <li key={tag.id} className="max-w-full">
-                        <TagChip tag={tag} />
+                        <TagChipView tag={tag} />
                       </li>
                     ))}
                   </ul>

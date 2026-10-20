@@ -5,16 +5,16 @@ import IconButton from "@/components/ui/IconButton";
 import { formatDay } from "@/lib/format";
 import { formatSignedKr } from "@/lib/money";
 import type { TransactionRow } from "@/types/transaction";
-import TagChip from "./TagChip";
+import TagChipView from "../tag-chip/TagChipView";
 
-interface TransactionListProps {
+interface TransactionListViewProps {
   rows: TransactionRow[];
   isRefreshing: boolean;
   isFiltered: boolean;
   onDelete: (row: TransactionRow) => void;
 }
 
-export default function TransactionList({ rows, isRefreshing, isFiltered, onDelete }: TransactionListProps) {
+export default function TransactionListView({ rows, isRefreshing, isFiltered, onDelete }: TransactionListViewProps) {
   if (rows.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-foreground/20 px-6 py-12 text-center">
@@ -58,7 +58,7 @@ export default function TransactionList({ rows, isRefreshing, isFiltered, onDele
                 <ul aria-label="Tags" className="mt-1 flex flex-wrap gap-1">
                   {row.tags.map((tag) => (
                     <li key={tag.id} className="max-w-full">
-                      <TagChip tag={tag} />
+                      <TagChipView tag={tag} />
                     </li>
                   ))}
                 </ul>

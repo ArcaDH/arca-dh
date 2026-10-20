@@ -90,3 +90,6 @@ export const DEFAULT_FILTERS: TransactionFilters = {
   sort: "date",
   dir: "desc",
 };
+
+/** The month's total as the page header shows it: the label that goes with it, and the amount. */
+export type NetSummary = { label: "Received" | "Spent"; amount: string };
