@@ -75,6 +75,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
   return (
     <div>
       <PageHeader aside={readyToAssign}>
+        <h1 className="text-lg font-semibold">Budget</h1>
         <MonthPicker month={month} onChange={onMonthChange} />
       </PageHeader>
 
@@ -85,98 +86,103 @@ export const BudgetView: FC<BudgetViewProps> = ({
       {!groups ? (
         !errorMessage && <BudgetSkeleton />
       ) : (
-        <table className={`w-full text-sm transition-opacity ${isRefreshing ? "opacity-60" : ""}`}>
-          <thead>
-            <tr className="border-b border-foreground/10 text-xs text-muted">
-              <th className="w-8 py-2 pr-1 pl-3">
-                {selectAll && (
-                  <div className="flex">
-                    <Checkbox
-                      checked={selectAll.checked}
-                      indeterminate={selectAll.indeterminate}
-                      label="Select all subcategories"
-                      onChange={onToggleAll}
-                    />
-                  </div>
-                )}
-              </th>
-              <th className="py-2 pr-3 pl-2 text-left font-medium">
-                <span className="flex items-center gap-1.5">
-                  Category
-                  <Button size="xs" aria-label="New category" title="New category" onClick={onAddCategory}>
-                    New
-                    <Plus size={12} strokeWidth={2.5} aria-hidden />
-                  </Button>
-                </span>
-              </th>
-              <th className="px-3 py-2 text-right font-medium">Assigned</th>
-              <th className="px-3 py-2 text-right font-medium">Spent</th>
-              <th className="px-3 py-2 text-right font-medium">Available</th>
-              <th className="w-10" aria-label="Actions" />
-            </tr>
-          </thead>
-          {groups.map((group) => {
-            const { category } = group;
+        <div className="overflow-x-auto">
+          <table className={`w-full text-sm transition-opacity ${isRefreshing ? "opacity-60" : ""}`}>
+            <thead>
+              <tr className="border-b border-foreground/10 text-xs text-muted">
+                <th className="w-7 py-2 pr-1 pl-1 sm:w-8 sm:pl-3">
+                  {selectAll && (
+                    <div className="flex">
+                      <Checkbox
+                        checked={selectAll.checked}
+                        indeterminate={selectAll.indeterminate}
+                        label="Select all subcategories"
+                        onChange={onToggleAll}
+                      />
+                    </div>
+                  )}
+                </th>
+                <th className="py-2 pr-2 pl-2 text-left font-medium sm:pr-3">
+                  <span className="flex items-center gap-1.5">
+                    Category
+                    <Button size="xs" aria-label="New category" title="New category" onClick={onAddCategory}>
+                      New
+                      <Plus size={12} strokeWidth={2.5} aria-hidden />
+                    </Button>
+                  </span>
+                </th>
+                <th className="px-1 py-2 text-right font-medium sm:px-3">Assigned</th>
+                <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">Spent</th>
+                <th className="px-1 py-2 text-right font-medium sm:px-3">Available</th>
+                <th className="w-8 sm:w-10" aria-label="Actions" />
+              </tr>
+            </thead>
+            {groups.map((group) => {
+              const { category } = group;
 
-            return (
-              <tbody key={category?.categoryId ?? group.name}>
-                <BudgetTableRowView
-                  name={group.name}
-                  assigned={group.assigned}
-                  spent={group.spent}
-                  status={group.status}
-                  selection={
-                    category
-                      ? {
-                          ...categorySelections[category.categoryId],
-                          onToggle: () => onToggleCategory(category.categoryId),
-                        }
-                      : undefined
-                  }
-                  onAddSubcategory={category && (() => onAddSubcategory(category))}
-                  onRename={category && (() => onRenameCategory(category))}
-                  onDelete={category && (() => onDeleteCategory(category))}
-                />
-                {group.lines.map((line) => (
+              return (
+                <tbody key={category?.categoryId ?? group.name}>
                   <BudgetTableRowView
-                    key={line.id}
-                    name={line.name}
-                    assigned={line.assigned}
-                    spent={line.spent}
-                    target={line.kind === "subcategory" ? line.target : undefined}
-                    kind={line.kind}
-                    status={line.status}
-                    isDone={line.isDone}
+                    name={group.name}
+                    assigned={group.assigned}
+                    spent={group.spent}
+                    available={group.available}
+                    status={group.status}
                     selection={
-                      line.kind === "subcategory"
-                        ? { checked: selectedIds.has(line.id), onToggle: () => onToggleLine(line.id) }
+                      category
+                        ? {
+                            ...categorySelections[category.categoryId],
+                            onToggle: () => onToggleCategory(category.categoryId),
+                          }
                         : undefined
                     }
-                    amountEditing={{
-                      value: amountEdit?.lineId === line.id ? amountEdit.value : null,
-                      onStart: () => onStartAmountEdit({ lineId: line.id, value: String(line.assigned) }),
-                      onChange: onAmountEditChange,
-                      onSave: onSaveAmount,
-                      onCancel: onCancelAmountEdit,
-                    }}
-                    // Goals are renamed and deleted on their own page
-                    onRename={line.kind === "subcategory" ? () => onRenameSubcategory(line) : undefined}
-                    onDelete={line.kind === "subcategory" ? () => onDeleteSubcategory(line) : undefined}
+                    onAddSubcategory={category && (() => onAddSubcategory(category))}
+                    onRename={category && (() => onRenameCategory(category))}
+                    onDelete={category && (() => onDeleteCategory(category))}
                   />
-                ))}
+                  {group.lines.map((line) => (
+                    <BudgetTableRowView
+                      key={line.id}
+                      name={line.name}
+                      assigned={line.assigned}
+                      spent={line.spent}
+                      available={line.available}
+                      funding={line.kind === "subcategory" ? line.funding : undefined}
+                      progress={line.kind === "goal" ? line.progress : undefined}
+                      kind={line.kind}
+                      status={line.status}
+                      isDone={line.isDone}
+                      selection={
+                        line.kind === "subcategory"
+                          ? { checked: selectedIds.has(line.id), onToggle: () => onToggleLine(line.id) }
+                          : undefined
+                      }
+                      amountEditing={{
+                        value: amountEdit?.lineId === line.id ? amountEdit.value : null,
+                        onStart: () => onStartAmountEdit({ lineId: line.id, value: String(line.assigned) }),
+                        onChange: onAmountEditChange,
+                        onSave: onSaveAmount,
+                        onCancel: onCancelAmountEdit,
+                      }}
+                      // Goals are renamed and deleted on their own page
+                      onRename={line.kind === "subcategory" ? () => onRenameSubcategory(line) : undefined}
+                      onDelete={line.kind === "subcategory" ? () => onDeleteSubcategory(line) : undefined}
+                    />
+                  ))}
+                </tbody>
+              );
+            })}
+            {groups.length === 0 && (
+              <tbody>
+                <tr>
+                  <td colSpan={6} className="px-3 py-6 text-muted">
+                    You haven&apos;t added any categories yet.
+                  </td>
+                </tr>
               </tbody>
-            );
-          })}
-          {groups.length === 0 && (
-            <tbody>
-              <tr>
-                <td colSpan={6} className="px-3 py-6 text-muted">
-                  You haven&apos;t added any categories yet.
-                </td>
-              </tr>
-            </tbody>
-          )}
-        </table>
+            )}
+          </table>
+        </div>
       )}
 
       {dialog}

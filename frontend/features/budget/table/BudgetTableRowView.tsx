@@ -6,9 +6,8 @@ import { StatusBadge, type BadgeTone } from "@/components/ui/StatusBadge";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { MenuItem } from "@/components/ui/MenuItem";
 import { MoneyProgress, type ProgressTone } from "@/components/ui/MoneyProgress";
-import { availableBadge, spentShare, subcategoryFunding, type FundingState } from "@/lib/budget";
 import { formatWholeKr } from "@/lib/money";
-import type { BudgetLine, BudgetStatus } from "@/types/budget";
+import type { BudgetLine, BudgetStatus, FundingState, SubcategoryFunding } from "@/types/budget";
 
 const statusStyle: Record<BudgetStatus, { tone: BadgeTone; variant: "solid" | "soft" }> = {
   progress: { tone: "success", variant: "soft" },
@@ -56,8 +55,11 @@ interface BudgetTableRowViewProps {
   name: string;
   assigned: number;
   spent: number;
-  // Subcategory monthly target (null = none). Undefined for headings/goals.
-  target?: number | null;
+  available: string;
+  // A subcategory's funding bar
+  funding?: SubcategoryFunding;
+  // How full a goal's bar is, from 0 to 1
+  progress?: number;
   // A line under a heading, with an icon and a progress bar. Left out for a heading row
   kind?: BudgetLine["kind"];
   status: BudgetStatus;
@@ -84,7 +86,9 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
   name,
   assigned,
   spent,
-  target = undefined,
+  available,
+  funding,
+  progress = 0,
   kind,
   status,
   isDone = false,
@@ -95,11 +99,10 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
   onDelete,
 }) => {
   const isLine = kind !== undefined;
-  const funding = kind === "subcategory" ? subcategoryFunding(assigned, spent, target ?? null) : null;
 
   return (
     <tr className={`group border-t border-foreground/10 ${isLine ? "" : "bg-foreground/[0.025] font-medium"}`}>
-      <td className="w-8 py-2 pr-1 pl-3">
+      <td className="w-7 py-2 pr-1 pl-1 sm:w-8 sm:pl-3">
         {selection && (
           <div className="flex">
             <Checkbox
@@ -112,16 +115,16 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
         )}
       </td>
 
-      <td className="py-2 pr-3 pl-2">
+      <td className="py-2 pr-2 pl-2 sm:pr-3">
         <div className="flex items-center gap-2.5">
           {kind === "subcategory" && (
-            <Wallet size={18} strokeWidth={1.75} className="shrink-0 text-muted" aria-hidden />
+            <Wallet size={18} strokeWidth={1.75} className="hidden shrink-0 text-muted sm:block" aria-hidden />
           )}
           {kind === "goal" && (
             <Goal
               size={18}
               strokeWidth={1.75}
-              className={`shrink-0 ${isDone ? "text-success" : "text-muted"}`}
+              className={`hidden shrink-0 sm:block ${isDone ? "text-success" : "text-muted"}`}
               aria-hidden
             />
           )}
@@ -131,7 +134,7 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
               {onAddSubcategory && (
                 <Button size="xs" variant="soft" aria-label={`Add subcategory to ${name}`} onClick={onAddSubcategory}>
                   <Plus size={12} strokeWidth={2.5} aria-hidden />
-                  Subcategory
+                  <span className="hidden sm:inline">Subcategory</span>
                 </Button>
               )}
             </div>
@@ -139,10 +142,10 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
                 or an empty bar when there is no target yet, with the funded text on the same line. */}
             {kind === "goal" && (
               <MoneyProgress
-                value={isDone ? 1 : spentShare(spent, assigned)}
+                value={progress}
                 tone={isDone ? "success" : statusStyle[status].tone}
                 label={`${name}: ${formatWholeKr(spent)} of ${formatWholeKr(assigned)} saved`}
-                className="mt-1 w-36"
+                className="mt-1 w-16 sm:w-36"
               />
             )}
             {kind === "subcategory" && funding && (
@@ -151,10 +154,10 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
                   value={funding.share}
                   tone={fundingTone[funding.state]}
                   label={`${name}: ${funding.label}`}
-                  className="w-36"
+                  className="w-16 sm:w-36"
                 />
                 <p
-                  className={`text-xs whitespace-nowrap tabular-nums ${funding.state === "overspent" ? "text-accent" : "text-muted"}`}
+                  className={`hidden text-xs whitespace-nowrap tabular-nums sm:block ${funding.state === "overspent" ? "text-accent" : "text-muted"}`}
                 >
                   {funding.caption}
                 </p>
@@ -164,7 +167,7 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
         </div>
       </td>
 
-      <td className="w-36 px-3 py-2 text-right">
+      <td className="px-1 py-2 text-right sm:w-36 sm:px-3">
         {!amountEditing ? (
           <span className="px-2 tabular-nums">{formatWholeKr(assigned)}</span>
         ) : amountEditing.value !== null ? (
@@ -187,21 +190,21 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
         )}
       </td>
 
-      <td className="w-32 px-3 py-2 text-right text-muted tabular-nums">{formatWholeKr(spent)}</td>
+      <td className="hidden w-32 px-3 py-2 text-right text-muted tabular-nums sm:table-cell">{formatWholeKr(spent)}</td>
 
-      <td className="w-32 px-3 py-2 text-right">
+      <td className="px-1 py-2 text-right sm:w-32 sm:px-3">
         {isDone ? (
           <StatusBadge tone="success" icon={Check} celebrate>
             Done
           </StatusBadge>
         ) : (
           <StatusBadge tone={statusStyle[status].tone} variant={statusStyle[status].variant}>
-            {availableBadge(assigned, spent, status)}
+            {available}
           </StatusBadge>
         )}
       </td>
 
-      <td className="w-10 py-2 pr-2">
+      <td className="w-8 py-2 pr-0 sm:w-10 sm:pr-2">
         {onRename && onDelete && (
           <Dropdown
             align="end"

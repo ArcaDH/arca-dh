@@ -34,12 +34,7 @@ export namespace SavingsGoalRepository {
   export async function findByPlanId(planId: string) {
     const goals = await db.select().from(savingsGoals).where(eq(savingsGoals.budgetPlanId, planId));
 
-    const result = [];
-    for (const goal of goals) {
-      const goalProgress = await getGoalWithProgress(goal);
-      result.push(goalProgress);
-    }
-    return result;
+    return Promise.all(goals.map(getGoalWithProgress));
   }
 
   /**

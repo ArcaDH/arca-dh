@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode, type FC } from "react";
+import { createPortal } from "react-dom";
 
 interface DialogProps {
   title: string;
@@ -24,7 +25,9 @@ export const Dialog: FC<DialogProps> = ({ title, children, onClose, role = "dial
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4" onClick={onClose}>
       <div
         role={role}
@@ -38,6 +41,7 @@ export const Dialog: FC<DialogProps> = ({ title, children, onClose, role = "dial
         </h2>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

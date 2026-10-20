@@ -1,6 +1,13 @@
 import { goalAssigned, isGoalDone } from "@/lib/goals";
 import { formatWholeKr, sumKr } from "@/lib/money";
-import type { BudgetGroup, BudgetLine, BudgetStatus, SelectionState } from "@/types/budget";
+import type {
+  AssignState,
+  BudgetGroup,
+  BudgetLine,
+  BudgetStatus,
+  SelectionState,
+  SubcategoryFunding,
+} from "@/types/budget";
 import type { CategorySpending, GoalProgress, SubcategorySpending } from "@/types/overview";
 
 // For savings, putting in more than planned is good, so it is covered and never over
@@ -24,17 +31,6 @@ export function fundingShare(assigned: number, target: number | null): number {
 
 export const isFunded = (assigned: number, target: number | null): boolean =>
   target !== null && target > 0 && assigned >= target;
-
-// Everything the row needs to render a subcategory's funding bar and caption, computed here so the
-// view stays a dummy component. `state` drives the bar/text colour; the view only maps it to a tone.
-export type FundingState = "overspent" | "funded" | "funding" | "none";
-
-export type SubcategoryFunding = {
-  state: FundingState;
-  share: number; // 0..1 for the bar
-  label: string; // accessible progressbar label
-  caption: string; // short text shown next to the bar
-};
 
 export function subcategoryFunding(assigned: number, spent: number, target: number | null): SubcategoryFunding {
   if (spent > assigned) {
@@ -77,51 +73,67 @@ export const categoryAssigned = (category: { subcategories: { assigned: number }
 // A subcategory line. The single progress bar shows funding (assigned vs target).
 // Spending is shown separately. Status reflects the envelope balance (spent vs assigned):
 // "over" when spent exceeds what was assigned, so the Available column turns red.
-export const subcategoryLine = (subcategory: SubcategorySpending): BudgetLine => ({
-  kind: "subcategory",
-  id: subcategory.subcategoryId,
-  name: subcategory.name,
-  assigned: subcategory.assigned,
-  target: subcategory.target,
-  spent: subcategory.spent,
-  status: budgetStatus(subcategory.spent, subcategory.assigned),
-  isDone: false,
-});
+export function subcategoryLine(subcategory: SubcategorySpending): BudgetLine {
+  const status = budgetStatus(subcategory.spent, subcategory.assigned);
+  return {
+    kind: "subcategory",
+    id: subcategory.subcategoryId,
+    name: subcategory.name,
+    assigned: subcategory.assigned,
+    target: subcategory.target,
+    spent: subcategory.spent,
+    status,
+    available: availableBadge(subcategory.assigned, subcategory.spent, status),
+    funding: subcategoryFunding(subcategory.assigned, subcategory.spent, subcategory.target),
+    isDone: false,
+  };
+}
 
 export function goalLine(goal: GoalProgress, month: string): BudgetLine {
   const assigned = goalAssigned(goal, month);
+  const status = budgetStatus(goal.savedThisMonth, assigned, true);
+  const isDone = isGoalDone(goal);
   return {
     kind: "goal",
     id: goal.goalId,
     name: goal.name,
     assigned,
     spent: goal.savedThisMonth,
-    status: budgetStatus(goal.savedThisMonth, assigned, true),
-    isDone: isGoalDone(goal),
+    status,
+    available: availableBadge(assigned, goal.savedThisMonth, status),
+    isDone,
+    progress: isDone ? 1 : spentShare(goal.savedThisMonth, assigned),
     goal,
   };
 }
 
 // The budget table. each category with its subcategories, also then the savings goals as one more group
 export function budgetGroups(categories: CategorySpending[], goals: GoalProgress[], month: string): BudgetGroup[] {
-  const categoryGroups = categories.map((category) => ({
-    name: category.name,
-    assigned: categoryAssigned(category),
-    spent: category.spent,
-    status: budgetStatus(category.spent, categoryAssigned(category)),
-    lines: category.subcategories.map(subcategoryLine),
-    category,
-  }));
+  const categoryGroups = categories.map((category) => {
+    const assigned = categoryAssigned(category);
+    const status = budgetStatus(category.spent, assigned);
+    return {
+      name: category.name,
+      assigned,
+      spent: category.spent,
+      status,
+      available: availableBadge(assigned, category.spent, status),
+      lines: category.subcategories.map(subcategoryLine),
+      category,
+    };
+  });
   if (goals.length === 0) return categoryGroups;
 
   const goalLines = goals.map((goal) => goalLine(goal, month));
   const assigned = sumKr(goalLines.map((line) => line.assigned));
   const spent = sumKr(goalLines.map((line) => line.spent));
+  const status = budgetStatus(spent, assigned, true);
   const savings = {
     name: "Savings goals",
     assigned,
     spent,
-    status: budgetStatus(spent, assigned, true),
+    status,
+    available: availableBadge(assigned, spent, status),
     lines: goalLines,
   };
   return [...categoryGroups, savings];
@@ -136,3 +148,12 @@ export function selectionState(ids: string[], selected: Set<string>): SelectionS
   const all = ids.length > 0 && selectedCount === ids.length;
   return { checked: all, indeterminate: selectedCount > 0 && !all };
 }
+
+export const assignState = (toAssign: number): AssignState =>
+  toAssign < 0 ? "over" : toAssign === 0 ? "done" : "left";
+
+// What the Assign popup offers: reached goals need nothing more, and empty headings have nothing to pick
+export const assignableGroups = (groups: BudgetGroup[]): BudgetGroup[] =>
+  groups
+    .map((group) => ({ ...group, lines: group.lines.filter((line) => !line.isDone) }))
+    .filter((group) => group.lines.length > 0);

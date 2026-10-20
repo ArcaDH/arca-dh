@@ -68,43 +68,10 @@ export namespace OverviewRepository {
       .where(eq(categories.budgetPlanId, planId))
       .orderBy(categories.createdAt);
 
-    const spendingByCategory = [];
-
-    for (const cat of planCategories) {
-      // Total spent in this category this month
-      const [catSpentRow] = await db
-        .select({
-          spent: sql<string>`-COALESCE(SUM(${transactions.amount}), 0)`,
-        })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.budgetPlanId, planId),
-            eq(transactions.categoryId, cat.id),
-            eq(transactions.type, "EXPENSE"),
-            sql`${transactions.date}::text LIKE ${monthPrefix}`,
-          ),
-        );
-
-      // Subcategories with their spending and the money assigned to them this month
-      const catSubcategories = await db
-        .select({
-          id: subcategories.id,
-          name: subcategories.name,
-          target: subcategories.target,
-          assigned: subcategoryAssignments.assigned,
-        })
-        .from(subcategories)
-        .leftJoin(
-          subcategoryAssignments,
-          and(eq(subcategoryAssignments.subcategoryId, subcategories.id), eq(subcategoryAssignments.month, month)),
-        )
-        .where(eq(subcategories.categoryId, cat.id))
-        .orderBy(subcategories.createdAt);
-
-      const subcategorySpending = [];
-      for (const sub of catSubcategories) {
-        const [subSpentRow] = await db
+    const spendingByCategory = await Promise.all(
+      planCategories.map(async (cat) => {
+        // Total spent in this category this month
+        const [catSpentRow] = await db
           .select({
             spent: sql<string>`-COALESCE(SUM(${transactions.amount}), 0)`,
           })
@@ -112,29 +79,63 @@ export namespace OverviewRepository {
           .where(
             and(
               eq(transactions.budgetPlanId, planId),
-              eq(transactions.subcategoryId, sub.id),
+              eq(transactions.categoryId, cat.id),
               eq(transactions.type, "EXPENSE"),
               sql`${transactions.date}::text LIKE ${monthPrefix}`,
             ),
           );
 
-        subcategorySpending.push({
-          subcategoryId: sub.id,
-          name: sub.name,
-          assigned: sub.assigned === null ? 0 : Number.parseFloat(sub.assigned),
-          target: sub.target === null ? null : Number.parseFloat(sub.target),
-          spent: parseFloat(subSpentRow?.spent || "0"),
-        });
-      }
+        // Subcategories with their spending and the money assigned to them this month
+        const catSubcategories = await db
+          .select({
+            id: subcategories.id,
+            name: subcategories.name,
+            target: subcategories.target,
+            assigned: subcategoryAssignments.assigned,
+          })
+          .from(subcategories)
+          .leftJoin(
+            subcategoryAssignments,
+            and(eq(subcategoryAssignments.subcategoryId, subcategories.id), eq(subcategoryAssignments.month, month)),
+          )
+          .where(eq(subcategories.categoryId, cat.id))
+          .orderBy(subcategories.createdAt);
 
-      spendingByCategory.push({
-        categoryId: cat.id,
-        name: cat.name,
-        maxBudget: parseFloat(cat.maxBudget),
-        spent: parseFloat(catSpentRow?.spent || "0"),
-        subcategories: subcategorySpending,
-      });
-    }
+        const subcategorySpending = await Promise.all(
+          catSubcategories.map(async (sub) => {
+            const [subSpentRow] = await db
+              .select({
+                spent: sql<string>`-COALESCE(SUM(${transactions.amount}), 0)`,
+              })
+              .from(transactions)
+              .where(
+                and(
+                  eq(transactions.budgetPlanId, planId),
+                  eq(transactions.subcategoryId, sub.id),
+                  eq(transactions.type, "EXPENSE"),
+                  sql`${transactions.date}::text LIKE ${monthPrefix}`,
+                ),
+              );
+
+            return {
+              subcategoryId: sub.id,
+              name: sub.name,
+              assigned: sub.assigned === null ? 0 : Number.parseFloat(sub.assigned),
+              target: sub.target === null ? null : Number.parseFloat(sub.target),
+              spent: parseFloat(subSpentRow?.spent || "0"),
+            };
+          }),
+        );
+
+        return {
+          categoryId: cat.id,
+          name: cat.name,
+          maxBudget: parseFloat(cat.maxBudget),
+          spent: parseFloat(catSpentRow?.spent || "0"),
+          subcategories: subcategorySpending,
+        };
+      }),
+    );
 
     // Goal progress; all-time saved amounts, plus what was saved in the given month
     const goals = await db
@@ -143,33 +144,34 @@ export namespace OverviewRepository {
       .where(eq(savingsGoals.budgetPlanId, planId))
       .orderBy(savingsGoals.deadline, savingsGoals.name);
 
-    const goalProgress = [];
-    for (const goal of goals) {
-      const [goalSavedRow] = await db
-        .select({
-          totalSaved: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
-          savedThisMonth: sql<string>`COALESCE(SUM(${transactions.amount}) FILTER (WHERE ${transactions.date}::text LIKE ${monthPrefix}), 0)`,
-        })
-        .from(transactions)
-        .where(and(eq(transactions.savingsGoalId, goal.id), eq(transactions.type, "SAVING")));
+    const goalProgress = await Promise.all(
+      goals.map(async (goal) => {
+        const [goalSavedRow] = await db
+          .select({
+            totalSaved: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+            savedThisMonth: sql<string>`COALESCE(SUM(${transactions.amount}) FILTER (WHERE ${transactions.date}::text LIKE ${monthPrefix}), 0)`,
+          })
+          .from(transactions)
+          .where(and(eq(transactions.savingsGoalId, goal.id), eq(transactions.type, "SAVING")));
 
-      const savedAmount = parseFloat(goalSavedRow?.totalSaved || "0");
-      const savedThisMonth = parseFloat(goalSavedRow?.savedThisMonth || "0");
-      const targetAmount = parseFloat(goal.targetAmount);
-      const progress = targetAmount > 0 ? parseFloat((savedAmount / targetAmount).toFixed(4)) : 0;
+        const savedAmount = parseFloat(goalSavedRow?.totalSaved || "0");
+        const savedThisMonth = parseFloat(goalSavedRow?.savedThisMonth || "0");
+        const targetAmount = parseFloat(goal.targetAmount);
+        const progress = targetAmount > 0 ? parseFloat((savedAmount / targetAmount).toFixed(4)) : 0;
 
-      goalProgress.push({
-        goalId: goal.id,
-        name: goal.name,
-        targetAmount,
-        deadline: goal.deadline,
-        createdAt: goal.createdAt,
-        monthlyAmount: goal.monthlyAmount === null ? null : parseFloat(goal.monthlyAmount),
-        savedAmount,
-        savedThisMonth,
-        progress,
-      });
-    }
+        return {
+          goalId: goal.id,
+          name: goal.name,
+          targetAmount,
+          deadline: goal.deadline,
+          createdAt: goal.createdAt,
+          monthlyAmount: goal.monthlyAmount === null ? null : parseFloat(goal.monthlyAmount),
+          savedAmount,
+          savedThisMonth,
+          progress,
+        };
+      }),
+    );
 
     // Assemble response
     return {

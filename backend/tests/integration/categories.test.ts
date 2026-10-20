@@ -220,6 +220,24 @@ describe("CategoryHandler (categories.ts)", () => {
       expect(res.statusCode).toBe(500);
       expect(res.body).toEqual({ code: 500, message: "Internal server error" });
     });
+
+    it("should return 409 when the plan already has a category with that name", async () => {
+      vi.mocked(PlanRepository.findByIdAndUserId).mockResolvedValueOnce({ id: validPlanId } as any);
+      vi.mocked(CategoryRepository.createCategory).mockRejectedValueOnce(
+        Object.assign(new Error("duplicate key value"), { code: "23505" }),
+      );
+
+      const req = createMockRequest({
+        params: { planId: validPlanId },
+        body: { name: "Food", maxBudget: 200 },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await CategoryHandler.createCategory(req, res as any);
+      expect(res.statusCode).toBe(409);
+      expect(res.body).toEqual({ code: 409, message: "You already have a category with that name in this budget." });
+    });
   });
 
   describe("updateCategory", () => {
@@ -308,6 +326,24 @@ describe("CategoryHandler (categories.ts)", () => {
       await CategoryHandler.updateCategory(req, res as any);
       expect(res.statusCode).toBe(500);
       expect(res.body).toEqual({ code: 500, message: "Internal server error" });
+    });
+
+    it("should return 409 when renaming to a name another category in the plan has", async () => {
+      vi.mocked(CategoryRepository.findCategoryByIdAndUserId).mockResolvedValueOnce({ id: validCategoryId } as any);
+      vi.mocked(CategoryRepository.updateCategory).mockRejectedValueOnce(
+        new Error("Failed query", { cause: { code: "23505" } }),
+      );
+
+      const req = createMockRequest({
+        params: { id: validCategoryId },
+        body: { name: "Groceries", maxBudget: 350 },
+        tokenUserId: userId,
+      });
+      const res = createMockResponse();
+
+      await CategoryHandler.updateCategory(req, res as any);
+      expect(res.statusCode).toBe(409);
+      expect(res.body).toEqual({ code: 409, message: "You already have a category with that name in this budget." });
     });
   });
 

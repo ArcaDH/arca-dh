@@ -134,12 +134,16 @@ export namespace MonthlyPaymentRepository {
       .where(inArray(monthlyPaymentTags.monthlyPaymentId, paymentIds))
       .orderBy(asc(sql`lower(${tags.name})`));
 
-    for (const row of rows) {
-      const list = byPayment.get(row.paymentId) ?? [];
-      list.push({ id: row.tag.id, name: row.tag.name, color: row.tag.color });
-      byPayment.set(row.paymentId, list);
-    }
-    return byPayment;
+    // One entry per payment
+    const ids = [...new Set(rows.map((row) => row.paymentId))];
+    return new Map<string, PaymentTags>(
+      ids.map((id) => [
+        id,
+        rows
+          .filter((row) => row.paymentId === id)
+          .map((row) => ({ id: row.tag.id, name: row.tag.name, color: row.tag.color })),
+      ]),
+    );
   }
 
   /**

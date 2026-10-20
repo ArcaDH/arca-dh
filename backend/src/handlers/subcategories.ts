@@ -5,8 +5,12 @@ import { SubcategoryAssignmentService } from "../services/subcategoryAssignmentS
 import { CategoryRepository } from "../repositories/categoryRepository";
 import { PlanRepository } from "../repositories/planRepository";
 import { returnJson, returnCode, authorizeRequest, userIdFromToken } from "../services/apiService";
+import { isUniqueViolation } from "../services/dbErrors";
 import { validateSubcategoryData, validateAssignmentData } from "../validators/subcategories";
 import { isValidMonth } from "../services/monthlyDates";
+
+const duplicateName = (response: Response) =>
+  returnJson(response, 409, { code: 409, message: "This category already has a subcategory with that name." });
 
 // Shared validation for the bulk assignment endpoints. Validates auth, the month param, the
 // subcategoryIds array, and that the plan belongs to the user. Sends the error response and returns
@@ -95,6 +99,7 @@ export namespace SubcategoryHandler {
 
       return returnJson(response, 201, created);
     } catch (error) {
+      if (isUniqueViolation(error)) return duplicateName(response);
       console.error("Error in createSubcategory:", error);
       return returnJson(response, 500, { code: 500, message: "Internal server error" });
     }
@@ -126,6 +131,7 @@ export namespace SubcategoryHandler {
 
       return returnJson(response, 200, updated);
     } catch (error) {
+      if (isUniqueViolation(error)) return duplicateName(response);
       console.error("Error in updateSubcategory:", error);
       return returnJson(response, 500, { code: 500, message: "Internal server error" });
     }

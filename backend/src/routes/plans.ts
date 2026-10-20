@@ -683,6 +683,8 @@ router.route("/:planId/goals").get(SavingsGoalHandler.getGoals).post(SavingsGoal
  *         description: Invalid input data
  *       '404':
  *         description: Plan not found
+ *       '409':
+ *         description: A category with that name already exists in this budget
  *       '401':
  *         description: Unauthorized
  */

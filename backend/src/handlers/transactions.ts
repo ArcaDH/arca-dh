@@ -2,9 +2,9 @@ import { Request, Response } from "express";
 import { TransactionRepository } from "../repositories/transactionRepository";
 import { validateExistingRequest, validateRequest, validateTransactionData } from "../validators/transactions";
 import { returnJson, userIdFromToken } from "../services/apiService";
-import { MonthlyPaymentRepository } from "../repositories/monthlyPaymentRepository";
 import { MonthlyPaymentService } from "../services/monthlyPaymentService";
-import { handledThroughFor, isValidMonth, monthOf, todayOf } from "../services/monthlyDates";
+import { isValidMonth } from "../services/monthlyDates";
+import { TransactionService } from "../services/transactionService";
 import { isUuid } from "../validators/uuid";
 
 export namespace TransactionHandler {
@@ -72,31 +72,7 @@ export namespace TransactionHandler {
       const validData = await validateTransactionData(request.body, response, userIdFromToken(request) as number);
       if (!validData) return;
 
-      const { tagIds, repeatMonthly, ...fields } = validData;
-
-      if (repeatMonthly) {
-        // A repeating expense: the payment and the transaction the user logged are created together
-        const transactionId = await MonthlyPaymentRepository.createWithTransaction(
-          {
-            budgetPlanId: planId,
-            amount: fields.amount,
-            description: fields.description,
-            dayOfMonth: repeatMonthly.dayOfMonth,
-            generatedThrough: handledThroughFor(fields.date, todayOf(new Date()), repeatMonthly.dayOfMonth),
-            // An expense always has a category, the validator makes sure of it
-            categoryId: fields.categoryId as string,
-            subcategoryId: fields.subcategoryId,
-          },
-          { ...fields, budgetPlanId: planId },
-          tagIds ?? [],
-          monthOf(fields.date),
-        );
-        return returnJson(response, 201, await TransactionRepository.findFormattedById(transactionId));
-      }
-
-      const newTx = await TransactionRepository.createTransaction({ ...fields, budgetPlanId: planId }, tagIds);
-
-      return returnJson(response, 201, newTx);
+      return returnJson(response, 201, await TransactionService.createTransaction(planId, validData, new Date()));
     } catch (error) {
       console.error("Error in createTransaction:", error);
       return returnJson(response, 500, { code: 500, message: "Internal server error" });
