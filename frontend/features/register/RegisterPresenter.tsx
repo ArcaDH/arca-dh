@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useLogin, useRegister } from "@/models/useAuth";
+import { startOnboarding } from "@/models/useOnboarding";
 import type { RegisterInput } from "@/types/user";
 import RegisterView from "@/features/register/RegisterView";
 
@@ -20,8 +21,10 @@ export default function RegisterPresenter() {
 
   function handleSubmit() {
     register.mutate(form, {
-      onSuccess: () =>
-        login.mutate({ email: form.email, password: form.password }, { onSuccess: () => router.replace("/") }),
+      onSuccess: () => {
+        startOnboarding();
+        login.mutate({ email: form.email, password: form.password }, { onSuccess: () => router.replace("/welcome") });
+      },
     });
   }
 
