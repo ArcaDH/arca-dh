@@ -7,10 +7,7 @@ export namespace PlanRepository {
    * Fetch all budget plans for a specific user, with optional month filter
    */
   export async function findByUserId(userId: number, filterMonth?: string) {
-    const conditions = [eq(budgetPlans.userId, userId)];
-    if (filterMonth) {
-      conditions.push(eq(budgetPlans.month, filterMonth));
-    }
+    const conditions = [eq(budgetPlans.userId, userId), ...(filterMonth ? [eq(budgetPlans.month, filterMonth)] : [])];
     return db
       .select()
       .from(budgetPlans)

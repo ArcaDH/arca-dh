@@ -47,14 +47,14 @@ export function verifyToken(token: string, email: String = "", id: number = -1):
 }
 
 export function decodeToken(token: string): JwtPayload | undefined {
-  if (token.includes("Bearer ")) token = token.replace("Bearer ", "");
+  const rawToken = token.replace("Bearer ", "");
 
   if (!process.env.TOKEN_SECRET) throw new Error("No token secret specified");
 
   try {
-    return jwt.verify(token, process.env.TOKEN_SECRET) as JwtPayload;
-  } catch (err) {
-    console.log(err);
+    return jwt.verify(rawToken, process.env.TOKEN_SECRET) as JwtPayload;
+  } catch {
+    // An invalid or expired token is a normal case: the request is simply not authorized
     return undefined;
   }
 }

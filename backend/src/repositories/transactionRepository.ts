@@ -36,20 +36,13 @@ export namespace TransactionRepository {
     planId: string,
     filters?: { month?: string; categoryId?: string; type?: "EXPENSE" | "SAVING" },
   ) {
-    const conditions = [eq(transactions.budgetPlanId, planId)];
-
-    if (filters?.month) {
-      const monthPrefix = `${filters.month.trim()}%`;
-      conditions.push(sql`${transactions.date}::text LIKE ${monthPrefix}`);
-    }
-
-    if (filters?.categoryId) {
-      conditions.push(eq(transactions.categoryId, filters.categoryId));
-    }
-
-    if (filters?.type) {
-      conditions.push(eq(transactions.type, filters.type));
-    }
+    // Only the filters that were given narrow the list
+    const conditions = [
+      eq(transactions.budgetPlanId, planId),
+      ...(filters?.month ? [sql`${transactions.date}::text LIKE ${`${filters.month.trim()}%`}`] : []),
+      ...(filters?.categoryId ? [eq(transactions.categoryId, filters.categoryId)] : []),
+      ...(filters?.type ? [eq(transactions.type, filters.type)] : []),
+    ];
 
     const rows = await db
       .select()

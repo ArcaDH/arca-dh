@@ -30,9 +30,7 @@ export function addMonths(month: string, delta: number): string {
 
 /** Every month from `from` to `to`, both included. Empty when `from` is after `to`. */
 export function monthsBetween(from: string, to: string): string[] {
-  const months: string[] = [];
-  for (let month = from; month <= to; month = addMonths(month, 1)) months.push(month);
-  return months;
+  return from > to ? [] : [from, ...monthsBetween(addMonths(from, 1), to)];
 }
 
 // The app is for Swedish users, so "today" follows Swedish time (summer and winter time included) and not the
@@ -65,13 +63,17 @@ export function dueMonths(schedule: Schedule, today: string): string[] {
   );
 }
 
+// The first due date after today, starting the search at `month`
+const firstDueAfter = (month: string, dayOfMonth: number, today: string): string =>
+  dueDate(month, dayOfMonth) > today
+    ? dueDate(month, dayOfMonth)
+    : firstDueAfter(addMonths(month, 1), dayOfMonth, today);
+
 /** The next day a payment is due, after today. */
 export function nextChargeDate(schedule: Schedule, today: string): string {
   const current = monthOf(today);
   const first = addMonths(schedule.generatedThrough, 1);
-  let month = first > current ? first : current;
-  while (dueDate(month, schedule.dayOfMonth) <= today) month = addMonths(month, 1);
-  return dueDate(month, schedule.dayOfMonth);
+  return firstDueAfter(first > current ? first : current, schedule.dayOfMonth, today);
 }
 
 // A month is "YYYY-MM" with a real month number (01-12). Shared by every place that takes a month.
