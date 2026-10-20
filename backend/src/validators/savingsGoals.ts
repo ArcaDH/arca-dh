@@ -6,12 +6,12 @@ import { todayOf } from "../services/monthlyDates";
 const DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 export const validateRequest = validatePlanScopedRequest;
 
-// An optional field's value after parsing, or the message to answer with when it's invalid
+// Parsed field value or validation error message
 type Parsed<T> = { value: T } | { error: string };
 
 const isBlank = (value: unknown) => value === undefined || value === null || value === "";
 
-// No deadline is fine; a given one must be a future "YYYY-MM-DD" date
+// Deadline must be absent or a future YYYY-MM-DD date
 function parseDeadline(deadline: unknown, today: string): Parsed<string | null> {
   if (isBlank(deadline)) return { value: null };
   if (typeof deadline !== "string" || !DATE_REGEX.test(deadline.trim())) {
@@ -21,7 +21,7 @@ function parseDeadline(deadline: unknown, today: string): Parsed<string | null> 
   return date <= today ? { error: "Invalid input: 'deadline' must be a future date." } : { value: date };
 }
 
-// No monthly amount is fine; a given one must be a positive number
+// Monthly amount must be absent or a positive number
 function parseMonthlyAmount(monthlyAmount: unknown): Parsed<number | null> {
   if (isBlank(monthlyAmount)) return { value: null };
   const amount = typeof monthlyAmount === "number" ? monthlyAmount : parseFloat(String(monthlyAmount));
@@ -30,9 +30,7 @@ function parseMonthlyAmount(monthlyAmount: unknown): Parsed<number | null> {
     : { value: amount };
 }
 
-/**
- * Validates request data for savings goal creation
- */
+/** Validate request data for savings goal creation and update. */
 export function validateSavingsGoalData(body: any, response: Response) {
   const { name, targetAmount, deadline, monthlyAmount } = body || {};
 

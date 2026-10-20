@@ -1,19 +1,14 @@
 import { Response } from "express";
 import { returnJson } from "../services/apiService";
 
-// Parse a value that may be absent, null, or empty into a non-negative amount string, or null for "none".
-// Returns undefined when the value is present but not a valid non-negative number.
+// Parse optional non-negative amount into string, null if absent, or undefined if invalid
 function parseOptionalAmount(value: unknown): string | null | undefined {
   if (value === undefined || value === null || value === "") return null;
   const parsed = typeof value === "number" ? value : Number.parseFloat(value as string);
   return Number.isNaN(parsed) || parsed < 0 ? undefined : parsed.toString();
 }
 
-/**
- * Validates request data for subcategory creation and update.
- * A subcategory needs only a name. `target` is the optional monthly funding goal:
- * absent, null, or empty means "no target"; when given it must be a non-negative number.
- */
+/** Validate request data for subcategory creation and update. */
 export function validateSubcategoryData(body: any, response: Response) {
   const { name, target } = body || {};
 
@@ -40,10 +35,7 @@ export function validateSubcategoryData(body: any, response: Response) {
   };
 }
 
-/**
- * Validates the body for setting a subcategory's assigned money in a month.
- * Requires a non-negative `assigned` amount. The month comes from the route param.
- */
+/** Validate request body for monthly subcategory assignment. */
 export function validateAssignmentData(body: any, response: Response) {
   const parsedAssigned = parseOptionalAmount(body?.assigned);
   if (parsedAssigned === undefined || parsedAssigned === null) {

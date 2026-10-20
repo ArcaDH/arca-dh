@@ -6,9 +6,7 @@ export const validateRequest = validatePlanScopedRequest;
 
 export const validatePlanRequest = validateRequest;
 
-/**
- * Validates request data for category creation and update.
- */
+/** Validate request data for category creation and update. */
 export function validateCategoryData(body: any, response: Response) {
   const { name, maxBudget } = body || {};
 

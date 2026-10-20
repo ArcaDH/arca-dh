@@ -6,9 +6,7 @@ export const validateRequest = validatePlanScopedRequest;
 
 export const validatePlanRequest = validateRequest;
 
-/**
- * Validates request data for income source creation and update.
- */
+/** Validate request data for income source creation and update. */
 export function validateIncomeSourceData(body: any, response: Response) {
   const { name, monthlyAmount } = body || {};
 

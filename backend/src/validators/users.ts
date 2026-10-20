@@ -3,9 +3,7 @@ import { MessageCodes } from "../handlers/codes";
 import { returnCode } from "../services/apiService";
 import { UserRepository } from "../repositories/userRepository";
 
-/**
- * Validates request data for user creation
- */
+/** Validate request data for user creation. */
 export async function validateUserCreation(request: Request, response: Response): Promise<any> {
   const firstName = request.body.firstName;
   const lastName = request.body.lastName;
@@ -55,9 +53,7 @@ export async function validateUserCreation(request: Request, response: Response)
   };
 }
 
-/**
- * Validates request data for user updates
- */
+/** Validate request data for user updates. */
 export async function validateUserUpdate(request: Request, response: Response): Promise<boolean> {
   if (request.body.password && request.body.password.length > 18) {
     returnCode(response, 400, MessageCodes.USER_CREATE_INVALID_PASSWORD);

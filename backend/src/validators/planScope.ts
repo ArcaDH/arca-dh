@@ -2,10 +2,7 @@ import { authorizeRequest, returnCode, returnJson, userIdFromToken } from "../se
 import { PlanRepository } from "../repositories/planRepository";
 import { isUuid } from "./uuid";
 
-/**
- * Validates auth, planId format, and plan ownership for every request under /plans/:planId.
- * Returns planId on success, or null if the response was already sent.
- */
+/** Validate authorization and user ownership of the plan in /plans/:planId routes. */
 export async function validatePlanScopedRequest(request: any, response: any): Promise<string | null> {
   if (!authorizeRequest(request, response)) return null;
 

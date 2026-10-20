@@ -12,15 +12,11 @@ import { validatePlanScopedRequest } from "./planScope";
 
 const DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
-// Limits for the size of an amount in kronor. The sign is not part of the size: a minus means money out.
+// Amount limits in SEK (absolute value)
 const MIN_AMOUNT = 1;
 const MAX_AMOUNT = 1_000_000;
 
-/**
- * Validates the optional list of tag ids on a transaction.
- * Returns undefined when it was left out (keep the current tags), the cleaned list otherwise,
- * or null if the response was already sent.
- */
+/** Validate optional tag UUID list and user ownership. */
 async function validateTagIds(
   tagIds: unknown,
   userId: number,
@@ -56,11 +52,7 @@ async function validateTagIds(
   return unique;
 }
 
-/**
- * Validates the optional `repeatMonthly` of a new transaction: the day of the month it repeats on.
- * Only an expense with money out (a negative amount) can repeat.
- * Returns undefined when it was left out, the cleaned value otherwise, or null if the response was already sent.
- */
+/** Validate repeatMonthly parameter for recurring expenses. */
 function validateRepeatMonthly(
   repeatMonthly: unknown,
   type: string,
@@ -89,13 +81,11 @@ function validateRepeatMonthly(
   return { dayOfMonth };
 }
 
-/**
- * Validates request data for transaction creation and updates
- */
+/** Validate request data for transaction creation and update. */
 export async function validateTransactionData(body: any, response: Response, userId: number) {
   const { amount, date, description, type, categoryId, subcategoryId, savingsGoalId } = body || {};
 
-  // 1. Amount validation (must be a valid number)
+  // Amount validation
   const parsedAmount = typeof amount === "number" ? amount : parseFloat(amount);
   if (isNaN(parsedAmount) || !isFinite(parsedAmount)) {
     returnJson(response, 400, {
@@ -105,7 +95,7 @@ export async function validateTransactionData(body: any, response: Response, use
     return null;
   }
 
-  // 1b. Size limits, whatever the sign
+  // Amount range limit
   if (Math.abs(parsedAmount) < MIN_AMOUNT || Math.abs(parsedAmount) > MAX_AMOUNT) {
     returnJson(response, 400, {
       code: 400,
@@ -114,7 +104,7 @@ export async function validateTransactionData(body: any, response: Response, use
     return null;
   }
 
-  // 2. Date validation
+  // Date validation
   if (!date || typeof date !== "string" || !DATE_REGEX.test(date.trim())) {
     returnJson(response, 400, {
       code: 400,
@@ -123,7 +113,7 @@ export async function validateTransactionData(body: any, response: Response, use
     return null;
   }
 
-  // 3. Type validation
+  // Type validation
   if (!type || (type !== "EXPENSE" && type !== "SAVING")) {
     returnJson(response, 400, {
       code: 400,
@@ -132,9 +122,7 @@ export async function validateTransactionData(body: any, response: Response, use
     return null;
   }
 
-  // 4. Amount rules per type:
-  // - EXPENSE: can be positive or negative
-  // - SAVING: MUST be positive (> 0)
+  // Savings must be positive
   if (type === "SAVING" && parsedAmount <= 0) {
     returnJson(response, 400, {
       code: 400,
@@ -143,7 +131,6 @@ export async function validateTransactionData(body: any, response: Response, use
     return null;
   }
 
-  // Normalized values
   const normCategory =
     categoryId && typeof categoryId === "string" && categoryId.trim() !== "" ? categoryId.trim() : null;
   const normSubcategory =
@@ -151,7 +138,7 @@ export async function validateTransactionData(body: any, response: Response, use
   const normSavingsGoal =
     savingsGoalId && typeof savingsGoalId === "string" && savingsGoalId.trim() !== "" ? savingsGoalId.trim() : null;
 
-  // 5. Strict Type <-> Field cross-validation logic
+  // Cross-validation by transaction type
   if (type === "EXPENSE") {
     if (normSavingsGoal !== null) {
       returnJson(response, 400, {
@@ -179,7 +166,7 @@ export async function validateTransactionData(body: any, response: Response, use
       return null;
     }
 
-    // If subcategory is provided, verify it belongs to category
+    // Verify subcategory belongs to category
     if (normSubcategory !== null) {
       if (!isUuid(normSubcategory)) {
         returnJson(response, 400, {
@@ -226,11 +213,11 @@ export async function validateTransactionData(body: any, response: Response, use
     }
   }
 
-  // 6. Tags (optional)
+  // Optional tags
   const normTagIds = await validateTagIds(body?.tagIds, userId, response);
   if (normTagIds === null) return null;
 
-  // 7. Repeat monthly (optional, only when creating)
+  // Optional monthly repetition
   const normRepeat = validateRepeatMonthly(body?.repeatMonthly, type, parsedAmount, response);
   if (normRepeat === null) return null;
 

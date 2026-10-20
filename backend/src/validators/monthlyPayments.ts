@@ -5,10 +5,7 @@ import { validatePlanScopedRequest } from "./planScope";
 
 export const validateRequest = validatePlanScopedRequest;
 
-/**
- * Validates auth, the id format, and that the monthly payment belongs to the logged-in user.
- * Returns the id on success, or null if response was already sent.
- */
+/** Validate authorization and user ownership of the requested monthly payment. */
 export async function validateExistingRequest(request: any, response: any): Promise<string | null> {
   if (!authorizeRequest(request, response)) return null;
 

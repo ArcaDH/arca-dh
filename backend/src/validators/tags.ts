@@ -6,9 +6,7 @@ import { isUuid } from "./uuid";
 export const MAX_TAG_NAME_LENGTH = 30;
 export const MAX_TAGS_PER_TRANSACTION = 5;
 
-/**
- * Validates auth and returns the id of the logged-in user, or null if the response was already sent.
- */
+/** Validate authorization and return logged-in userId, or null if unauthorized. */
 export function validateRequest(request: any, response: any): number | null {
   if (!authorizeRequest(request, response)) return null;
 
@@ -21,9 +19,7 @@ export function validateRequest(request: any, response: any): number | null {
   return userId;
 }
 
-/**
- * Validates the id of a tag in the path. Returns the id, or null if the response was already sent.
- */
+/** Validate tag UUID from route parameters. */
 export function validateTagId(request: any, response: any): string | null {
   const id = request.params.id;
   if (!isUuid(id)) {
@@ -33,9 +29,7 @@ export function validateTagId(request: any, response: any): string | null {
   return id;
 }
 
-/**
- * Validates request data for tag creation.
- */
+/** Validate request data for tag creation. */
 export function validateTagData(body: any, response: Response) {
   const { name, color } = body || {};
 
