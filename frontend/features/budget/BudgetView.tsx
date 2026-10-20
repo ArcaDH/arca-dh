@@ -75,6 +75,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
   return (
     <div>
       <PageHeader aside={readyToAssign}>
+        <h1 className="text-lg font-semibold">Budget</h1>
         <MonthPicker month={month} onChange={onMonthChange} />
       </PageHeader>
 

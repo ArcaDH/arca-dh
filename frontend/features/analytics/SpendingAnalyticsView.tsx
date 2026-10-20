@@ -84,7 +84,7 @@ export const SpendingAnalyticsView: FC<SpendingAnalyticsViewProps> = ({
   return (
     <div>
       <PageHeader>
-        <h1 className="font-heading text-2xl font-semibold text-foreground">Overview</h1>
+        <h1 className="text-lg font-semibold">Overview</h1>
         <MonthPicker month={month} onChange={onMonthChange} />
       </PageHeader>
 
