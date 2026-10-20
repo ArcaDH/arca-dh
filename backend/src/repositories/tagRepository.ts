@@ -81,12 +81,11 @@ export namespace TagRepository {
       .where(inArray(transactionTags.transactionId, transactionIds))
       .orderBy(asc(sql`lower(${tags.name})`));
 
-    for (const row of rows) {
-      const list = byTransaction.get(row.transactionId) ?? [];
-      list.push(formatTag(row.tag));
-      byTransaction.set(row.transactionId, list);
-    }
-    return byTransaction;
+    // One entry per transaction, its tags kept in the query's alphabetical order
+    const ids = [...new Set(rows.map((row) => row.transactionId))];
+    return new Map(
+      ids.map((id) => [id, rows.filter((row) => row.transactionId === id).map((row) => formatTag(row.tag))]),
+    );
   }
 
   /**

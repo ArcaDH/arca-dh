@@ -2,8 +2,12 @@ import { Request, Response } from "express";
 import { UserRepository } from "../repositories/userRepository";
 import { PlanRepository } from "../repositories/planRepository";
 import { authorizeRequest, userIdFromToken, returnCode, returnJson } from "../services/apiService";
-import { isValidMonth } from "../services/monthlyDates";
+import { isValidMonth, monthOf, todayOf } from "../services/monthlyDates";
+import { PlanService } from "../services/planService";
 import { isUuid } from "../validators/uuid";
+
+const PAST_MONTH_MESSAGE =
+  "Invalid input: 'month' cannot be in the past. It must be the current month or a future month.";
 
 export namespace PlanHandler {
   /**
@@ -78,31 +82,15 @@ export namespace PlanHandler {
         });
       }
 
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      let planMonth: string;
-
-      if (
-        monthInput === null ||
-        monthInput === undefined ||
-        (typeof monthInput === "string" && monthInput.trim() === "")
-      ) {
-        planMonth = currentMonth;
-      } else {
-        if (!isValidMonth(monthInput)) {
-          return returnJson(response, 400, {
-            code: 400,
-            message: "Invalid input: 'month' must be in YYYY-MM format (e.g. 2026-10).",
-          });
-        }
-
-        planMonth = monthInput.trim();
-
-        if (planMonth < currentMonth) {
-          return returnJson(response, 400, {
-            code: 400,
-            message: "Invalid input: 'month' cannot be in the past. It must be the current month or a future month.",
-          });
-        }
+      const planMonth = PlanService.monthForNewPlan(monthInput, monthOf(todayOf(new Date())));
+      if ("error" in planMonth) {
+        return returnJson(response, 400, {
+          code: 400,
+          message:
+            planMonth.error === "invalid"
+              ? "Invalid input: 'month' must be in YYYY-MM format (e.g. 2026-10)."
+              : PAST_MONTH_MESSAGE,
+        });
       }
 
       const user = await UserRepository.findById(userId);
@@ -112,25 +100,13 @@ export namespace PlanHandler {
         return;
       }
 
-      const newPlan = await PlanRepository.createPlan({
-        name: name.trim(),
-        month: planMonth,
-        userId: userId,
-      });
-
-      let isCurrent = false;
-      if (!user.currentPlanId) {
-        await UserRepository.updateCurrentPlanId(userId, newPlan.id);
-        isCurrent = true;
-      } else {
-        isCurrent = user.currentPlanId === newPlan.id;
-      }
+      const { plan: newPlan, current } = await PlanService.createPlanForUser(user, name.trim(), planMonth.month);
 
       return returnJson(response, 201, {
         id: newPlan.id,
         name: newPlan.name,
         month: newPlan.month,
-        current: isCurrent,
+        current,
       });
     } catch (error) {
       console.error("Error in createPlan:", error);
@@ -325,25 +301,15 @@ export namespace PlanHandler {
         });
       }
 
-      let updatedMonth = plan.month;
-      if (monthInput !== undefined && monthInput !== null && monthInput !== "") {
-        if (!isValidMonth(monthInput)) {
-          return returnJson(response, 400, {
-            code: 400,
-            message: "Invalid input: 'month' must be in YYYY-MM format.",
-          });
-        }
-
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        const newMonth = monthInput.trim();
-        if (newMonth < currentMonth) {
-          return returnJson(response, 400, {
-            code: 400,
-            message: "Invalid input: 'month' cannot be in the past. It must be the current month or a future month.",
-          });
-        }
-        updatedMonth = newMonth;
+      const planMonth = PlanService.monthForUpdatedPlan(monthInput, plan.month, monthOf(todayOf(new Date())));
+      if ("error" in planMonth) {
+        return returnJson(response, 400, {
+          code: 400,
+          message:
+            planMonth.error === "invalid" ? "Invalid input: 'month' must be in YYYY-MM format." : PAST_MONTH_MESSAGE,
+        });
       }
+      const updatedMonth = planMonth.month;
 
       await PlanRepository.updatePlan(planId, { name: name.trim(), month: updatedMonth });
 
@@ -397,11 +363,7 @@ export namespace PlanHandler {
         });
       }
 
-      if (user.currentPlanId === planId) {
-        await UserRepository.updateCurrentPlanId(userId, null);
-      }
-
-      await PlanRepository.deletePlan(planId);
+      await PlanService.deletePlanForUser(user, planId);
 
       response.status(204).send();
     } catch (error) {

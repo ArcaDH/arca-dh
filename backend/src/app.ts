@@ -82,5 +82,5 @@ app.use("/monthly-payments", MonthlyPaymentRoute);
 app.use(exceptionMiddleware);
 
 app.listen(PORT, () => {
-  console.log(`WorkDeck API running on port ${PORT}`);
+  console.log(`Arca API running on port ${PORT}`);
 });
