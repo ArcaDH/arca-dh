@@ -18,6 +18,8 @@ interface BudgetViewProps {
   // The bulk-action toolbar, shown above the table when lines are selected.
   selectionToolbar: ReactNode;
   amountEdit: AmountEdit | null;
+  // The line whose assigned amount is being saved
+  savingLineId: string | null;
   // Selection of subcategory lines for bulk assign. The set holds subcategory ids.
   selectedIds: Set<string>;
   // Null when there are no subcategories to select
@@ -50,6 +52,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
   readyToAssign,
   selectionToolbar,
   amountEdit,
+  savingLineId,
   selectedIds,
   selectAll,
   categorySelections,
@@ -163,6 +166,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
                         onChange: onAmountEditChange,
                         onSave: onSaveAmount,
                         onCancel: onCancelAmountEdit,
+                        isSaving: savingLineId === line.id,
                       }}
                       // Goals are renamed and deleted on their own page
                       onRename={line.kind === "subcategory" ? () => onRenameSubcategory(line) : undefined}
