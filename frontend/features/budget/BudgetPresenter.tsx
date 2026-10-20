@@ -341,6 +341,7 @@ export const BudgetPresenter = () => {
         )
       }
       amountEdit={amountEdit}
+      savingLineId={setAssigned.isPending ? setAssigned.variables.line.id : null}
       selectionToolbar={
         validSelected.size > 0 && (
           <SelectionToolbarView

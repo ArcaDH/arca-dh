@@ -76,6 +76,7 @@ interface BudgetTableRowViewProps {
     onChange: (value: string) => void;
     onSave: () => void;
     onCancel: () => void;
+    isSaving: boolean;
   };
   onAddSubcategory?: () => void;
   onRename?: () => void;
@@ -183,7 +184,9 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
             type="button"
             onClick={amountEditing.onStart}
             aria-label={`Change what is assigned to ${name}, now ${formatWholeKr(assigned)}`}
-            className="cursor-text rounded-sm px-2 py-0.5 tabular-nums hover:bg-primary/10 hover:text-primary"
+            className={`cursor-text rounded-sm px-2 py-0.5 tabular-nums transition-opacity hover:bg-primary/10 hover:text-primary ${
+              amountEditing.isSaving ? "opacity-60" : ""
+            }`}
           >
             {formatWholeKr(assigned)}
           </button>
