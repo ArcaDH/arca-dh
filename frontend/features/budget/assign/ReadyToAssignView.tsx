@@ -48,7 +48,7 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
     .filter((group) => group.lines.length > 0);
 
   return (
-    <dl className="flex items-center gap-5 text-sm">
+    <dl className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
       <div className="flex items-baseline gap-1.5">
         <dt className="text-muted">Income</dt>
         <dd>
