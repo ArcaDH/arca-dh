@@ -2,12 +2,20 @@ import type { FC } from "react";
 import { ChevronDown, Goal, Pencil, Plus, Target, Wallet } from "lucide-react";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { formatWholeKr } from "@/lib/money";
-import type { BudgetGroup, BudgetLine } from "@/types/budget";
+import type { AssignState, BudgetGroup, BudgetLine } from "@/types/budget";
+
+const assignTone: Record<AssignState, string> = {
+  left: "bg-primary/10 text-primary hover:bg-primary/15",
+  done: "bg-success/10 text-success hover:bg-success/15",
+  over: "bg-accent/10 text-accent hover:bg-accent/15",
+};
 
 interface ReadyToAssignViewProps {
+  assignState: AssignState;
   toAssign: number;
   income: number;
   assigned: number;
+  // The groups that still have something to assign to
   groups: BudgetGroup[];
   amount: string;
   error: string | null;
@@ -22,6 +30,7 @@ interface ReadyToAssignViewProps {
 }
 
 export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
+  assignState,
   toAssign,
   income,
   assigned,
@@ -36,17 +45,6 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
   onFundAllTargets,
   onEditIncome,
 }) => {
-  const tone =
-    toAssign < 0
-      ? "bg-accent/10 text-accent hover:bg-accent/15"
-      : toAssign === 0
-        ? "bg-success/10 text-success hover:bg-success/15"
-        : "bg-primary/10 text-primary hover:bg-primary/15";
-  // Reached goals dont need anything more, and empty headings have nothing to pick
-  const filledGroups = groups
-    .map((group) => ({ ...group, lines: group.lines.filter((line) => !line.isDone) }))
-    .filter((group) => group.lines.length > 0);
-
   return (
     <dl className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
       <div className="flex items-baseline gap-1.5">
@@ -70,19 +68,19 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
       </div>
 
       <div className="flex items-center">
-        <dt className="sr-only">{toAssign < 0 ? "Over-assigned" : "Unassigned"}</dt>
+        <dt className="sr-only">{assignState === "over" ? "Over-assigned" : "Unassigned"}</dt>
         <dd>
           <Dropdown
             align="end"
-            label={`${formatWholeKr(Math.abs(toAssign))} ${toAssign < 0 ? "over-assigned" : "unassigned"}, assign money`}
-            triggerClassName={`flex items-center gap-1.5 rounded-sm px-2.5 py-1 whitespace-nowrap transition-colors ${tone}`}
+            label={`${formatWholeKr(Math.abs(toAssign))} ${assignState === "over" ? "over-assigned" : "unassigned"}, assign money`}
+            triggerClassName={`flex items-center gap-1.5 rounded-sm px-2.5 py-1 whitespace-nowrap transition-colors ${assignTone[assignState]}`}
             trigger={
               <>
-                {toAssign === 0 ? (
+                {assignState === "done" ? (
                   <span>All assigned</span>
                 ) : (
                   <>
-                    <span>{toAssign < 0 ? "Over-assigned" : "Assign"}</span>
+                    <span>{assignState === "over" ? "Over-assigned" : "Assign"}</span>
                     <span className="font-semibold tabular-nums">{formatWholeKr(Math.abs(toAssign))}</span>
                   </>
                 )}
@@ -105,12 +103,12 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
                   </button>
                 )}
 
-                {filledGroups.length === 0 && (
+                {groups.length === 0 && (
                   <p className="p-2 text-muted">
                     Add a subcategory or savings goal first, then assign money to it here.
                   </p>
                 )}
-                {filledGroups.length > 0 && (
+                {groups.length > 0 && (
                   <div>
                     <label className="flex items-center gap-3">
                       <span className="w-12 font-semibold">Assign</span>
@@ -131,7 +129,7 @@ export const ReadyToAssignView: FC<ReadyToAssignViewProps> = ({
 
                     <p className="mt-3 mb-1 font-semibold">To</p>
                     <div className="-mx-1 max-h-72 overflow-y-auto">
-                      {filledGroups.map((group) => (
+                      {groups.map((group) => (
                         <div key={group.name} role="group" aria-label={group.name}>
                           <p className="px-2 pt-2 pb-1 text-xs font-semibold text-muted">{group.name}</p>
                           {group.lines.map((line) => (

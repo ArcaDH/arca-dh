@@ -125,6 +125,7 @@ export const BudgetView: FC<BudgetViewProps> = ({
                     name={group.name}
                     assigned={group.assigned}
                     spent={group.spent}
+                    available={group.available}
                     status={group.status}
                     selection={
                       category
@@ -144,7 +145,9 @@ export const BudgetView: FC<BudgetViewProps> = ({
                       name={line.name}
                       assigned={line.assigned}
                       spent={line.spent}
-                      target={line.kind === "subcategory" ? line.target : undefined}
+                      available={line.available}
+                      funding={line.kind === "subcategory" ? line.funding : undefined}
+                      progress={line.kind === "goal" ? line.progress : undefined}
                       kind={line.kind}
                       status={line.status}
                       isDone={line.isDone}

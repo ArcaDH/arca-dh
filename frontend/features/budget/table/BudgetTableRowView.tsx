@@ -6,9 +6,8 @@ import { StatusBadge, type BadgeTone } from "@/components/ui/StatusBadge";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { MenuItem } from "@/components/ui/MenuItem";
 import { MoneyProgress, type ProgressTone } from "@/components/ui/MoneyProgress";
-import { availableBadge, spentShare, subcategoryFunding, type FundingState } from "@/lib/budget";
 import { formatWholeKr } from "@/lib/money";
-import type { BudgetLine, BudgetStatus } from "@/types/budget";
+import type { BudgetLine, BudgetStatus, FundingState, SubcategoryFunding } from "@/types/budget";
 
 const statusStyle: Record<BudgetStatus, { tone: BadgeTone; variant: "solid" | "soft" }> = {
   progress: { tone: "success", variant: "soft" },
@@ -56,8 +55,11 @@ interface BudgetTableRowViewProps {
   name: string;
   assigned: number;
   spent: number;
-  // Subcategory monthly target (null = none). Undefined for headings/goals.
-  target?: number | null;
+  available: string;
+  // A subcategory's funding bar
+  funding?: SubcategoryFunding;
+  // How full a goal's bar is, from 0 to 1
+  progress?: number;
   // A line under a heading, with an icon and a progress bar. Left out for a heading row
   kind?: BudgetLine["kind"];
   status: BudgetStatus;
@@ -84,7 +86,9 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
   name,
   assigned,
   spent,
-  target = undefined,
+  available,
+  funding,
+  progress = 0,
   kind,
   status,
   isDone = false,
@@ -95,7 +99,6 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
   onDelete,
 }) => {
   const isLine = kind !== undefined;
-  const funding = kind === "subcategory" ? subcategoryFunding(assigned, spent, target ?? null) : null;
 
   return (
     <tr className={`group border-t border-foreground/10 ${isLine ? "" : "bg-foreground/[0.025] font-medium"}`}>
@@ -139,7 +142,7 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
                 or an empty bar when there is no target yet, with the funded text on the same line. */}
             {kind === "goal" && (
               <MoneyProgress
-                value={isDone ? 1 : spentShare(spent, assigned)}
+                value={progress}
                 tone={isDone ? "success" : statusStyle[status].tone}
                 label={`${name}: ${formatWholeKr(spent)} of ${formatWholeKr(assigned)} saved`}
                 className="mt-1 w-16 sm:w-36"
@@ -196,7 +199,7 @@ export const BudgetTableRowView: FC<BudgetTableRowViewProps> = ({
           </StatusBadge>
         ) : (
           <StatusBadge tone={statusStyle[status].tone} variant={statusStyle[status].variant}>
-            {availableBadge(assigned, spent, status)}
+            {available}
           </StatusBadge>
         )}
       </td>
