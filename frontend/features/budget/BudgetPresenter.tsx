@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ApiError } from "@/api/ApiClient";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { budgetGroups, groupSubcategoryIds, selectionState } from "@/lib/budget";
+import { assignableGroups, assignState, budgetGroups, groupSubcategoryIds, selectionState } from "@/lib/budget";
 import { currentMonth } from "@/lib/format";
 import { parseKr, sumKr } from "@/lib/money";
 import {
@@ -323,10 +323,11 @@ export const BudgetPresenter = () => {
       readyToAssign={
         overview.data && (
           <ReadyToAssignView
+            assignState={assignState(toAssign)}
             toAssign={toAssign}
             income={income}
             assigned={assigned}
-            groups={groups ?? []}
+            groups={assignableGroups(groups ?? [])}
             amount={assignAmount}
             error={assignError}
             isSaving={setAssigned.isPending}
